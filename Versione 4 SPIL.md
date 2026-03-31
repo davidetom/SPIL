@@ -108,9 +108,9 @@ $$ \bigcup_{v \in V_{r}} \{ u_i \in P_{rv} \} = U \quad \forall r \in R $$
 
 ## 5. Euristiche 
 
-Un'euristica è una strategia di risoluzione dei problemi che rinuncia a cercare la soluzione matematica perfetta in cambio di una soluzione buona trovata in tempi rapidi.
+Un'euristica è una strategia di risoluzione dei problemi che rinuncia a cercare la soluzione ottima in cambio di una soluzione buona trovata in tempi rapidi.
 
-Nel nostro progetto è necessario, infatti, l'uso delle euristiche in quanto in numero di combinazioni possibili da esplorare è altissimo e non calcolabile in tempi utili; all'aumentare dei nodi sulla mappa, il tempo per trovare la soluzione perfetta cresce esponenzialmente.
+Nel nostro progetto è necessario, infatti, l'uso delle euristiche, in quanto in numero di combinazioni possibili da esplorare cresce esponenzialmente all'aumentare dei nodi sulla mappa e non è calcolabile in tempi utili.
 
 L'algoritmo che cerchiamo deve decidere proattivamente la pianificazione per l'azienda, che ha bisogno di un piano logistico pronto in poco tempo senza aspettare mesi di calcoli per risparmiare piccole somme di denaro.
 
