@@ -67,7 +67,7 @@ $$F = \min \left\{ \sum_{r \in R} \sum_{u \in U} I_{r} + \sum_{r \in R} (c_r \cd
 
 ### 3.1 Funzione di Insoddisfazione
 
-Si penalizza lo scostamento tra i ritiri programmati ($X_{r}$) e quelli desiderati ($\rho_{ru}$). La funzione di disservizio $I_{ru}$ punisce più severamente il sotto-servizio rispetto al sovra-servizio ($\alpha > \beta$).
+Si penalizza lo scostamento tra i ritiri programmati ($X_{r}$) e quelli desiderati ($\rho_{r}$). La funzione di disservizio $I_{r}$ punisce più severamente il sotto-servizio rispetto al sovra-servizio ($\alpha > \beta$).
 
 $$I_{r} = \begin{cases} \alpha \cdot (\rho_{r} - X_{r}) & \text{se } X_{r} < \rho_{r} \\ 0 & \text{se } X_{r} = \rho_{r} \\ \beta \cdot (X_{r} - \rho_{r}) & \text{se } X_{r} > \rho_{r} \end{cases}$$
 
@@ -121,7 +121,7 @@ costruisce la soluzione passo dopo passo, compiendo la scelta localmente ottimal
 Funzionamento:
 1. per ogni rifiuto $r$, si imposta inizialmente la frequenza programmata $X_r$ in modo che sia uguale alla frequenza ideale $\rho_{r}$. Questo porta immediatamente a zero la funzione di insoddisfazione $I_r$. 
 2. Si attiva un veicolo $v$ ($N_r$ = 1) e lo si fa partire dal deposito.
-3. Dal nodo corrente, l'algoritmo valuta tutti i nodi utente $u$ non ancora visitati e seleziona quello con la distanza/tempo di viaggio ($tv_ab$)
+3. Dal nodo corrente, l'algoritmo valuta tutti i nodi utente $u$ adiacenti non ancora visitati e seleziona quello con la distanza/tempo di viaggio ($tv_{ab}$) minore.
 
 ### Clarke-Wright (per routing) + Drop/Add (per esplorare curva Pareto)
 
@@ -137,26 +137,26 @@ Questa è una delle euristiche costruttive più famose e performanti per il Vehi
     
 - **Ordinamento e Fusione:** Si ordinano tutti i risparmi in modo decrescente (dal più grande al più piccolo).
     
-- **Verifica dei Vincoli:** Seguendo l'elenco dei risparmi, si uniscono progressivamente i nodi nello stesso vettore di routing Prv​. Prima di confermare l'unione, l'algoritmo deve verificare tassativamente che:
+- **Verifica dei Vincoli:** Seguendo l'elenco dei risparmi, si uniscono progressivamente i nodi nello stesso vettore di routing $P_{rv}$​. Prima di confermare l'unione, l'algoritmo deve verificare tassativamente che:
     
-    - La somma dei carichi non superi la capacità Cr​.
+    - La somma dei carichi non superi la capacità $C_r$​.
         
-    - Il tempo totale Tv​ (viaggio + tempi di carico tcru​) non superi la durata del turno L.
+    - Il tempo totale $T_v$​ (viaggio + tempi di carico $tc_{ru}$​) non superi la durata del turno L.
         
 - **Chiusura:** Se i vincoli vengono violati, l'unione viene scartata e si passa alla coppia successiva. Questo processo continua fino a quando tutti i nodi sono assegnati, garantendo naturalmente il vincolo di copertura.
 
 ### Drop/Add
 
-Mentre le altre euristiche si concentrano sul routing, questa è un'euristica di _miglioramento_ pensata esplicitamente per aggredire la tua funzione bi-obiettivo, lavorando sul compromesso tra costi aziendali e insoddisfazione Ir​.
+Mentre le altre euristiche si concentrano sul routing, questa è un'euristica di _miglioramento_ pensata esplicitamente per aggredire la tua funzione bi-obiettivo, lavorando sul compromesso tra costi aziendali e insoddisfazione $I_r$​.
 
 **Come funziona:**
 
-- **Inizializzazione a Massimo Servizio:** Si imposta la frequenza programmata Xr​ uguale alla frequenza ideale ρr​ per ogni rifiuto. Si calcola il routing con una delle euristiche precedenti. In questo momento, l'insoddisfazione per sotto-servizio è zero, ma i costi (flotta Nr​, distanza cd, lavoro ct) sono ai massimi livelli.
+- **Inizializzazione a Massimo Servizio:** Si imposta la frequenza programmata $X_r​$ uguale alla frequenza ideale ρr​ per ogni rifiuto. Si calcola il routing con una delle euristiche precedenti. In questo momento, l'insoddisfazione per sotto-servizio è zero, ma i costi (flotta $N_r$​, distanza cd, lavoro ct) sono ai massimi livelli.
     
-- **Fase di "Drop" (Taglio):** L'algoritmo prova a ridurre iterativamente di 1 la frequenza Xr​ per una specifica tipologia di rifiuto r.
+- **Fase di "Drop" (Taglio):** L'algoritmo prova a ridurre iterativamente di 1 la frequenza $X_r​$ per una specifica tipologia di rifiuto r.
     
-- **Valutazione del Trade-off:** Riducendo Xr​, l'algoritmo ricalcola l'intera funzione F. Da un lato, ci sarà un enorme risparmio sui costi operativi (cr​⋅Nr​, meno chilometri, meno ore di lavoro). Dall'altro lato, scatterà la penalità α per il sotto-servizio.
+- **Valutazione del Trade-off:** Riducendo $X_r​$​, l'algoritmo ricalcola l'intera funzione F. Da un lato, ci sarà un enorme risparmio sui costi operativi ($c_r \cdot ​N_r$​, meno chilometri, meno ore di lavoro). Dall'altro lato, scatterà la penalità α per il sotto-servizio.
     
 - **Accettazione:** Se il nuovo valore della funzione obiettivo F è _minore_ del precedente (significa che il risparmio economico supera la penalità di insoddisfazione generata), la modifica della frequenza viene accettata in modo permanente.
     
-- **Fase di "Add" (Aggiunta):** Similmente, si può testare l'aumento di Xr​ oltre ρr​ se i costi operativi sono marginali rispetto al vantaggio di evitare sovra-accumuli (penalità β). L'algoritmo si ferma quando nessuna variazione di Xr​riesce più a diminuire il valore totale di F.
+- **Fase di "Add" (Aggiunta):** Similmente, si può testare l'aumento di $X_r​$​ oltre $\rho_r$​ se i costi operativi sono marginali rispetto al vantaggio di evitare sovra-accumuli (penalità $\beta$). L'algoritmo si ferma quando nessuna variazione di $X_r​$ ​riesce più a diminuire il valore totale di F.
