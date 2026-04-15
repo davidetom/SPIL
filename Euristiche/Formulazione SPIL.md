@@ -27,7 +27,7 @@ L'algoritmo **decide proattivamente** la pianificazione settimanale (frequenze
 
 - $x^*_{ru}$: Frequenza ideale di ritiro settimanale per il rifiuto $r$.
 
-- $W_{rt_u}$:​ Quantità totale settimanale stimata di rifiuto (waste) per l'utente u e il rifiuto r.
+- $W_{rt_u}$:​ Quantità totale settimanale stimata di rifiuto (waste) per l'utente u e il rifiuto r. (per tipologia di utente $t_u$ e il rifiuto $r$).
 
 - $Q_{ru}(X_{r})$: Quantità stimata di volume di rifiuto $r$ che ci si aspetta ad ogni passaggio del camion prodotta dalla tipologia di utente $u$ $\rightarrow$ dipende dal numero di passaggi settimanali.
 
@@ -37,7 +37,7 @@ L'algoritmo **decide proattivamente** la pianificazione settimanale (frequenze
 
 - $tv_{ab}$: Tempo di viaggio dal nodo $a$ al nodo $b$.
 
-- $tc_{rt_u}$: Tempo di carico per unità (svuotamento mastelli) presso l'utente $u$ per il rifiuto $r$.
+- $tc_{rt_u}$: Tempo di carico per unità (svuotamento mastelli) presso l'utente $u$ per il rifiuto $r$. (tipologia di utente tu)
 
 - $\alpha$: Peso di penalità applicato in caso di sotto-servizio (mancato ritiro).
 
@@ -63,11 +63,52 @@ $$F = \min \left\{ \sum_{r \in R} \sum_{u \in U} I_{ru} + \sum_{r \in R} (c_r \c
 
 ==INSODDISFAZIONE== + ==COSTO FISSO==  + ==COSTO DI VIAGGIO== + ==COSTO DEL LAVORO==
 
-### 3.1 Funzione di Insoddisfazione
+### 3.1.1 Funzione di Insoddisfazione
+
+$$F = \min \left\{ ...\sum_{r \in R} \sum_{u \in U} I_{ru} + ... \right\}$$
+*Legenda*:
+ - $r \in R$: Tipologia di rifiuto: organico, carta, plastica, vetro, indifferenziata.
+ - $u \in U$:  Utente (nodo) del grafo cittadino.
 
 Si penalizza lo scostamento tra i ritiri programmati ($X_{r}$) e quelli desiderati ($x^*_{ru}$). La funzione di disservizio $I_{ru}$ punisce più severamente il sotto-servizio rispetto al sovra-servizio ($\alpha > \beta$).
 
 $$I_{ru} = \begin{cases} \alpha \cdot (x^*_{ru} - X_{r}) & \text{se } X_{r} < x^*_{ru} \\ 0 & \text{se } X_{r} = x^*_{ru} \\ \beta \cdot (X_{r} - x^*_{ru}) & \text{se } X_{r} > x^*_{ru} \end{cases}$$
+### 3.1.2 Costo Fisso
+
+$$F = \min \left\{ ...+ \sum_{r \in R} (c_r \cdot V_{r} \cdot X_{r}) + ... \right\}$$
+*Legenda*:
+ - $r \in R$: Tipologia di rifiuto: organico, carta, plastica, vetro, indifferenziata.
+ - $c_r$: Costo fisso di attivazione del veicolo adibito alla raccolta del rifiuto di tipo $r$.
+ - $V_{r} \in \mathbb{N} \rightarrow$ **Flotta attiva:** variabile intera $\ge 0$ che indica il numero totale di camion attivati per il rifiuto $r$.
+ - $X_{r} \in \mathbb{R} \rightarrow$ **Frequenza programmata:** variabile $\ge 0$ che indica il numero di ritiri totali programmati per il rifiuto $r$ (ritiri settimanali).
+
+Nella funzione obiettivo il Costo Fisso è espresso come la moltiplicazione del costo fisso del veicolo della tipologia di rifiuto r per il numero totale di camion attivati per il rifiuto r, per il numero di ritiri programmati per il rifiuto r, eseguita per ogni tipologia di rifiuto.
+
+### 3.1.3 Costo di Viaggio
+
+$$F = \min \left\{...+ \sum_{r \in R} \left( X_{r} \cdot \sum_{v \in V_{r}} \sum_{(a,b) \in P_{v}} (cd \cdot d_{ab}) \right) + ... \right\}$$
+*Legenda*:
+ - $r \in R$: Tipologia di rifiuto: organico, carta, plastica, vetro, indifferenziata.
+ - $X_{r} \in \mathbb{R} \rightarrow$ **Frequenza programmata:** variabile $\ge 0$ che indica il numero di ritiri totali programmati per il rifiuto $r$ (ritiri settimanali).
+ - $v \in V_r$: Veicolo della flotta attiva.
+ - $P_{v} \rightarrow$ **Routing:** un vettore ordinato di nodi (lista) che rappresenta la sequenza di nodi del percorso effettuato dal veicolo $v$.
+ - $cd$: Costo unitario per distanza percorsa.
+ - $d_{ab}$: Distanza di viaggio dal nodo $a$ al nodo $b$.
+
+Il Costo di Viaggio è la sommatoria per ogni rifiuto, moltiplicata per il numero di ritiri totali programmati per il rifiuto r, la sommatoria per ogni veicolo e per ogni nodo da a a b per il prodotto tra il costo unitario per la distanza percorsa e la distanza da a a b.
+
+### 3.1.4 Costo del Lavoro
+
+$$F = \min \left\{...+ \sum_{r \in R} \left( X_{r} \cdot \sum_{v \in V_{r}} cm \cdot T_{v} \right) \right\}$$
+*Legenda*:
+ - $r \in R$: Tipologia di rifiuto: organico, carta, plastica, vetro, indifferenziata.
+ - $X_{r} \in \mathbb{R} \rightarrow$ **Frequenza programmata:** variabile $\ge 0$ che indica il numero di ritiri totali programmati per il rifiuto $r$ (ritiri settimanali).
+ - $v \in V_r$: Veicolo della flotta attiva.
+ - $cm$: Costo orario della manodopera ($cm$).
+ - $t_u$ : tipologia dell'utente u: single, famiglia, palazzina piccola, palazzina grande.
+
+Il Costo del Lavoro è la sommatoria per ogni tipologia di rifiuto che moltiplica il numero di ritiri totali programmati per il rifiuto r, per la sommatoria per ogni veicolo del prodotto tra il costo orario della manodopera e la tipologia dell'utente *(non è definito T grande)*.
+
 ### 3.2 Tempo totale di attività per veicolo
 
 Il tempo di attività totale del veicolo $v$ è dato dalla somma del tempo di viaggio su tutti gli archi del routing $P_{v}$ e del tempo di carico per tutti i mastelli degli utenti del routing $P_{v}$.

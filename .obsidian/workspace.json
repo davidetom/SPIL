@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Versione 4 SPIL.md",
-                "mode": "preview",
+                "file": "Euristiche/Formulazione SPIL.md",
+                "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Versione 4 SPIL"
+              "title": "Formulazione SPIL"
             }
           }
         ]
@@ -181,5 +181,9 @@
     }
   },
   "active": "1cd377b73be72d9f",
-  "lastOpenFiles": []
+  "lastOpenFiles": [
+    "Euristiche/Pseudo-codice Greedy.md",
+    "Euristiche/Prompt Claude per Greedy.md",
+    "Euristiche/Formulazione SPIL.md"
+  ]
 }
