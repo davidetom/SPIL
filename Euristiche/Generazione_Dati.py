@@ -132,15 +132,15 @@ def generate_mock_data(n_users: int, seed: int, r_factor: float) -> dict:
     W = {(r, t): W_base[r] * type_multiplier[t]
          for r in waste_types for t in user_type_list}
 
-    x_star_base = {"organico": 3.0, "carta": 1.0, "plastica": 1.0,
+    x_star_base = {"organico": 3.0, "carta": 1.0, "plastica": 2.0,
                 "vetro": 0.5, "indifferenziata": 2.0}
     x_star_type_mult = {"single": 0.7, "famiglia": 1.0,
                         "palazzina_piccola": 1.5, "palazzina_grande": 2.0}
     x_star = {(r, t): x_star_base[r] * x_star_type_mult[t]
             for r in waste_types for t in user_type_list}
 
-    C = {"organico": 1500.0, "carta": 2000.0, "plastica": 1000.0,
-         "vetro": 3000.0, "indifferenziata": 2000.0}
+    C = {"organico": 1500.0, "carta": 1500.0, "plastica": 1000.0,
+         "vetro": 2000.0, "indifferenziata": 2000.0}
 
     tc_base     = {"organico": 1.2, "carta": 1.0, "plastica": 1.0,
                    "vetro": 1.5, "indifferenziata": 1.2}
