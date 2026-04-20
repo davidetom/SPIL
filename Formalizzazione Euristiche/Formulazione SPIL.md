@@ -25,7 +25,7 @@ L'algoritmo **decide proattivamente** la pianificazione settimanale (frequenze
 
 - $t_u$ : tipologia dell'utente u: single, famiglia, palazzina piccola, palazzina grande.
 
-- $x^*_{ru}$: Frequenza ideale di ritiro settimanale per il rifiuto $r$.
+- $x^*_{rt_u}$: Frequenza ideale di ritiro settimanale del rifiuto $r$ per la tipologia di utente $t_u$.
 
 - $W_{rt_u}$:​ Quantità totale settimanale stimata di rifiuto (waste) per l'utente u e il rifiuto r. (per tipologia di utente $t_u$ e il rifiuto $r$).
 
@@ -70,9 +70,9 @@ $$F = \min \left\{ ...\sum_{r \in R} \sum_{u \in U} I_{ru} + ... \right\}$$
  - $r \in R$: Tipologia di rifiuto: organico, carta, plastica, vetro, indifferenziata.
  - $u \in U$:  Utente (nodo) del grafo cittadino.
 
-Si penalizza lo scostamento tra i ritiri programmati ($X_{r}$) e quelli desiderati ($x^*_{ru}$). La funzione di disservizio $I_{ru}$ punisce più severamente il sotto-servizio rispetto al sovra-servizio ($\alpha > \beta$).
+Si penalizza lo scostamento tra i ritiri programmati ($X_{r}$) e quelli desiderati ($x^*_{rt_u}$). La funzione di disservizio $I_{ru}$ punisce più severamente il sotto-servizio rispetto al sovra-servizio ($\alpha > \beta$).
 
-$$I_{ru} = \begin{cases} \alpha \cdot (x^*_{ru} - X_{r}) & \text{se } X_{r} < x^*_{ru} \\ 0 & \text{se } X_{r} = x^*_{ru} \\ \beta \cdot (X_{r} - x^*_{ru}) & \text{se } X_{r} > x^*_{ru} \end{cases}$$
+$$I_{ru} = \begin{cases} \alpha \cdot (x^*_{rt_u} - X_{r}) & \text{se } X_{r} < x^*_{rt_u} \\ 0 & \text{se } X_{r} = x^*_{rt_u} \\ \beta \cdot (X_{r} - x^*_{rt_u}) & \text{se } X_{r} > x^*_{rt_u} \end{cases}$$
 ### 3.2 Costo Fisso
 
 $$F = \min \left\{ ...+ \sum_{r \in R} (c_r \cdot V_{r} \cdot X_{r}) + ... \right\}$$
