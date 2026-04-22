@@ -25,7 +25,7 @@ MAIN_PY     = 'main.py';         % path relativo a main.py
 CSV_FILE    = 'risultati_spil.csv';
 
 % Parametri passati a main.py tramite stdin (echo pipe)
-N_USERS     = 1000;
+N_USERS     = 500;
 SEED        = 42;
 R_FACTOR    = 1.2;
 SHOW_PLOT   = 'n';               % 'n' = nessun plot da Python (lo fa MATLAB)

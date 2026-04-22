@@ -1,4 +1,4 @@
-# Progetto di Ottimizzazione Bi-Obiettivo: Logistica della Raccolta Differenziata
++# Progetto di Ottimizzazione Bi-Obiettivo: Logistica della Raccolta Differenziata
 
 ## 1. Introduzione
 

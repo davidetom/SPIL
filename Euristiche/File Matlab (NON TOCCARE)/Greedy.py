@@ -45,21 +45,29 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
         Q[u]  = W[(r, t_u)] / X_r
         TC[u] = tc[(r, t_u)]
 
-    # ── 2. Funzione di costo operativo ───────────────────────────────────────
-    # Calcola il costo di percorrere cur→u e tornare al deposito u→0.
-    # Usata sia per il delta di inserimento che per il costo seed.
-    #
-    # Costo(cur, u) = cd*(dist[cur,u] + dist[u,0])
-    #               + cm*(time[cur,u] + TC[u] + time[u,0])
-    #
-    # Il costo INCREMENTALE di inserire u in coda al veicolo (che ora
-    # chiuderebbe in cur) è:
-    #
-    #   Δcost = Costo(cur, u) - Costo(cur, 0)
-    #         = Costo(cur, u) - cd*dist[cur,0] - cm*time[cur,0]
-    #
-    # Per il seed di un nuovo veicolo il punto di partenza è il deposito
-    # (cur=0), quindi il costo pieno è semplicemente Costo(0, seed).
+    # ── 2. Insoddisfazione (costante per X_r fissato) ───────────────────────
+    # Calcolata una volta sola e inclusa in f_partial dal primo passo.
+    # Essendo identica in tutti gli scenari si semplifica nel confronto,
+    # ma la includiamo per rendere ogni valutazione una vera stima della F.O.
+
+    x_star = data["x_star"]
+    alpha  = data["alpha"]
+    beta   = data["beta"]
+
+    F_insoddis = 0.0
+    for u_idx in range(n_users):
+        t_u   = user_types[u_idx]
+        xs    = x_star[(r, t_u)]
+        delta = X_r - xs
+        if delta < 0:
+            F_insoddis += alpha * (-delta)
+        elif delta > 0:
+            F_insoddis += beta * delta
+
+    # ── 3. Funzione di costo operativo ───────────────────────────────────────
+    # compute_cost(cur, u): costo marginale del tratto cur→u→deposito.
+    # Usata come costo marginale da sommare a f_partial in fase di valutazione.
+    # delta_cost(cur, u): costo incrementale netto rispetto a chiudere in cur.
 
     def compute_cost(cur: int, u: int) -> float:
         """Costo operativo del tratto cur→u→deposito (distanza + lavoro)."""
@@ -70,11 +78,11 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
         """Costo incrementale di aggiungere u in coda rispetto a chiudere ora."""
         return compute_cost(cur, u) - cd * dist[cur, 0] - cm * time_mat[cur, 0]
 
-    # ── 3. Lista ordinata per costo seed crescente ───────────────────────────
+    # ── 4. Lista ordinata per costo seed crescente ───────────────────────────
 
     sorted_users = sorted(user_nodes, key=lambda u: compute_cost(0, u))
 
-    # ── 4. Helpers sui veicoli ───────────────────────────────────────────────
+    # ── 5. Helpers sui veicoli ───────────────────────────────────────────────
 
     def check_and_insert(veh: dict, u: int) -> tuple[bool, float]:
         """
@@ -115,7 +123,7 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
             "time":  veh["time_no_ret"] + time_mat[veh["current"], 0],
         })
 
-    # ── 5. Guard clause: filtra utenti inattuabili da soli ───────────────────
+    # ── 6. Guard clause: filtra utenti inattuabili da soli ───────────────────
 
     open_vehicles = []
     closed_routes = []
@@ -133,12 +141,20 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
         print(f"  [WARN] nessun utente fattibile per '{r}', X_r={X_r}")
         return {"routes": [], "n_vehicles": 0, "loads": [], "times": []}
 
+    # f_partial: F.O. parziale accumulata fino al passo corrente.
+    # Include F_insoddis (costante) e il costo fisso di ogni veicolo aperto
+    # (c_fixed_r * X_r per veicolo). Cresce a ogni apertura di un nuovo veicolo.
+    # I costi marginali operativi (viaggio + lavoro) vengono sommati a f_partial
+    # in fase di valutazione di ogni mossa, non qui.
+    f_partial = F_insoddis
+
     # Apri il primo veicolo col seed più economico
     first_seed = feasible_seeds[0]
     unassigned.discard(first_seed)
     open_vehicles.append(open_new_vehicle(first_seed))
+    f_partial += c_fixed_r * X_r   # costo fisso del primo veicolo
 
-    # ── 6. Greedy competitivo ────────────────────────────────────────────────
+    # ── 7. Greedy competitivo ────────────────────────────────────────────────
 
     while unassigned:
 
@@ -146,16 +162,22 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
         best_option_cost = float("inf")
 
         # ── Step A: miglior inserimento per ogni veicolo aperto ──────────────
+        # Per ogni veicolo troviamo il nodo u che minimizza:
+        #   f_partial + delta_cost(cur, u)
+        # f_partial è costante nel confronto tra candidati dello stesso veicolo,
+        # ma la sommiamo esplicitamente per valutare la F.O. parziale completa.
         still_open = []
         for idx, veh in enumerate(open_vehicles):
             best_u    = None
             best_cost = float("inf")
 
             for u in unassigned:
-                feasible, cost = check_and_insert(veh, u)
-                if feasible and cost < best_cost:
-                    best_cost = cost
-                    best_u    = u
+                feasible, dc = check_and_insert(veh, u)
+                if feasible:
+                    fo = f_partial + dc   # F.O. parziale completa per questa mossa
+                    if fo < best_cost:
+                        best_cost = fo
+                        best_u    = u
 
             if best_u is None:
                 # Nessun utente entra: chiudi definitivamente
@@ -168,13 +190,15 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
 
         open_vehicles = [open_vehicles[i] for i in still_open]
 
-        # ── Step B: costo apertura nuovo veicolo ─────────────────────────────
+        # ── Step B: F.O. parziale apertura nuovo veicolo ─────────────────────
+        # Ipotesi NEW: f_partial + c_fixed_r * X_r (costo fisso nuovo veicolo)
+        #             + compute_cost(0, seed) (costo operativo del primo tratto).
         next_seed = next((u for u in feasible_seeds if u in unassigned), None)
 
         if next_seed is not None:
-            cost_new = c_fixed_r + compute_cost(0, next_seed)
-            if cost_new < best_option_cost:
-                best_option_cost = cost_new
+            fo_new = f_partial + c_fixed_r * X_r + compute_cost(0, next_seed)
+            if fo_new < best_option_cost:
+                best_option_cost = fo_new
                 best_option      = ("new", None, next_seed)
 
         # ── Guard: nessuna mossa disponibile ─────────────────────────────────
@@ -182,17 +206,28 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
             print(f"  [WARN] utenti rimasti non assegnabili per '{r}': {unassigned}")
             break
 
-        # ── Step C: applica la mossa scelta ──────────────────────────────────
+        # ── Step C: applica la mossa scelta e aggiorna f_partial ─────────────
+        # f_partial viene aggiornato con il costo del tratto appena percorso,
+        # ESCLUSO il ritorno al deposito (già incluso nella valutazione tramite
+        # compute_cost/delta_cost, non va salvato per evitare doppio conteggio).
         action, veh_idx, chosen_u = best_option
 
         if action == "insert":
+            cur = open_vehicles[veh_idx]["current"]   # nodo corrente prima dell'inserimento
             apply_insert(open_vehicles[veh_idx], chosen_u)
+            # Aggiorna f_partial con il tratto cur→chosen_u (senza ritorno deposito)
+            f_partial += cd * dist[cur, chosen_u] + cm * (time_mat[cur, chosen_u] + TC[chosen_u])
         else:
             open_vehicles.append(open_new_vehicle(chosen_u))
+            # Aggiorna f_partial con: costo fisso nuovo veicolo
+            #                       + tratto deposito→seed (senza ritorno deposito)
+            f_partial += (c_fixed_r * X_r
+                          + cd * dist[0, chosen_u]
+                          + cm * (time_mat[0, chosen_u] + TC[chosen_u]))
 
         unassigned.discard(chosen_u)
 
-    # ── 7. Chiudi tutti i veicoli ancora aperti ──────────────────────────────
+    # ── 8. Chiudi tutti i veicoli ancora aperti ──────────────────────────────
     for veh in open_vehicles:
         close_vehicle(veh)
 
