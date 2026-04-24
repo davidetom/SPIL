@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.sparse.csgraph import floyd_warshall
+from scipy.sparse.csgraph import dijkstra
 from scipy.sparse import csr_matrix
 from scipy.spatial import KDTree
 from scipy.spatial import Delaunay
@@ -23,29 +23,21 @@ def generate_mock_data(n_users: int, seed: int, r_factor: float) -> dict:
     coords  = rng.uniform(0, 10, size=(n_nodes, 2))
     coords[0] = [5.0, 5.0]
 
-    # ── Costruzione grafo planare con Delaunay ────────────────────
+    # ── Costruzione grafo planare con Delaunay ────────────────────────────────
 
-    # Matrice dei pesi euclidei (distanze reali tra ogni coppia)
-    full_dist = np.zeros((n_nodes, n_nodes))
-    for i in range(n_nodes):
-        for j in range(n_nodes):
-            full_dist[i, j] = np.linalg.norm(coords[i] - coords[j])
+    # 1. Distanze euclidee — broadcasting NumPy, O(N²) vettorizzato.
+    #    Evita il doppio loop Python della versione precedente.
+    delta     = coords[:, np.newaxis, :] - coords[np.newaxis, :, :]
+    full_dist = np.sqrt((delta ** 2).sum(axis=2))   # shape (n_nodes, n_nodes)
 
-    # ── Parametro configurabile ───────────────────────────────────
-    # r_factor è il moltiplicatore della distanza media tra vicini Delaunay.
-    #     1.0 = solo archi nella media,  rete sparsa
-    #     1.5 = archi fino al 50% sopra la media
-    #     2.0 = rete più densa
-    #     np.inf = tutti gli archi Delaunay
-
-    # 1. Triangolazione di Delaunay sui coords
-    #    Garantisce planarità: nessun arco si interseca mai.
-    #    Garantisce connessione: il grafo risultante è sempre connesso.
+    # 2. Triangolazione di Delaunay + filtraggio con soglia adattiva R.
+    #    r_factor moltiplica la distanza media degli archi Delaunay:
+    #      1.0 = solo archi nella media (rete sparsa)
+    #      1.5 = archi fino al 50% sopra la media
+    #      2.0 = rete più densa
+    #      np.inf = tutti gli archi Delaunay
     tri = Delaunay(coords)
 
-    edges = set()
-
-    # Calcola distanza media degli archi Delaunay (prima del filtraggio)
     all_delaunay_edges = set()
     for simplex in tri.simplices:
         for k in range(3):
@@ -54,21 +46,16 @@ def generate_mock_data(n_users: int, seed: int, r_factor: float) -> dict:
             all_delaunay_edges.add((min(i, j), max(i, j)))
 
     mean_edge_dist = np.mean([full_dist[i, j] for (i, j) in all_delaunay_edges])
-    R = r_factor * mean_edge_dist   # soglia adattiva
+    R = r_factor * mean_edge_dist
 
-    # Ora filtra con R adattivo
-    edges = set()
-    for simplex in tri.simplices:
-        for k in range(3):
-            i = int(simplex[k])
-            j = int(simplex[(k + 1) % 3])
-            canonical = (min(i, j), max(i, j))
-            if full_dist[i, j] <= R:
-                edges.add(canonical)
+    edges = {
+        (i, j)
+        for (i, j) in all_delaunay_edges
+        if full_dist[i, j] <= R
+    }
 
-    # 2. Verifica connessione e ripristino con spanning tree se necessario
-    #    (può servire se R è molto basso e taglia troppi archi)
-    #    Usiamo union-find per efficienza su grafi grandi
+    # 3. Verifica connessione con Union-Find; ripristino con spanning tree
+    #    se il filtraggio per R ha spezzato il grafo in componenti separate.
     parent = list(range(n_nodes))
 
     def find(x):
@@ -83,38 +70,63 @@ def generate_mock_data(n_users: int, seed: int, r_factor: float) -> dict:
     for (i, j) in edges:
         union(i, j)
 
-    # Controlla se ci sono componenti disconnesse
-    roots = {find(i) for i in range(n_nodes)}
-    if len(roots) > 1:
-        # Ripristina connessione aggiungendo l'arco più corto
-        # tra nodi di componenti diverse (greedy spanning tree)
-        node_order = list(rng.permutation(n_nodes))
-        in_tree = {node_order[0]}
-        while len(in_tree) < n_nodes:
-            candidates = [
-                (full_dist[i, j], i, j)
-                for i in in_tree
-                for j in range(n_nodes)
-                if j not in in_tree
-            ]
-            _, i, j = min(candidates)       # arco più corto → meno innaturale
+    if len({find(i) for i in range(n_nodes)}) > 1:
+        print("  [INFO] Grafo disconnesso, ripristino con Minimum Spanning Tree (SciPy)...")
+        from scipy.sparse.csgraph import minimum_spanning_tree
+        
+        # Calcola l'MST sull'intera matrice delle distanze usando il backend C
+        mst = minimum_spanning_tree(full_dist)
+        mst_coo = mst.tocoo()
+        
+        # Aggiunge gli archi dell'MST al nostro set di archi
+        for i, j in zip(mst_coo.row, mst_coo.col):
             edges.add((min(i, j), max(i, j)))
-            in_tree.add(j)
 
-    # 3. Costruisce matrice di adiacenza pesata (distanza euclidea)
-    #    Celle senza arco → inf
+    # 4. Costruzione CSR sparsa — direttamente dal set `edges`.
+    #
+    #    Perché NON usare np.full(..., np.inf) + csr_matrix():
+    #      csr_matrix storifica np.inf come valori espliciti, producendo
+    #      una matrice "sparsa" con N² elementi non-zero — stessa memoria
+    #      e stesso costo computazionale di una matrice densa.
+    #
+    #    Costruendo da (rows, cols, data_vals) inseriamo solo le ~3N coppie
+    #    con arco reale; le celle assenti restano implicitamente a 0, che
+    #    Dijkstra interpreta correttamente come assenza di arco.
+    #    Ogni arco (i,j) indiretto produce due entry simmetriche.
+    rows, cols, data_vals = [], [], []
+    for (i, j) in edges:
+        d = full_dist[i, j]
+        rows.extend([i, j])
+        cols.extend([j, i])
+        data_vals.extend([d, d])
+
+    graph_csr = csr_matrix(
+        (data_vals, (rows, cols)),
+        shape=(n_nodes, n_nodes),
+    )
+
+    # 5. Dijkstra multi-sorgente su grafo sparso.
+    #
+    #    Complessità: O(N · (E + N) log N)
+    #    Su grafo planare E ≈ 3N  →  effettivamente O(N² log N)
+    #    vs O(N³) di Floyd-Warshall — vantaggio crescente con N.
+    #
+    #    directed=False: scipy tratta il grafo come simmetrico senza
+    #    dover duplicare manualmente gli archi nella logica di visita.
+    dist_matrix = dijkstra(graph_csr, directed=False)
+
+    # 6. Matrice dei tempi: derivata da dist_matrix (invariata rispetto prima).
+    speed_km_per_min = 25.0 / 60.0
+    time_matrix      = dist_matrix / speed_km_per_min
+
+    # 7. Ricostruzione di adj_matrix densa per compatibilità con il resto
+    #    del codice (Greedy.py e plot_graph la usano come riferimento).
+    #    Le celle senza arco restano a np.inf, come prima.
     adj = np.full((n_nodes, n_nodes), np.inf)
     np.fill_diagonal(adj, 0.0)
     for (i, j) in edges:
         adj[i, j] = full_dist[i, j]
-        adj[j, i] = full_dist[i, j]    # grafo indiretto → simmetrica
-
-    # 4. Floyd-Warshall → distanza minima tra ogni coppia
-    dist_matrix = floyd_warshall(csr_matrix(adj), directed=False)
-
-    # 5. Matrice dei tempi (velocità media 25 km/h → km/min)
-    speed_km_per_min = 25.0 / 60.0
-    time_matrix = dist_matrix / speed_km_per_min
+        adj[j, i] = full_dist[i, j]
 
     # ── Resto invariato dal Modulo 1 v2 ──────────────────────────
     user_type_list = ["single", "famiglia", "palazzina_piccola", "palazzina_grande"]
