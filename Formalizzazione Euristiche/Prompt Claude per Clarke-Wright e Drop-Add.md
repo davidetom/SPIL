@@ -26,7 +26,7 @@
 > 
 > Procederemo in modo strettamente modulare. Per ogni modulo, spiegami la logica, proponimi il codice e aspetta il mio via libera.
 > 
-> - **Modulo 5: Ottimizzazione `Generazione_Dati.py` esistente.** Non scriverlo da zero. Analizza il codice che ti fornirò e proponi ottimizzazioni mirate (es. type hinting, pulizia, assicurarsi che le matrici uscenti siano `numpy arrays` compatibili con la futura vettorizzazione di CW), mantenendo intatta la logica Delaunay/Floyd-Warshall.
+> - **Modulo 5: Ottimizzazione `Generazione_Dati.py` esistente.** Non scriverlo da zero. Analizza il codice che ti fornirò e proponi ottimizzazioni mirate (es. type hinting, pulizia, assicurarsi che le matrici uscenti siano `numpy arrays` compatibili con la futura vettorizzazione di CW), mantenendo intatta la logica Delaunay/Dijkstra.
 >     
 > - **Modulo 6: Core Clarke-Wright (`CW.py`).** Vettorizzazione della matrice Savings, ordinamento $O(N \log N)$, e ciclo di unione con strutture dati $O(1)$. Deve esporre una funzione `grid_search` con la stessa firma di quella del file `Greedy.py` esistente.
 >     
