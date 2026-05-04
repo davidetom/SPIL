@@ -8,6 +8,47 @@ from typing import Callable
 
 from Generazione_Dati import generate_mock_data, plot_graph
 
+import os
+import math
+import psutil
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Calcolo dei worker ottimali per la parallelizzazione (No saturazione RAM)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def calcola_worker_ottimali(n_users: int) -> int:
+    """
+    Calcola dinamicamente i worker in base all'hardware reale della macchina.
+    """
+    # 1. Lettura dinamica dell'hardware
+    ram_totale_bytes = psutil.virtual_memory().total
+    ram_totale_gb = ram_totale_bytes / (1024 ** 3)
+    
+    # core fisici reali (su Apple Silicon di solito coincidono coi logici, ma su Intel/AMD no)
+    cpu_cores_fisici = psutil.cpu_count(logical=False) or os.cpu_count() or 4
+    
+    # 2. RAM Sicura (Lasciamo al SO il 20% della RAM totale, o un minimo di 4 GB)
+    margine_os = max(4.0, ram_totale_gb * 0.20)
+    ram_sicura_gb = ram_totale_gb - margine_os
+    
+    # 3. Stima consumo per Worker (basato su float32)
+    byte_per_worker = 16.0 * (n_users ** 2)
+    gb_per_worker = max(byte_per_worker / (1024 ** 3), 0.1) 
+    
+    # 4. Calcolo limiti incrociati
+    workers_by_ram = math.floor(ram_sicura_gb / gb_per_worker)
+    workers_by_cpu = max(1, cpu_cores_fisici - 1) # Lasciamo 1 core libero
+    
+    # 5. Collo di bottiglia
+    optimal_workers = max(1, min(workers_by_ram, workers_by_cpu))
+    
+    # Stampa di debug utilissima per capire cosa sta facendo il PC
+    # print(f"  [Hardware] RAM: {ram_totale_gb:.1f} GB | Core: {cpu_cores_fisici}")
+    # print(f"  [Allocazione] Worker: {optimal_workers} (Max RAM/worker: {gb_per_worker:.2f} GB)")
+    
+    return optimal_workers
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Costanti configurabili
 # ──────────────────────────────────────────────────────────────────────────────
@@ -265,13 +306,26 @@ def main() -> None:
     results_by_algo: dict[str, dict[str, dict]] = {}
     times_by_algo:   dict[str, float]           = {}
 
+    # Calcoliamo i worker ottimali una volta sola (vale per tutta la sessione)
+    n_workers_safe = calcola_worker_ottimali(data["n_users"])
+
     if scelta in ("g", ""):
-        res, elapsed = _run_algo("greedy", greedy_grid_search, data, waste_types)
+        res, elapsed = _run_algo(
+            "greedy", 
+            lambda d, r, x: greedy_grid_search(d, r, x, max_workers=n_workers_safe), 
+            data, 
+            waste_types
+        )
         results_by_algo["greedy"] = res
         times_by_algo["greedy"]   = elapsed
 
     if scelta in ("c", ""):
-        res, elapsed = _run_algo("clarke_wright", cw_grid_search, data, waste_types)
+        res, elapsed = _run_algo(
+            "clarke_wright", 
+            lambda d, r, x: cw_grid_search(d, r, x, max_workers=n_workers_safe), 
+            data, 
+            waste_types
+        )
         results_by_algo["clarke_wright"] = res
         times_by_algo["clarke_wright"]   = elapsed
 

@@ -18,19 +18,19 @@ def _make_numpy_views(data: dict, r: str, X_r: float):
     tc = data["tc"]
 
     if isinstance(dist, np.ndarray):
-        dist_np = dist.astype(np.float64)
-        time_np = time_mat.astype(np.float64)
+        dist_np = dist.astype(np.float32)
+        time_np = time_mat.astype(np.float32)
     else:
         size = n + 1
-        dist_np = np.zeros((size, size), dtype=np.float64)
-        time_np = np.zeros((size, size), dtype=np.float64)
+        dist_np = np.zeros((size, size), dtype=np.float32)
+        time_np = np.zeros((size, size), dtype=np.float32)
         for (i, j), v in dist.items():
             dist_np[i, j] = v
         for (i, j), v in time_mat.items():
             time_np[i, j] = v
 
-    Q_arr = np.zeros(n + 1, dtype=np.float64)
-    TC_arr = np.zeros(n + 1, dtype=np.float64)
+    Q_arr = np.zeros(n + 1, dtype=np.float32)
+    TC_arr = np.zeros(n + 1, dtype=np.float32)
 
     for u in range(1, n + 1):
         t_u = user_types[u - 1]
@@ -266,7 +266,7 @@ def compute_objective(data: dict, r: str, X_r: float, routes_result: dict) -> di
     times = routes_result["times"]
 
     if isinstance(data["dist_matrix"], np.ndarray):
-        dist_np = data["dist_matrix"].astype(np.float64)
+        dist_np = data["dist_matrix"].astype(np.float32)
     else:
         size = n_users + 1
         dist_np = np.zeros((size, size))

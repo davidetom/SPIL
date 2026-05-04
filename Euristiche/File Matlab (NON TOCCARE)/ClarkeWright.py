@@ -24,15 +24,15 @@ def _make_numpy_views(
                                               indice 0 = deposito → 0
     """
     n       = data["n_users"]
-    dist_np = data["dist_matrix"].astype(np.float64)
-    time_np = data["time_matrix"].astype(np.float64)
+    dist_np = data["dist_matrix"].astype(np.float32)
+    time_np = data["time_matrix"].astype(np.float32)
 
     user_types = data["user_types"]   # ndarray dtype=object dopo M5
     W          = data["W"]
     tc         = data["tc"]
 
-    Q_arr  = np.zeros(n + 1, dtype=np.float64)
-    TC_arr = np.zeros(n + 1, dtype=np.float64)
+    Q_arr  = np.zeros(n + 1, dtype=np.float32)
+    TC_arr = np.zeros(n + 1, dtype=np.float32)
 
     for u in range(1, n + 1):
         t_u       = user_types[u - 1]
@@ -302,7 +302,7 @@ def compute_objective(data: dict, r: str, X_r: float, routes_result: dict) -> di
     routes     = routes_result["routes"]
     times      = routes_result["times"]
 
-    dist_np = data["dist_matrix"].astype(np.float64)
+    dist_np = data["dist_matrix"].astype(np.float32)
 
     # Insoddisfazione
     F_insoddis = 0.0
