@@ -1,1 +1,10 @@
-Euristiche/.DS_Store
+# Ignora i file di sistema di macOS
+.DS_Store
+**/.DS_Store
+
+# Ignora la cache compilata di Python
+__pycache__/
+*.pyc
+
+# Ignora tutti i file di risultati CSV
+*.csv
