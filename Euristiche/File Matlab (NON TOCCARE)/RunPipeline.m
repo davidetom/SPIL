@@ -22,16 +22,20 @@ clear; clc; close all;
 
 PYTHON_EXE  = '/opt/anaconda3/bin/python3';
 MAIN_PY     = 'main.py';         % path relativo a main.py
-CSV_FILE    = 'risultati_spil.csv';
 
 % Parametri passati a main.py tramite stdin (echo pipe)
-N_USERS     = 5000;
+N_USERS     = 500;
 SEED        = 42;
 R_FACTOR    = 1.2;
-SHOW_PLOT   = 'n';               % 'n' = nessun plot da Python (lo fa MATLAB)
+SHOW_PLOT   = 'n';
+CHOOSEN_ALG = '';
 
 % Timeout massimo attesa CSV (secondi)
 TIMEOUT_SEC = 120;
+
+% Cartella di output e file
+OUT_DIR = "risultati_csv";
+CSV_FILE = fullfile(OUT_DIR, "risultati_" + string(N_USERS) + "_utenti.csv");
 
 % ── 1. Costruzione comando shell ──────────────────────────────────────────
 %
@@ -42,12 +46,12 @@ TIMEOUT_SEC = 120;
 % Rileviamo il sistema operativo automaticamente.
 
 if ispc   % Windows
-    inputs_str = sprintf('echo %d & echo %d & echo %.1f & echo %s', ...
-                         N_USERS, SEED, R_FACTOR, SHOW_PLOT);
+    inputs_str = sprintf('echo %d & echo %d & echo %.1f & echo %s & echo %s', ...
+                         N_USERS, SEED, R_FACTOR, SHOW_PLOT, CHOOSEN_ALG);
     cmd = sprintf('%s | %s %s', inputs_str, PYTHON_EXE, MAIN_PY);
 else      % Mac / Linux
-    inputs_str = sprintf("printf '%d\\n%d\\n%.1f\\n%s\\n'", ...
-                         N_USERS, SEED, R_FACTOR, SHOW_PLOT);
+    inputs_str = sprintf("printf '%d\\n%d\\n%.1f\\n%s\\n%s\\n'", ...
+                         N_USERS, SEED, R_FACTOR, SHOW_PLOT, CHOOSEN_ALG);
     cmd = sprintf('%s | %s %s', inputs_str, PYTHON_EXE, MAIN_PY);
 end
 

@@ -54,7 +54,6 @@ def calcola_worker_ottimali(n_users: int) -> int:
 # ──────────────────────────────────────────────────────────────────────────────
 
 X_VALUES = [x / 2 for x in range(1, 13)]   # [0.5, 1.0, 1.5, ..., 6.0]
-CSV_PATH = Path("risultati_spil.csv")
 
 # Colonna "greedy_time_sec" rinominata in "algo_time_sec" per generalità.
 # La colonna "algoritmo" identifica chi ha generato ogni riga.
@@ -275,6 +274,16 @@ def main() -> None:
     seed     = _ask("Seed casuale       (default  42) : ",  42,  int)
     r_factor = _ask("Fattore raggio     (default 1.2) : ", 1.2,  float)
 
+    # ── CSV path dinamico ─────────────────────────────────────────────────────
+    cartella_out = Path("risultati_csv")
+    cartella_out.mkdir(parents=True, exist_ok=True) # Crea la cartella se non c'è
+    
+    csv_path = cartella_out / f"risultati_{n_users}_utenti.csv"
+    if csv_path.exists():
+        print(f"\n  [INFO] File '{csv_path}' già esistente — verrà sovrascritto.")
+    else:
+        print(f"\n  [INFO] Nuovo file CSV: '{csv_path}'")
+
     # ── 2. Generazione dati (NON inclusa nel timer) ───────────────────────────
     print("\nGenerazione mappa e dati in corso...")
     data = generate_mock_data(n_users=n_users, seed=seed, r_factor=r_factor)
@@ -344,7 +353,7 @@ def main() -> None:
         _stampa_separatore("-")
 
     # ── 7. Export CSV ─────────────────────────────────────────────────────────
-    _export_csv(waste_types, results_by_algo, times_by_algo, CSV_PATH)
+    _export_csv(waste_types, results_by_algo, times_by_algo, csv_path)
 
 
 if __name__ == "__main__":
