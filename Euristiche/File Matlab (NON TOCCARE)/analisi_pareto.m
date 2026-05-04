@@ -25,16 +25,8 @@ stack_esecutivo = dbstack;
 is_standalone = (length(stack_esecutivo) == 1);
 
 % Chiedi il file SE è lanciato da solo, OPPURE se la variabile in memoria non esiste
-% Chiedi il file SE è lanciato da solo, OPPURE se la variabile in memoria non esiste
 if is_standalone || ~exist('CSV_FILE', 'var') || isempty(CSV_FILE)
-    
-    % Se la cartella esiste, apri il prompt direttamente lì dentro
-    start_path = '*.csv';
-    if exist('risultati_csv', 'dir')
-        start_path = fullfile('risultati_csv', '*.csv');
-    end
-    
-    [fname, fpath] = uigetfile(start_path, 'Seleziona il CSV della run');
+    [fname, fpath] = uigetfile('*.csv', 'Seleziona il CSV della run');
     if isequal(fname, 0)
         error('Nessun file selezionato. Script interrotto.');
     end

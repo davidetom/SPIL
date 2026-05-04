@@ -24,7 +24,7 @@ PYTHON_EXE  = '/opt/anaconda3/bin/python3';
 MAIN_PY     = 'main.py';         % path relativo a main.py
 
 % Parametri passati a main.py tramite stdin (echo pipe)
-N_USERS     = 500;
+N_USERS     = 1000;
 SEED        = 42;
 R_FACTOR    = 1.2;
 SHOW_PLOT   = 'n';
