@@ -28,7 +28,7 @@ N_USERS     = 1000;
 SEED        = 42;
 R_FACTOR    = 1.2;
 SHOW_PLOT   = 'n';
-CHOOSEN_ALG = '';
+CHOOSEN_ALG = 'g';
 
 % Timeout massimo attesa CSV (secondi)
 TIMEOUT_SEC = 120;

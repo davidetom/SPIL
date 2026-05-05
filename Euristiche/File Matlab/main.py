@@ -261,6 +261,96 @@ def _run_algo(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Stampa comparativa Greedy vs Clarke-Wright
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _stampa_comparativa(
+    waste_types: list[str],
+    results_by_algo: dict[str, dict[str, dict]],
+    times_by_algo: dict[str, float],
+) -> None:
+    """Stampa due tabelle comparative (F_total e F_costi) + tempi di esecuzione."""
+
+    COL = 12
+
+    def _estrai(gs: dict, chiave: str) -> float:
+        """Legge una voce da best_F, restituisce nan se mancante."""
+        return gs["best_F"][chiave] if gs["best_F"] else float("nan")
+
+    def _tabella(titolo: str, righe: list[tuple[str, float, float]]) -> None:
+        """Stampa una singola tabella comparativa con totale.
+
+        Parameters
+        ----------
+        titolo:
+            Intestazione della tabella (es. 'F_Total', 'F Costi').
+        righe:
+            Lista di (etichetta, valore_greedy, valore_cw) per ogni rifiuto.
+        """
+        print(f"\n  ── {titolo} {'─' * (45 - len(titolo))}")
+        print(f"  {'Rifiuto':<18}  {'Greedy':>{COL}}  {'CW':>{COL}}  "
+              f"{'Risparmio CW':>{COL}}  {'%':>6}")
+        print(f"  {'-'*18}  {'-'*COL}  {'-'*COL}  {'-'*COL}  {'-'*6}")
+
+        tot_g = tot_cw = 0.0
+        for label, f_g, f_cw in righe:
+            delta = f_g - f_cw          # positivo = CW risparmia
+            pct   = delta / f_g * 100 if f_g else float("nan")
+            print(f"  {label:<18}  {f_g:{COL}.2f}  {f_cw:{COL}.2f}  "
+                  f"{delta:+{COL}.2f}  {pct:>+5.1f}%")
+            if f_g == f_g:   # esclude nan dall'accumulo
+                tot_g  += f_g
+                tot_cw += f_cw
+
+        delta_tot = tot_g - tot_cw
+        pct_tot   = delta_tot / tot_g * 100 if tot_g else float("nan")
+        print(f"  {'-'*18}  {'-'*COL}  {'-'*COL}  {'-'*COL}  {'-'*6}")
+        print(f"  {'TOTALE':<18}  {tot_g:{COL}.2f}  {tot_cw:{COL}.2f}  "
+              f"{delta_tot:+{COL}.2f}  {pct_tot:>+5.1f}%")
+
+    # ── Raccolta dati per entrambe le tabelle ─────────────────────────────────
+
+    righe_ftotal: list[tuple[str, float, float]] = []
+    righe_fcosti: list[tuple[str, float, float]] = []
+
+    for r in waste_types:
+        gs_g  = results_by_algo["greedy"][r]
+        gs_cw = results_by_algo["clarke_wright"][r]
+
+        f_g_total  = _estrai(gs_g,  "F_total")
+        f_cw_total = _estrai(gs_cw, "F_total")
+        righe_ftotal.append((r, f_g_total, f_cw_total))
+
+        # F_costi = costo fisso + costo viaggio + costo lavoro (esclude insoddisfazione)
+        f_g_costi  = (_estrai(gs_g,  "F_costo_fisso")
+                    + _estrai(gs_g,  "F_viaggio")
+                    + _estrai(gs_g,  "F_lavoro"))
+        f_cw_costi = (_estrai(gs_cw, "F_costo_fisso")
+                    + _estrai(gs_cw, "F_viaggio")
+                    + _estrai(gs_cw, "F_lavoro"))
+        righe_fcosti.append((r, f_g_costi, f_cw_costi))
+
+    # ── Stampa ───────────────────────────────────────────────────────────────
+
+    _stampa_separatore("=")
+    print("  CONFRONTO  Greedy  vs  Clarke-Wright")
+    _stampa_separatore("=")
+
+    _tabella("F_Total  (insoddisfazione + costi)", righe_ftotal)
+    _tabella("F Costi  (fisso + viaggio + lavoro)", righe_fcosti)
+
+    # Riga tempi
+    t_g  = times_by_algo["greedy"]
+    t_cw = times_by_algo["clarke_wright"]
+    faster = "Greedy" if t_g < t_cw else "CW"
+    ratio  = max(t_g, t_cw) / max(min(t_g, t_cw), 1e-9)
+    print(f"\n  {'Tempo (s)':<18}  {t_g:{COL}.4f}  {t_cw:{COL}.4f}  "
+          f"  {faster} e' {ratio:.2f}x piu' veloce")
+
+    _stampa_separatore("=")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Main
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -342,15 +432,9 @@ def main() -> None:
     for algo_key, results in results_by_algo.items():
         _stampa_riepilogo(algo_key, waste_types, results, times_by_algo[algo_key])
 
-    # Stampa comparativa tempi se entrambi presenti
+    # Stampa comparativa tempi + F_total se entrambi presenti
     if len(results_by_algo) == 2:
-        t_g  = times_by_algo["greedy"]
-        t_cw = times_by_algo["clarke_wright"]
-        faster, slower = ("Greedy", "CW") if t_g < t_cw else ("CW", "Greedy")
-        ratio = max(t_g, t_cw) / max(min(t_g, t_cw), 1e-9)
-        print(f"\n  [tempo] {faster} e' {ratio:.2f}x piu' veloce di {slower}  "
-              f"({t_g:.4f}s vs {t_cw:.4f}s)")
-        _stampa_separatore("-")
+        _stampa_comparativa(waste_types, results_by_algo, times_by_algo)
 
     # ── 7. Export CSV ─────────────────────────────────────────────────────────
     _export_csv(waste_types, results_by_algo, times_by_algo, csv_path)
