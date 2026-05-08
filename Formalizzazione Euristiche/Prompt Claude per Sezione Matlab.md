@@ -21,7 +21,8 @@
 > 
 > Procederemo in modo strettamente modulare, un passo alla volta.
 > 
-> - **Modulo 9: Refactoring Parametrico di `Generazione_Dati.py`.** Modificheremo la funzione `generate_mock_data`. Dovrà accettare nuovi argomenti opzionali: un array custom per `type_probs` (per eludere l'hardcoding attuale), un flag per la generazione di coordinate a cluster invece che uniformi, e una logica per generare un grafo di base largo ($N_{max}$) ma restituire i dati attivando solo un sottoinsieme $N$ di clienti.
+> - **Modulo 9: Refactoring Parametrico di `Generazione_Dati.py`.** Modificheremo la funzione `generate_mock_data`. Dovrà accettare nuovi argomenti opzionali: un array custom per `type_probs` (per eludere l'hardcoding attuale), un flag per la generazione di coordinate a cluster (es. usando `rng.normal`) invece che uniformi, e la logica per la "Rete Fissa".
+	    ATTENZIONE: Per la rete fissa NON usare nodi fantasma con $W=0$ (che romperebbero il CW e il Greedy)._ **Devi usare il subsetting della matrice**: genera $N_{max}$ nodi (la città base), lancia Dijkstra per avere le distanze reali su tutta la griglia stradale, poi estrai casualmente $N$ utenti e restituisci in output solo una **sottomatrice** delle distanze $(N+1) \times (N+1)$ (deposito + utenti attivi). In questo modo manterremo l'impatto sul codice degli algoritmi esattamente a ZERO.
 >     
 > - **Modulo 10: Refactoring del Menù in `main.py`.** Aggiorneremo la CLI. All'avvio, chiederà: "Quale analisi vuoi eseguire? 1) Standard, 2) Variazione Tipologia Utenti, 3) Variazione N su Rete Fissa, 4) Variazione Densità Spaziale". A seconda della scelta, eseguirà un ciclo per generare in automatico i CSV multipli necessari allo scenario.
 >     
@@ -31,3 +32,7 @@
 >     
 > 
 > Hai letto e compreso tutto? Se sì, dammi una brevissima conferma di aver capito le regole d'ingaggio e dimmi di fornirti i file attuali per iniziare il **Modulo 9**.
+
+
+
+tutto giusto. unica cosa: per il parametro 1 vorrei che le distribuzioni di tipologie di utenti siano già definite in generazione_Dati, così che in input debba scegliere solo tra "tante famiglie", "tante palazzine" ecc (decidi tu delle distribuzioni interessanti da prendere come casi di studio, io ho scritto 4 ma possono anche essere leggermente di meno/più). per il parametro 2 vorrei invece che anche il numero di cluster potesse essere deciso (mentre il cluster spread deve essere calcolato in automatico a seconda del numero di cluster).

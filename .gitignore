@@ -8,3 +8,4 @@ __pycache__/
 
 # Ignora tutti i file di risultati CSV
 *.csv
+*.png
