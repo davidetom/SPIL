@@ -1,0 +1,523 @@
+% =========================================================================
+%  SPIL — Benchmarking Scalabilità su Rete Fissa
+%
+%  Legge automaticamente dalla cartella risultati_csv/ i file:
+%    risultati_<Nact>u_rete_Nmax<M>_Nact<Nact>_seed<S>.csv
+%
+%  Estrae Nact dal nome file, ordina per Nact crescente e produce:
+%    Fig 1 — F_total vs N attivi         (2 subplot: Greedy | CW, per rifiuto)
+%    Fig 2 — Tempi di esecuzione vs N    (una linea per algoritmo)
+%    Fig 3 — n_vehicles vs N attivi      (2 subplot: Greedy | CW, per rifiuto)
+%    Fig 4 — Scomposizione F_total best  (grouped + stacked bar)
+%
+%  Come usare:
+%    >> benchmarking_rete_fissa                % legge da ./risultati_csv/
+%    >> benchmarking_rete_fissa('path/dir')    % cartella personalizzata
+%
+%  Variabile opzionale (impostabile prima di lanciare lo script):
+%    N_MAX_FILTER : se impostata, filtra solo i file con quel Nmax
+%                  (es. N_MAX_FILTER = 200 → solo rete_Nmax200_*)
+%    SEED_FILTER  : se impostata, filtra solo i file con quel seed
+% =========================================================================
+
+%% ── 0. Setup ──────────────────────────────────────────────────────────────
+
+clearvars -except N_MAX_FILTER SEED_FILTER BENCH_DIR;
+clc; close all;
+
+N = 1000;
+Seed = 42;
+
+if exist('BENCH_DIR', 'var') && ~isempty(BENCH_DIR)
+    csv_dir = BENCH_DIR;
+else
+    csv_dir = 'risultati_csv';
+end
+
+if ~isfolder(csv_dir)
+    error('Cartella non trovata: %s', csv_dir);
+end
+
+%% ── 1. Palette colori (coerente con analisi_pareto.m) ────────────────────
+
+ALGO_COLOR = containers.Map( ...
+    {'greedy', 'clarke_wright'}, ...
+    {[0.13 0.47 0.71], [0.84 0.37 0.05]} );
+
+ALGO_LABEL = containers.Map( ...
+    {'greedy', 'clarke_wright'}, ...
+    {'Greedy', 'Clarke-Wright'} );
+
+ALGO_MARKER = containers.Map( ...
+    {'greedy', 'clarke_wright'}, ...
+    {'o', '^'} );
+
+ALGO_LINE = containers.Map( ...
+    {'greedy', 'clarke_wright'}, ...
+    {'-', '-'} );
+
+% Colori per i 5 rifiuti (stesso ordine di analisi_pareto.m)
+WASTE_COLORS = [
+    0.20  0.63  0.17;   % organico
+    0.12  0.47  0.71;   % carta
+    1.00  0.50  0.05;   % plastica
+    0.58  0.40  0.74;   % vetro
+    0.84  0.15  0.16;   % indifferenziata
+];
+
+COMP_LABELS = {'Insoddisfazione', 'Costo fisso', 'Costo viaggio', 'Costo lavoro'};
+COMP_COLORS = [
+    0.29 0.67 0.31;
+    0.17 0.45 0.70;
+    0.99 0.56 0.05;
+    0.60 0.40 0.74;
+];
+
+%% ── 2. Scansione e filtraggio file CSV ────────────────────────────────────
+
+listing_all = dir(fullfile(csv_dir, ['risultati_*u_rete_Nmax', num2str(N), '_Nact*_seed', num2str(Seed), '.csv']));
+
+if isempty(listing_all)
+    error(['Nessun file rete_Nmax*_Nact*_seed* trovato in: %s\n' ...
+           'Esegui prima Analisi 3 (Variazione N su Rete Fissa) da main.py.'], csv_dir);
+end
+
+% Estrai metadati dal nome file con regex:
+%   risultati_50u_rete_Nmax200_Nact50_seed42.csv → Nact=50, Nmax=200, seed=42
+n_all  = numel(listing_all);
+valid  = false(n_all, 1);
+nact_arr  = zeros(n_all, 1);
+nmax_arr  = zeros(n_all, 1);
+seed_arr  = zeros(n_all, 1);
+
+for f = 1:n_all
+    fname = listing_all(f).name;
+    tok = regexp(fname, ...
+        'risultati_\d+u_rete_Nmax(\d+)_Nact(\d+)_seed(\d+)\.csv', ...
+        'tokens');
+    if isempty(tok)
+        warning('Pattern non riconosciuto, file saltato: %s', fname);
+        continue
+    end
+    nmax_arr(f) = str2double(tok{1}{1});
+    nact_arr(f) = str2double(tok{1}{2});
+    seed_arr(f) = str2double(tok{1}{3});
+    valid(f)    = true;
+end
+
+% Applica filtri opzionali
+if exist('N_MAX_FILTER','var') && ~isempty(N_MAX_FILTER)
+    valid = valid & (nmax_arr == N_MAX_FILTER);
+end
+if exist('SEED_FILTER','var') && ~isempty(SEED_FILTER)
+    valid = valid & (seed_arr == SEED_FILTER);
+end
+
+listing  = listing_all(valid);
+nact_arr = nact_arr(valid);
+nmax_arr = nmax_arr(valid);
+seed_arr = seed_arr(valid);
+n_files  = numel(listing);
+
+if n_files == 0
+    error('Nessun file valido dopo il filtraggio. Controlla N_MAX_FILTER e SEED_FILTER.');
+end
+
+% Ordina per Nact crescente
+[nact_arr, sort_idx] = sort(nact_arr);
+listing  = listing(sort_idx);
+nmax_arr = nmax_arr(sort_idx);
+seed_arr = seed_arr(sort_idx);
+
+% Identifica Nmax e seed (dovrebbero essere uguali per tutti i file di una serie)
+nmax_ref = nmax_arr(1);
+seed_ref = seed_arr(1);
+if ~all(nmax_arr == nmax_ref)
+    warning(['File con Nmax diversi rilevati. ' ...
+             'Imposta N_MAX_FILTER per selezionare una sola serie.']);
+end
+
+fprintf('\n%s\n', repmat('=', 1, 70));
+fprintf('  SPIL — Benchmarking Rete Fissa\n');
+fprintf('  Nmax = %d  |  seed = %d  |  File trovati: %d\n', ...
+        nmax_ref, seed_ref, n_files);
+fprintf('%s\n\n', repmat('=', 1, 70));
+fprintf('  %-10s  %s\n', 'N attivi', 'File');
+fprintf('  %s\n', repmat('-', 1, 55));
+for f = 1:n_files
+    fprintf('  %-10d  %s\n', nact_arr(f), listing(f).name);
+end
+fprintf('\n');
+
+%% ── 3. Lettura dati ───────────────────────────────────────────────────────
+
+file_data = cell(n_files, 1);
+for f = 1:n_files
+    fpath        = fullfile(csv_dir, listing(f).name);
+    file_data{f} = leggi_csv_best(fpath);
+    fprintf('  Letto: %s\n', listing(f).name);
+end
+fprintf('\n');
+
+% Struttura comune (da primo file)
+algo_keys   = file_data{1}.algo_keys;
+waste_types = file_data{1}.waste_types;
+n_algos     = numel(algo_keys);
+n_waste     = numel(waste_types);
+
+% Inizializza matrici (n_files × n_waste) per ogni metrica e algoritmo
+for a = 1:n_algos
+    aKey = matlab.lang.makeValidName(algo_keys{a});
+    mF_total.(aKey)       = NaN(n_files, n_waste);
+    mF_insoddis.(aKey)    = NaN(n_files, n_waste);
+    mF_costo_fisso.(aKey) = NaN(n_files, n_waste);
+    mF_viaggio.(aKey)     = NaN(n_files, n_waste);
+    mF_lavoro.(aKey)      = NaN(n_files, n_waste);
+    mN_veh.(aKey)         = NaN(n_files, n_waste);
+    mTempi.(aKey)         = NaN(n_files, 1);
+end
+
+for f = 1:n_files
+    d = file_data{f};
+    for a = 1:n_algos
+        ak   = algo_keys{a};
+        aKey = matlab.lang.makeValidName(ak);
+        if ~isfield(d.best, aKey), continue; end
+        mTempi.(aKey)(f) = d.tempi.(aKey);
+        for k = 1:n_waste
+            rKey = matlab.lang.makeValidName(waste_types{k});
+            if ~isfield(d.best.(aKey), rKey), continue; end
+            row = d.best.(aKey).(rKey);
+            mF_total.(aKey)(f,k)       = row.F_total;
+            mF_insoddis.(aKey)(f,k)    = row.F_insoddis;
+            mF_costo_fisso.(aKey)(f,k) = row.F_costo_fisso;
+            mF_viaggio.(aKey)(f,k)     = row.F_viaggio;
+            mF_lavoro.(aKey)(f,k)      = row.F_lavoro;
+            mN_veh.(aKey)(f,k)         = row.n_vehicles;
+        end
+    end
+end
+
+%% ── Console: tabella riepilogativa ───────────────────────────────────────
+
+fprintf('%-10s', 'N attivi');
+for a = 1:n_algos
+    lbl = ALGO_LABEL(algo_keys{a});
+    fprintf('  %-14s  %-14s', [lbl ' t(s)'], [lbl ' F_sum']);
+end
+fprintf('\n%s\n', repmat('-', 1, 10 + n_algos*32));
+
+for f = 1:n_files
+    fprintf('%-10d', nact_arr(f));
+    for a = 1:n_algos
+        aKey = matlab.lang.makeValidName(algo_keys{a});
+        fprintf('  %-14.4f  %-14.0f', ...
+            mTempi.(aKey)(f), ...
+            nansum(mF_total.(aKey)(f,:)));
+    end
+    fprintf('\n');
+end
+fprintf('\n');
+
+%% ══════════════════════════════════════════════════════════════════════════
+%  FIGURA 1 — F_total vs N attivi  (2 subplot: Greedy | CW)
+%  Pattern identico a confronto_runs.m Fig B
+%% ══════════════════════════════════════════════════════════════════════════
+
+fig1 = figure('Name', 'Rete Fissa — F_total vs N attivi', ...
+              'NumberTitle', 'off', 'Position', [50 50 1300 520]);
+
+for a = 1:n_algos
+    ak   = algo_keys{a};
+    aKey = matlab.lang.makeValidName(ak);
+    col  = ALGO_COLOR(ak);
+    lbl  = ALGO_LABEL(ak);
+
+    ax = subplot(1, n_algos, a);
+    hold(ax, 'on'); grid(ax, 'on'); box(ax, 'on');
+
+    leg_h = gobjects(0); leg_t = {};
+
+    % Una linea per rifiuto
+    for k = 1:n_waste
+        wcol  = WASTE_COLORS(k, :);
+        f_vec = mF_total.(aKey)(:, k);
+        valid = ~isnan(f_vec);
+        if ~any(valid), continue; end
+
+        h = plot(ax, nact_arr(valid), f_vec(valid), ...
+                 '-o', 'Color', wcol, 'LineWidth', 1.8, ...
+                 'MarkerSize', 6, 'MarkerFaceColor', wcol, ...
+                 'MarkerEdgeColor', 'w');
+        leg_h(end+1) = h;             %#ok<AGROW>
+        leg_t{end+1} = upper(waste_types{k}); %#ok<AGROW>
+    end
+
+    % Linea somma totale (tratteggiata, colore algoritmo)
+    f_sum = nansum(mF_total.(aKey), 2);
+    valid_sum = ~isnan(f_sum) & f_sum > 0;
+    if any(valid_sum)
+        h_sum = plot(ax, nact_arr(valid_sum), f_sum(valid_sum), ...
+                     '--s', 'Color', col, 'LineWidth', 2.2, ...
+                     'MarkerSize', 7, 'MarkerFaceColor', col, ...
+                     'MarkerEdgeColor', 'w');
+        leg_h(end+1) = h_sum;              %#ok<AGROW>
+        leg_t{end+1} = 'F_{tot} (somma)'; %#ok<AGROW>
+    end
+
+    title(ax, lbl, 'FontSize', 12, 'FontWeight', 'bold', 'Color', col);
+    xlabel(ax, 'N utenti attivi', 'FontSize', 11);
+    ylabel(ax, 'F_{total} ottimale  (€)', 'FontSize', 11);
+    legend(ax, leg_h, leg_t, 'Location', 'northwest', 'FontSize', 8);
+    xlim(ax, [min(nact_arr)*0.85, max(nact_arr)*1.10]);
+end
+
+sgtitle(fig1, ...
+    sprintf('F_{total} vs N attivi — Rete fissa N_{max}=%d, seed=%d', ...
+            nmax_ref, seed_ref), ...
+    'FontSize', 13, 'FontWeight', 'bold');
+
+%% ══════════════════════════════════════════════════════════════════════════
+%  FIGURA 2 — Tempi di esecuzione vs N attivi
+%  Pattern identico a confronto_runs.m Fig A
+%% ══════════════════════════════════════════════════════════════════════════
+
+fig2 = figure('Name', 'Rete Fissa — Tempi vs N attivi', ...
+              'NumberTitle', 'off', 'Position', [80 80 820 500]);
+hold on; grid on; box on;
+
+leg_h2 = gobjects(0); leg_t2 = {};
+
+for a = 1:n_algos
+    ak   = algo_keys{a};
+    aKey = matlab.lang.makeValidName(ak);
+    col  = ALGO_COLOR(ak);
+    mk   = ALGO_MARKER(ak);
+    lbl  = ALGO_LABEL(ak);
+
+    t_vec = mTempi.(aKey);
+    valid = ~isnan(t_vec);
+    if ~any(valid), continue; end
+
+    h = plot(nact_arr(valid), t_vec(valid), ...
+             ['-' mk], 'Color', col, 'LineWidth', 2.2, ...
+             'MarkerSize', 8, 'MarkerFaceColor', col, 'MarkerEdgeColor', 'w');
+    leg_h2(end+1) = h;   %#ok<AGROW>
+    leg_t2{end+1} = lbl; %#ok<AGROW>
+
+    % Etichetta valore su ogni punto
+    for f = 1:n_files
+        if valid(f)
+            text(nact_arr(f), t_vec(f)*1.05, ...
+                 sprintf('%.2fs', t_vec(f)), ...
+                 'HorizontalAlignment', 'center', ...
+                 'FontSize', 8, 'Color', col*0.8);
+        end
+    end
+end
+
+xlabel('N utenti attivi', 'FontSize', 12);
+ylabel('Tempo di esecuzione  (s)', 'FontSize', 12);
+title(sprintf('Scalabilità temporale — Rete fissa N_{max}=%d, seed=%d', ...
+              nmax_ref, seed_ref), ...
+      'FontSize', 13, 'FontWeight', 'bold');
+legend(leg_h2, leg_t2, 'Location', 'northwest', 'FontSize', 10);
+xlim([min(nact_arr)*0.85, max(nact_arr)*1.10]);
+
+all_times = structfun(@(v) max(v(~isnan(v))), mTempi, 'UniformOutput', true);
+ylim([0, max(all_times)*1.25 + 0.1]);
+
+% Annotazione speedup sull'ultimo punto (N attivi massimo)
+if n_algos == 2
+    aKey1 = matlab.lang.makeValidName(algo_keys{1});
+    aKey2 = matlab.lang.makeValidName(algo_keys{2});
+    t1 = mTempi.(aKey1)(end);
+    t2 = mTempi.(aKey2)(end);
+    if ~isnan(t1) && ~isnan(t2) && min(t1,t2) > 0
+        ratio = max(t1,t2) / min(t1,t2);
+        [~, fi] = min([t1, t2]);
+        faster_lbl = ALGO_LABEL(algo_keys{fi});
+        text(nact_arr(end), max(t1,t2)*0.88, ...
+             sprintf('%s è %.2fx più veloce\n(N_{att}=%d)', ...
+                     faster_lbl, ratio, nact_arr(end)), ...
+             'HorizontalAlignment','right','FontSize',9, ...
+             'BackgroundColor',[1 1 0.85],'EdgeColor',[0.6 0.6 0.4]);
+    end
+end
+
+%% ══════════════════════════════════════════════════════════════════════════
+%  FIGURA 3 — n_vehicles vs N attivi  (2 subplot: Greedy | CW)
+%% ══════════════════════════════════════════════════════════════════════════
+
+fig3 = figure('Name', 'Rete Fissa — n_vehicles vs N attivi', ...
+              'NumberTitle', 'off', 'Position', [110 110 1300 520]);
+
+for a = 1:n_algos
+    ak   = algo_keys{a};
+    aKey = matlab.lang.makeValidName(ak);
+    col  = ALGO_COLOR(ak);
+    lbl  = ALGO_LABEL(ak);
+
+    ax = subplot(1, n_algos, a);
+    hold(ax, 'on'); grid(ax, 'on'); box(ax, 'on');
+
+    leg_h3 = gobjects(0); leg_t3 = {};
+
+    for k = 1:n_waste
+        wcol  = WASTE_COLORS(k, :);
+        v_vec = mN_veh.(aKey)(:, k);
+        valid = ~isnan(v_vec);
+        if ~any(valid), continue; end
+
+        h = plot(ax, nact_arr(valid), v_vec(valid), ...
+                 '-o', 'Color', wcol, 'LineWidth', 1.8, ...
+                 'MarkerSize', 6, 'MarkerFaceColor', wcol, ...
+                 'MarkerEdgeColor', 'w');
+        leg_h3(end+1) = h;                         %#ok<AGROW>
+        leg_t3{end+1} = upper(waste_types{k});     %#ok<AGROW>
+    end
+
+    % Linea somma flotta totale
+    veh_sum   = nansum(mN_veh.(aKey), 2);
+    valid_sum = ~isnan(veh_sum) & veh_sum > 0;
+    if any(valid_sum)
+        h_sum = plot(ax, nact_arr(valid_sum), veh_sum(valid_sum), ...
+                     '--s', 'Color', col, 'LineWidth', 2.2, ...
+                     'MarkerSize', 7, 'MarkerFaceColor', col, ...
+                     'MarkerEdgeColor', 'w');
+        leg_h3(end+1) = h_sum;               %#ok<AGROW>
+        leg_t3{end+1} = 'Totale (somma)';    %#ok<AGROW>
+    end
+
+    title(ax, lbl, 'FontSize', 12, 'FontWeight', 'bold', 'Color', col);
+    xlabel(ax, 'N utenti attivi', 'FontSize', 11);
+    ylabel(ax, 'Veicoli attivati  (best X_r)', 'FontSize', 11);
+    legend(ax, leg_h3, leg_t3, 'Location', 'northwest', 'FontSize', 8);
+    xlim(ax, [min(nact_arr)*0.85, max(nact_arr)*1.10]);
+end
+
+sgtitle(fig3, ...
+    sprintf('Flotta attiva vs N attivi — Rete fissa N_{max}=%d, seed=%d', ...
+            nmax_ref, seed_ref), ...
+    'FontSize', 13, 'FontWeight', 'bold');
+
+%% ══════════════════════════════════════════════════════════════════════════
+%  FIGURA 4 — Scomposizione F_total per N attivi (grouped + stacked)
+%% ══════════════════════════════════════════════════════════════════════════
+
+fig4 = figure('Name', 'Rete Fissa — Scomposizione F_total', ...
+              'NumberTitle', 'off', 'Position', [140 140 1100 520]);
+hold on; grid on; box on;
+
+bar_width    = 0.35;
+group_centers= (1:n_files) * 1.0;
+
+if n_algos == 1
+    algo_offsets = 0;
+else
+    algo_offsets = linspace(-bar_width*0.55, bar_width*0.55, n_algos);
+end
+
+bar_han4 = gobjects(4, 1);
+
+for a = 1:n_algos
+    ak    = algo_keys{a};
+    aKey  = matlab.lang.makeValidName(ak);
+    col_a = ALGO_COLOR(ak);
+    x_pos = group_centers + algo_offsets(a);
+
+    % Somma sui rifiuti per ogni N attivo
+    Y = [ nansum(mF_insoddis.(aKey),   2), ...
+          nansum(mF_costo_fisso.(aKey), 2), ...
+          nansum(mF_viaggio.(aKey),     2), ...
+          nansum(mF_lavoro.(aKey),      2) ];
+
+    b = bar(x_pos, Y, bar_width, 'stacked', ...
+            'EdgeColor', col_a*0.7, 'LineWidth', 0.8);
+
+    for c = 1:4
+        b(c).FaceColor = COMP_COLORS(c,:)*0.60 + col_a*0.40;
+        if a == 1
+            bar_han4(c) = b(c);
+        end
+    end
+
+    % Etichetta: N attivi + algo in cima alla barra
+    for f = 1:n_files
+        tot = sum(Y(f,:), 'omitnan');
+        text(x_pos(f), tot + max(nansum(Y,2))*0.02, ...
+             ALGO_LABEL(ak), ...
+             'HorizontalAlignment','center','FontSize',7, ...
+             'Color', col_a*0.85, 'FontWeight','bold');
+    end
+end
+
+% Legenda componenti + colore algoritmo
+legend(bar_han4, COMP_LABELS, 'Location', 'northwest', 'FontSize', 9);
+for a = 1:n_algos
+    ak  = algo_keys{a};
+    col = ALGO_COLOR(ak);
+    patch(NaN, NaN, col, 'EdgeColor', col*0.7, ...
+          'DisplayName', ALGO_LABEL(ak));
+end
+legend('show', 'Location', 'northwest', 'FontSize', 9);
+
+xticks(group_centers);
+xticklabels(arrayfun(@(n) sprintf('N=%d', n), nact_arr, 'UniformOutput', false));
+ylabel('F_{total}  (€)', 'FontSize', 11);
+title(sprintf('Scomposizione F_{total} per N attivi — Rete fissa N_{max}=%d, seed=%d', ...
+              nmax_ref, seed_ref), ...
+      'FontSize', 13, 'FontWeight', 'bold');
+
+fprintf('  Generazione figure completata.\n\n');
+
+
+%% ══════════════════════════════════════════════════════════════════════════
+%  FUNZIONE LOCALE: leggi_csv_best  (identica a benchmarking_tipologia_densita.m)
+%% ══════════════════════════════════════════════════════════════════════════
+
+function S = leggi_csv_best(fpath)
+    opts = detectImportOptions(fpath);
+    opts.VariableNamesLine = 1;
+    T = readtable(fpath, opts);
+
+    if ~iscell(T.rifiuto),   T.rifiuto   = cellstr(T.rifiuto);   end
+    if ~iscell(T.algoritmo), T.algoritmo = cellstr(T.algoritmo); end
+
+    S.algo_keys   = unique(T.algoritmo, 'stable');
+    S.waste_types = unique(T.rifiuto,   'stable');
+    S.best        = struct();
+    S.tempi       = struct();
+
+    for a = 1:numel(S.algo_keys)
+        ak    = S.algo_keys{a};
+        aKey  = matlab.lang.makeValidName(ak);
+        amask = strcmp(T.algoritmo, ak);
+
+        idx_first = find(amask, 1);
+        if ~isempty(idx_first)
+            S.tempi.(aKey) = T.algo_time_sec(idx_first);
+        else
+            S.tempi.(aKey) = NaN;
+        end
+
+        S.best.(aKey) = struct();
+
+        for k = 1:numel(S.waste_types)
+            r    = S.waste_types{k};
+            rKey = matlab.lang.makeValidName(r);
+            mask = amask & strcmp(T.rifiuto, r) & (T.is_best == 1);
+            if ~any(mask), continue; end
+
+            idx = find(mask, 1);
+            row.F_total       = T.F_total(idx);
+            row.F_insoddis    = T.F_insoddis(idx);
+            row.F_costo_fisso = T.F_costo_fisso(idx);
+            row.F_viaggio     = T.F_viaggio(idx);
+            row.F_lavoro      = T.F_lavoro(idx);
+            row.n_vehicles    = T.n_vehicles(idx);
+
+            S.best.(aKey).(rKey) = row;
+        end
+    end
+end
