@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-# ── Import ────────────────────────────────────────────────────────────────────
+# ── Import ────────────────────────────────────────────────────────────────────────────
+import json
+import warnings
+from pathlib import Path
+
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import dijkstra
 from scipy.spatial import Delaunay
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from pathlib import Path # Assicurati che sia importato a inizio file
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -161,6 +164,7 @@ def _build_problem_params(
     rng: np.random.Generator,
     user_scenario: str,
     custom_type_probs: np.ndarray | None,
+    fixed_user_types: np.ndarray | None = None,
 ) -> dict:
     """Genera user_types e tutti i dizionari W, x_star, C, tc, c_fixed.
 
@@ -178,6 +182,9 @@ def _build_problem_params(
         Chiave in ``USER_SCENARIOS`` (ignorata se ``custom_type_probs`` è fornito).
     custom_type_probs:
         Array ``(4,)`` di probabilità custom. Ha priorità su ``user_scenario``.
+    fixed_user_types:
+        Array ``(n_users,)`` di tipologie già assegnate (es. da mappa reale).
+        Se fornito, bypassa il campionamento stocastico. Ha priorità su tutto.
 
     Returns
     -------
@@ -200,9 +207,15 @@ def _build_problem_params(
         probs          = USER_SCENARIOS[user_scenario]["probs"].copy()
         scenario_label = user_scenario
 
-    probs /= probs.sum()   # normalizzazione difensiva
-    type_indices = rng.choice(len(user_type_list), size=n_users, p=probs)
-    user_types   = np.array([user_type_list[i] for i in type_indices], dtype=object)
+    if fixed_user_types is not None:
+        # Modalità mappa reale: tipologie già definite dal preprocessing
+        user_types     = np.asarray(fixed_user_types, dtype=object)
+        scenario_label = scenario_label if custom_type_probs is None else "custom"
+    else:
+        # Modalità legacy/scenario: campionamento stocastico
+        probs /= probs.sum()   # normalizzazione difensiva
+        type_indices = rng.choice(len(user_type_list), size=n_users, p=probs)
+        user_types   = np.array([user_type_list[i] for i in type_indices], dtype=object)
 
     waste_types = ["organico", "carta", "plastica", "vetro", "indifferenziata"]
 
@@ -412,6 +425,292 @@ def generate_mock_data(
         "keep_idx":       keep_idx_out,
         "centroids":      centroids_out,
     }
+
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  generate_real_data  —  Caricamento da mappa reale (Fabriano OSM)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def generate_real_data(
+    graphml_path:      str | Path = "dati_reali/grafo_aumentato.graphml",
+    utenti_json_path:  str | Path = "dati_reali/utenti.json",
+    user_scenario:     str | None = None,
+    custom_type_probs: np.ndarray | None = None,
+    seed:              int = 42,
+) -> dict:
+    """Carica il grafo reale di Fabriano e costruisce il dizionario SPIL.
+
+    Il grafo e le tipologie utente provengono dal preprocessing (Moduli 13-15).
+    Il dizionario restituito è strutturalmente identico all'output di
+    ``generate_mock_data``, garantendo piena compatibilità con Greedy e
+    ClarkeWright senza alcuna modifica a quei moduli.
+
+    Conversioni unità
+    -----------------
+    Il grafo è in metri UTM.  SPIL usa km per le distanze (cd in €/km).
+    dist_matrix viene divisa per 1000 prima di essere restituita.
+    travel_time_min rimane in minuti (cm in €/min).
+
+    Deposito
+    --------
+    Viene scelto il nodo stradale (is_user != True) più vicino al centroide
+    geografico della rete stradale.  Diventa il nodo 0 del dizionario SPIL.
+
+    Tipologie utente
+    ----------------
+    Se ``user_scenario`` è None (default) e ``custom_type_probs`` è None,
+    si usano le tipologie reali estratte dal preprocessing (utenti.json).
+    Se ``user_scenario`` è specificato, le tipologie vengono campionate
+    stocasticamente ignorando quelle del preprocessing (modalità "override").
+
+    Parameters
+    ----------
+    graphml_path:
+        Percorso a grafo_aumentato.graphml (output Modulo 15).
+    utenti_json_path:
+        Percorso a utenti.json (output Modulo 15).
+    user_scenario:
+        Se fornito, override stocastico delle tipologie (chiave USER_SCENARIOS).
+    custom_type_probs:
+        Array (4,) probabilità custom. Priorità su user_scenario.
+    seed:
+        Seed per eventuale campionamento stocastico tipologie.
+
+    Returns
+    -------
+    dict
+        Stesso formato di generate_mock_data: coords, dist_matrix,
+        time_matrix, adj_matrix, edges, user_types, W, x_star, C, tc,
+        c_fixed, cd, cm, L, alpha, beta, waste_types, user_type_list,
+        n_users, spatial_mode, n_max, coords_base, edges_base,
+        keep_idx, centroids.
+    """
+    try:
+        import osmnx as ox
+    except ImportError:
+        raise ImportError(
+            "osmnx non trovato. Installa con: pip install osmnx"
+        )
+
+    warnings.filterwarnings("ignore")
+
+    # ── 1. Caricamento grafo aumentato ────────────────────────────────────────
+    print(f"  [Reale] Caricamento grafo: '{graphml_path}'...")
+    G = ox.load_graphml(str(graphml_path))
+    print(f"         {G.number_of_nodes()} nodi, {G.number_of_edges()} archi")
+
+    # ── 2. Caricamento lista utenti ───────────────────────────────────────────
+    print(f"  [Reale] Caricamento utenti: '{utenti_json_path}'...")
+    with open(utenti_json_path, "r", encoding="utf-8") as f:
+        utenti_list: list[dict] = json.load(f)
+
+    n_users = len(utenti_list)
+    print(f"         {n_users} nodi utente")
+
+    # ── 3. Identificazione nodo deposito ──────────────────────────────────────
+    # Nodi stradali = quelli con is_user != 'True'
+    road_nodes = [
+        (n, d) for n, d in G.nodes(data=True)
+        if d.get("is_user") != "True"
+    ]
+    xs = np.array([d["x"] for _, d in road_nodes])
+    ys = np.array([d["y"] for _, d in road_nodes])
+    cx, cy = xs.mean(), ys.mean()
+
+    dists_to_center = (xs - cx) ** 2 + (ys - cy) ** 2
+    depot_osmid = road_nodes[int(np.argmin(dists_to_center))][0]
+    print(f"  [Reale] Deposito: nodo OSM {depot_osmid} "
+          f"({G.nodes[depot_osmid]['x']:.0f}, {G.nodes[depot_osmid]['y']:.0f}) UTM")
+
+    # ── 4. Mapping indice SPIL → node_id NetworkX ─────────────────────────────
+    # Indice 0 = deposito, indici 1..N = nodi utente (nell'ordine di utenti.json)
+    user_osmids = [u["node_id"] for u in utenti_list]   # ID negativi sintetici
+    spil_nodes  = [depot_osmid] + user_osmids            # lista ordinata
+    n_spil      = len(spil_nodes)                        # N+1
+
+    # Dizionario inverso per costruire la CSR
+    osmid_to_spil: dict = {osmid: idx for idx, osmid in enumerate(spil_nodes)}
+
+    # ── 5. Costruzione matrice di adiacenza CSR e Dijkstra ────────────────────
+    # Usiamo 'length' (metri) per dist_matrix e 'travel_time_min' per time_matrix.
+    # Solo gli archi tra nodi presenti in spil_nodes contribuiscono alla CSR.
+    print("  [Reale] Costruzione matrici dist/time (Dijkstra)...")
+
+    rows_d, cols_d, vals_d = [], [], []
+    rows_t, cols_t, vals_t = [], [], []
+
+    spil_set = set(spil_nodes)
+    for u, v, data in G.edges(data=True):
+        if u not in spil_set or v not in spil_set:
+            continue
+        i = osmid_to_spil[u]
+        j = osmid_to_spil[v]
+        length_m = float(data.get("length", 0.0))
+        tt_min   = float(data.get("travel_time_min", 0.0))
+        rows_d.append(i); cols_d.append(j); vals_d.append(length_m)
+        rows_t.append(i); cols_t.append(j); vals_t.append(tt_min)
+
+    graph_dist = csr_matrix((vals_d, (rows_d, cols_d)), shape=(n_spil, n_spil))
+    graph_time = csr_matrix((vals_t, (rows_t, cols_t)), shape=(n_spil, n_spil))
+
+    # Dijkstra per tutti i cammini minimi (directed=True: gli archi già bidirezionali)
+    dist_m   = dijkstra(graph_dist, directed=True)
+    time_min = dijkstra(graph_time, directed=True)
+
+    # Conversione distanze da metri a km (cd è in €/km)
+    dist_km = dist_m / 1000.0
+
+    # ── 6. Matrice di adiacenza e set edges ───────────────────────────────────
+    # adj_matrix: distanza diretta tra nodi adiacenti in km (inf se non connessi)
+    adj_matrix = np.full((n_spil, n_spil), np.inf)
+    np.fill_diagonal(adj_matrix, 0.0)
+    edges: set[tuple[int, int]] = set()
+
+    for u, v, data in G.edges(data=True):
+        if u not in spil_set or v not in spil_set:
+            continue
+        i = osmid_to_spil[u]
+        j = osmid_to_spil[v]
+        length_km = float(data.get("length", 0.0)) / 1000.0
+        if length_km < adj_matrix[i, j]:
+            adj_matrix[i, j] = length_km
+        edges.add((min(i, j), max(i, j)))
+
+    # ── 7. Coordinate in km (per coerenza con il grafo legacy 10×10) ─────────
+    # Normalizziamo le coordinate UTM al range [0, 10] km
+    # mantenendo le proporzioni geografiche reali.
+    all_x = np.array([G.nodes[n]["x"] for n in spil_nodes])
+    all_y = np.array([G.nodes[n]["y"] for n in spil_nodes])
+    x_min, x_max = all_x.min(), all_x.max()
+    y_min, y_max = all_y.min(), all_y.max()
+    span = max(x_max - x_min, y_max - y_min)   # scala isotropa
+
+    coords = np.column_stack([
+        (all_x - x_min) / span * 10.0,
+        (all_y - y_min) / span * 10.0,
+    ])
+
+    # ── 8. Tipologie utente ───────────────────────────────────────────────────
+    rng = np.random.default_rng(seed)
+
+    use_real_types = (user_scenario is None and custom_type_probs is None)
+
+    if use_real_types:
+        # Tipologie dal preprocessing: già in utenti.json
+        fixed_types = np.array([u["tipologia"] for u in utenti_list], dtype=object)
+        scenario_label = "mappa_reale"
+    else:
+        fixed_types    = None
+        scenario_label = user_scenario or "custom"
+
+    params = _build_problem_params(
+        n_users           = n_users,
+        rng               = rng,
+        user_scenario     = user_scenario or DEFAULT_USER_SCENARIO,
+        custom_type_probs = custom_type_probs,
+        fixed_user_types  = fixed_types,
+    )
+    # Forza scenario_label corretto
+    params["scenario_label"] = scenario_label
+
+    return {
+        "coords":       coords,
+        "adj_matrix":   adj_matrix,
+        "dist_matrix":  dist_km,
+        "time_matrix":  time_min,
+        "edges":        edges,
+        **params,
+        "n_users":      n_users,
+        "spatial_mode": "mappa_reale",
+        "n_max":        None,
+        # Campi plot legacy (None: plot_graph userà il ramo mock)
+        "coords_base":  None,
+        "edges_base":   None,
+        "keep_idx":     None,
+        "centroids":    None,
+        # Metadati aggiuntivi per debug/log
+        "_depot_osmid": depot_osmid,
+        "_spil_nodes":  spil_nodes,
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  plot_graph_reale  —  Visualizzazione mappa reale (coordinate UTM)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def plot_graph_reale(
+    data:      dict,
+    save_name: str | None = None,
+    show_ui:   bool       = True,
+) -> None:
+    """Visualizza il grafo reale di Fabriano con nodi utente colorati per tipologia.
+
+    Usa le coordinate UTM normalizzate presenti in data['coords'].
+    Richiede che data provenga da generate_real_data.
+    """
+    coords     = data["coords"]
+    edges      = data["edges"]
+    user_types = data["user_types"]
+
+    type_colors: dict[str, str] = {
+        "single":            "#378ADD",
+        "famiglia":          "#1D9E75",
+        "palazzina_piccola": "#BA17AC",
+        "palazzina_grande":  "#DDC616",
+    }
+
+    fig, ax = plt.subplots(figsize=(12, 12))
+
+    # Archi stradali
+    for (i, j) in edges:
+        ax.plot(
+            [coords[i, 0], coords[j, 0]],
+            [coords[i, 1], coords[j, 1]],
+            color="#CCCCCC", linewidth=0.6, zorder=1,
+        )
+
+    # Nodi utente (indici 1..N)
+    for u_idx in range(data["n_users"]):
+        node_idx = u_idx + 1
+        t        = user_types[u_idx]
+        x, y     = coords[node_idx]
+        ax.scatter(x, y, color=type_colors.get(t, "#999999"),
+                   s=30, zorder=3, edgecolors="white", linewidths=0.3)
+
+    # Deposito (indice 0)
+    ax.scatter(*coords[0], color="#E24B4A", s=300, zorder=11,
+               marker="*", edgecolors="white")
+    ax.text(coords[0, 0] + 0.05, coords[0, 1] + 0.05,
+            "Deposito", fontweight="bold", color="#E24B4A", zorder=11, fontsize=9)
+
+    # Legenda
+    legend_handles = [
+        plt.Line2D([0], [0], marker="*", color="w",
+                   markerfacecolor="#E24B4A", markersize=14, label="Deposito"),
+    ]
+    for t, c in type_colors.items():
+        legend_handles.append(
+            mpatches.Patch(color=c, label=t.replace("_", " ").capitalize())
+        )
+
+    ax.legend(handles=legend_handles, loc="upper left", fontsize=9, framealpha=0.9)
+    ax.set_title(
+        f"Grafo reale Fabriano: {data['n_users']} utenti | {data['spatial_mode']}",
+        pad=15,
+    )
+    plt.tight_layout()
+
+    if save_name:
+        folder = Path("grafi_png")
+        folder.mkdir(exist_ok=True)
+        plt.savefig(folder / save_name, dpi=300)
+        print(f"  → Grafo salvato: {folder / save_name}")
+
+    if show_ui:
+        plt.show()
+    else:
+        plt.close(fig)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
