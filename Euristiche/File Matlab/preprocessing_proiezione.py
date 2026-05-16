@@ -338,6 +338,140 @@ def proietta_edifici(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+#  inserisci_deposito_reale  —  Aggiunge il deposito Anconambiente al grafo
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ID sintetico speciale per il deposito (distinto dai nodi utente negativi)
+DEPOT_ID: int = -99999
+
+def inserisci_deposito_reale(
+    G:          nx.MultiDiGraph,
+    start_node: int   = 392702141,
+    target_m:   float = 120.0,
+    depot_id:   int   = DEPOT_ID,
+) -> nx.MultiDiGraph:
+    """Inserisce il deposito reale (Via Bachelet 15, Anconambiente) nel grafo.
+
+    Il deposito viene posizionato a ``target_m`` metri dall'inizio di
+    Via Vittorio Bachelet (nodo OSM ``start_node``), interpolando
+    linearmente tra i due nodi che brackettano quella distanza cumulativa.
+
+    L'inserimento spezza l'arco che contiene il punto di deposito,
+    esattamente come fa ``proietta_edifici`` per i nodi utente.
+    Il deposito riceve il flag ``is_depot=True`` e l'ID ``depot_id``.
+
+    Parameters
+    ----------
+    G:
+        Grafo stradale aumentato (modificato in-place).
+    start_node:
+        ID OSM del nodo iniziale di Via Bachelet (392702141).
+    target_m:
+        Distanza in metri dall'inizio della via dove posizionare il deposito.
+    depot_id:
+        ID sintetico da assegnare al nodo deposito (default: -99999).
+
+    Returns
+    -------
+    nx.MultiDiGraph con il nodo deposito inserito.
+    """
+    # ── 1. Subgraph Via Bachelet: Dijkstra per trovare i nodi bracket ─────────
+    bachelet_edges = []
+    for u, v, data in G.edges(data=True):
+        name = data.get("name", "")
+        if isinstance(name, list):
+            name = str(name[0])
+        if "Bachelet" in name:
+            bachelet_edges.append((u, v, float(data.get("length", 0))))
+
+    sub = nx.DiGraph()
+    for u, v, l in bachelet_edges:
+        sub.add_edge(u, v, weight=l)
+
+    lengths = nx.single_source_dijkstra_path_length(
+        sub, start_node, weight="weight"
+    )
+    sorted_nodes = sorted(lengths.items(), key=lambda x: x[1])
+
+    # Trova i due nodi che brackettano target_m
+    prev_node, prev_dist = start_node, 0.0
+    bracket_found = False
+    for node, dist in sorted_nodes:
+        if dist >= target_m:
+            bracket_found = True
+            break
+        prev_node, prev_dist = node, dist
+
+    if not bracket_found:
+        print(f"  [WARN] Non trovato bracket a {target_m}m su Via Bachelet. "
+              f"Uso il nodo più lontano raggiunto: {prev_node}")
+        node, dist = prev_node, prev_dist
+
+    # ── 2. Interpolazione lineare tra i due nodi bracket ──────────────────────
+    frac = ((target_m - prev_dist) / (dist - prev_dist)
+            if dist != prev_dist else 0.0)
+    x1, y1 = float(G.nodes[prev_node]["x"]), float(G.nodes[prev_node]["y"])
+    x2, y2 = float(G.nodes[node]["x"]),      float(G.nodes[node]["y"])
+
+    depot_x = x1 + frac * (x2 - x1)
+    depot_y = y1 + frac * (y2 - y1)
+
+    # ── 3. Recupera l'arco (prev_node → node) e i suoi attributi ─────────────
+    edge_data = dict(list(G[prev_node][node].values())[0])
+    seg_length = float(edge_data.get("length", 0.0))
+    t_local    = frac * seg_length      # posizione lungo l'arco
+    speed_mpm  = SPEED_KMH * 1000.0 / 60.0
+
+    # ── 4. Inserisce il nodo deposito ─────────────────────────────────────────
+    G.add_node(
+        depot_id,
+        x          = depot_x,
+        y          = depot_y,
+        is_depot   = True,
+        is_user    = False,
+        via        = "Via Vittorio Bachelet 15, Fabriano",
+    )
+
+    # ── 5. Spezza l'arco prev_node ↔ node ────────────────────────────────────
+    attr_base = {k: v for k, v in edge_data.items()
+                 if k not in ("geometry", "length", "travel_time_min")}
+
+    # Sotto-arco A: prev_node → deposito
+    len_a = max(t_local, 0.01)
+    geom_a = LineString([(x1, y1), (depot_x, depot_y)])
+    attr_a = dict(attr_base)
+    attr_a.update({"length": len_a,
+                   "travel_time_min": len_a / speed_mpm,
+                   "geometry": geom_a})
+
+    # Sotto-arco B: deposito → node
+    len_b = max(seg_length - t_local, 0.01)
+    geom_b = LineString([(depot_x, depot_y), (x2, y2)])
+    attr_b = dict(attr_base)
+    attr_b.update({"length": len_b,
+                   "travel_time_min": len_b / speed_mpm,
+                   "geometry": geom_b})
+
+    # Aggiunge archi bidirezionali
+    G.add_edge(prev_node, depot_id, **attr_a)
+    G.add_edge(depot_id, prev_node, **{**attr_a, "reversed": True})
+    G.add_edge(depot_id, node,      **attr_b)
+    G.add_edge(node,      depot_id, **{**attr_b, "reversed": True})
+
+    # Rimuove l'arco originale (entrambe le direzioni)
+    if G.has_edge(prev_node, node):
+        G.remove_edge(prev_node, node)
+    if G.has_edge(node, prev_node):
+        G.remove_edge(node, prev_node)
+
+    print(f"  [Deposito] Inserito nodo {depot_id} a {target_m}m su Via Bachelet")
+    print(f"             UTM=({depot_x:.1f}, {depot_y:.1f})")
+    print(f"             Arco spezzato: ({prev_node} → {node})")
+
+    return G
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 #  SALVATAGGIO
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -355,10 +489,20 @@ def salva_output(
     ox.save_graphml(G, filepath=graphml_path)
     print(f"\n  → GraphML aumentato : {graphml_path.resolve()}")
 
-    # JSON utenti
+    # JSON utenti + metadati deposito
+    depot_node = G.nodes.get(DEPOT_ID, {})
+    output_data = {
+        "deposito": {
+            "node_id":  DEPOT_ID,
+            "x_utm":    depot_node.get("x", 0),
+            "y_utm":    depot_node.get("y", 0),
+            "via":      depot_node.get("via", ""),
+        },
+        "utenti": utenti,
+    }
     json_path = output_dir / "utenti.json"
     with json_path.open("w", encoding="utf-8") as f:
-        json.dump(utenti, f, ensure_ascii=False, indent=2)
+        json.dump(output_data, f, ensure_ascii=False, indent=2)
     print(f"  → JSON utenti       : {json_path.resolve()}")
 
     # Statistiche
@@ -423,6 +567,10 @@ def preprocessing_proiezione(
     rng = np.random.default_rng(seed)
 
     G_aug, utenti = proietta_edifici(G, gdf, rng)
+
+    print("  Inserimento deposito reale (Via Bachelet 15)...")
+    G_aug = inserisci_deposito_reale(G_aug)
+
     salva_output(G_aug, utenti, output_dir)
 
     print("\n  Proiezione completata.\n")

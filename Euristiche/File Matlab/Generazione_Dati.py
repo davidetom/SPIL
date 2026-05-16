@@ -503,25 +503,41 @@ def generate_real_data(
     # ── 2. Caricamento lista utenti ───────────────────────────────────────────
     print(f"  [Reale] Caricamento utenti: '{utenti_json_path}'...")
     with open(utenti_json_path, "r", encoding="utf-8") as f:
-        utenti_list: list[dict] = json.load(f)
+        json_data = json.load(f)
+
+    # Supporta sia il formato nuovo {deposito, utenti} che il legacy [lista]
+    if isinstance(json_data, dict) and "utenti" in json_data:
+        utenti_list: list[dict] = json_data["utenti"]
+        depot_meta  = json_data.get("deposito", {})
+        depot_osmid = depot_meta.get("node_id", None)
+    else:
+        utenti_list = json_data
+        depot_meta  = {}
+        depot_osmid = None
 
     n_users = len(utenti_list)
     print(f"         {n_users} nodi utente")
 
     # ── 3. Identificazione nodo deposito ──────────────────────────────────────
-    # Nodi stradali = quelli con is_user != 'True'
-    road_nodes = [
-        (n, d) for n, d in G.nodes(data=True)
-        if d.get("is_user") != "True"
-    ]
-    xs = np.array([d["x"] for _, d in road_nodes])
-    ys = np.array([d["y"] for _, d in road_nodes])
-    cx, cy = xs.mean(), ys.mean()
-
-    dists_to_center = (xs - cx) ** 2 + (ys - cy) ** 2
-    depot_osmid = road_nodes[int(np.argmin(dists_to_center))][0]
-    print(f"  [Reale] Deposito: nodo OSM {depot_osmid} "
-          f"({G.nodes[depot_osmid]['x']:.0f}, {G.nodes[depot_osmid]['y']:.0f}) UTM")
+    if depot_osmid is not None and G.has_node(depot_osmid):
+        # Usa il deposito reale inserito dal preprocessing (Via Bachelet 15)
+        print(f"  [Reale] Deposito reale: node_id={depot_osmid} "
+              f"UTM=({float(G.nodes[depot_osmid]['x']):.0f}, "
+              f"{float(G.nodes[depot_osmid]['y']):.0f})")
+    else:
+        # Fallback: nodo stradale più vicino al centroide geografico
+        road_nodes = [
+            (n, d) for n, d in G.nodes(data=True)
+            if d.get("is_user") != "True" and d.get("is_depot") != "True"
+        ]
+        xs = np.array([float(d["x"]) for _, d in road_nodes])
+        ys = np.array([float(d["y"]) for _, d in road_nodes])
+        cx, cy = xs.mean(), ys.mean()
+        dists_to_center = (xs - cx) ** 2 + (ys - cy) ** 2
+        depot_osmid = road_nodes[int(np.argmin(dists_to_center))][0]
+        print(f"  [Reale] Deposito (fallback centroide): node_id={depot_osmid} "
+              f"UTM=({float(G.nodes[depot_osmid]['x']):.0f}, "
+              f"{float(G.nodes[depot_osmid]['y']):.0f})")
 
     # ── 4. Mapping indice SPIL → node_id NetworkX ─────────────────────────────
     # Indice 0 = deposito, indici 1..N = nodi utente (nell'ordine di utenti.json)
@@ -532,31 +548,45 @@ def generate_real_data(
     # Dizionario inverso per costruire la CSR
     osmid_to_spil: dict = {osmid: idx for idx, osmid in enumerate(spil_nodes)}
 
-    # ── 5. Costruzione matrice di adiacenza CSR e Dijkstra ────────────────────
-    # Usiamo 'length' (metri) per dist_matrix e 'travel_time_min' per time_matrix.
-    # Solo gli archi tra nodi presenti in spil_nodes contribuiscono alla CSR.
-    print("  [Reale] Costruzione matrici dist/time (Dijkstra)...")
+    # ── 5. Costruzione matrici dist/time con Dijkstra sull'intero grafo ──────
+    # Strategia: Dijkstra sull'intero grafo aumentato (tutti i nodi),
+    # poi estraiamo le righe/colonne corrispondenti ai nodi SPIL.
+    # Questo garantisce che i cammini minimi passino correttamente
+    # attraverso i nodi stradali intermedi che collegano utenti e deposito.
+    print("  [Reale] Costruzione matrici dist/time (Dijkstra intero grafo)...")
+
+    # Mappa node_id NetworkX → indice nella matrice globale
+    all_nodes      = list(G.nodes())
+    n_all          = len(all_nodes)
+    node_to_global = {n: i for i, n in enumerate(all_nodes)}
 
     rows_d, cols_d, vals_d = [], [], []
     rows_t, cols_t, vals_t = [], [], []
 
-    spil_set = set(spil_nodes)
     for u, v, data in G.edges(data=True):
-        if u not in spil_set or v not in spil_set:
-            continue
-        i = osmid_to_spil[u]
-        j = osmid_to_spil[v]
+        i = node_to_global[u]
+        j = node_to_global[v]
         length_m = float(data.get("length", 0.0))
         tt_min   = float(data.get("travel_time_min", 0.0))
         rows_d.append(i); cols_d.append(j); vals_d.append(length_m)
         rows_t.append(i); cols_t.append(j); vals_t.append(tt_min)
 
-    graph_dist = csr_matrix((vals_d, (rows_d, cols_d)), shape=(n_spil, n_spil))
-    graph_time = csr_matrix((vals_t, (rows_t, cols_t)), shape=(n_spil, n_spil))
+    graph_dist_full = csr_matrix((vals_d, (rows_d, cols_d)), shape=(n_all, n_all))
+    graph_time_full = csr_matrix((vals_t, (rows_t, cols_t)), shape=(n_all, n_all))
 
-    # Dijkstra per tutti i cammini minimi (directed=True: gli archi già bidirezionali)
-    dist_m   = dijkstra(graph_dist, directed=True)
-    time_min = dijkstra(graph_time, directed=True)
+    # Dijkstra con sorgenti multiple = solo i nodi SPIL (deposito + utenti)
+    # Restituisce matrice (n_spil, n_all); poi estraiamo le colonne SPIL
+    spil_global_indices = np.array(
+        [node_to_global[n] for n in spil_nodes], dtype=np.int32
+    )
+    dist_full_m   = dijkstra(graph_dist_full, directed=True,
+                             indices=spil_global_indices)
+    time_full_min = dijkstra(graph_time_full, directed=True,
+                             indices=spil_global_indices)
+
+    # Estrai solo le colonne SPIL → matrice (n_spil, n_spil)
+    dist_m   = dist_full_m[:,   spil_global_indices]
+    time_min = time_full_min[:, spil_global_indices]
 
     # Conversione distanze da metri a km (cd è in €/km)
     dist_km = dist_m / 1000.0
@@ -566,6 +596,7 @@ def generate_real_data(
     adj_matrix = np.full((n_spil, n_spil), np.inf)
     np.fill_diagonal(adj_matrix, 0.0)
     edges: set[tuple[int, int]] = set()
+    spil_set = set(spil_nodes)   # usato per filtrare archi diretti SPIL↔SPIL
 
     for u, v, data in G.edges(data=True):
         if u not in spil_set or v not in spil_set:
