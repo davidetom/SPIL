@@ -611,16 +611,47 @@ def generate_real_data(
     # ── 7. Coordinate in km (per coerenza con il grafo legacy 10×10) ─────────
     # Normalizziamo le coordinate UTM al range [0, 10] km
     # mantenendo le proporzioni geografiche reali.
-    all_x = np.array([G.nodes[n]["x"] for n in spil_nodes])
-    all_y = np.array([G.nodes[n]["y"] for n in spil_nodes])
-    x_min, x_max = all_x.min(), all_x.max()
-    y_min, y_max = all_y.min(), all_y.max()
-    span = max(x_max - x_min, y_max - y_min)   # scala isotropa
+    #
+    # La normalizzazione è calcolata sull'intero grafo (tutti i nodi),
+    # non solo sui nodi SPIL, in modo che coords e coords_full siano
+    # nello stesso sistema di riferimento e sovrapponibili nel plot.
+    all_nodes_list = list(G.nodes())
+    all_x_full = np.array([float(G.nodes[n]["x"]) for n in all_nodes_list])
+    all_y_full = np.array([float(G.nodes[n]["y"]) for n in all_nodes_list])
+    x_min = all_x_full.min()
+    y_min = all_y_full.min()
+    span  = max(all_x_full.max() - x_min, all_y_full.max() - y_min)  # scala isotropa
 
+    # Coordinate normalizzate dei soli nodi SPIL (deposito + utenti)
+    spil_x = np.array([float(G.nodes[n]["x"]) for n in spil_nodes])
+    spil_y = np.array([float(G.nodes[n]["y"]) for n in spil_nodes])
     coords = np.column_stack([
-        (all_x - x_min) / span * 10.0,
-        (all_y - y_min) / span * 10.0,
+        (spil_x - x_min) / span * 10.0,
+        (spil_y - y_min) / span * 10.0,
     ])
+
+    # ── 7b. Coordinate e archi dell'intero grafo (solo per il plot) ───────────
+    # Usati da plot_graph_reale per disegnare la rete stradale di sfondo.
+    # Non vengono mai letti dagli algoritmi.
+    node_to_plot_idx = {n: i for i, n in enumerate(all_nodes_list)}
+
+    coords_full = np.column_stack([
+        (all_x_full - x_min) / span * 10.0,
+        (all_y_full - y_min) / span * 10.0,
+    ])
+
+    # Un arco per coppia non ordinata (basta una direzione per il disegno)
+    seen_plot_edges: set[tuple[int, int]] = set()
+    edges_full: set[tuple[int, int]] = set()
+    for u, v in G.edges():
+        i, j = node_to_plot_idx[u], node_to_plot_idx[v]
+        key = (min(i, j), max(i, j))
+        if key not in seen_plot_edges:
+            seen_plot_edges.add(key)
+            edges_full.add(key)
+
+    # Mappa node_id SPIL → indice in coords_full (per posizionare utenti/deposito)
+    spil_to_full_idx = {n: node_to_plot_idx[n] for n in spil_nodes}
 
     # ── 8. Tipologie utente ───────────────────────────────────────────────────
     rng = np.random.default_rng(seed)
@@ -660,6 +691,10 @@ def generate_real_data(
         "edges_base":   None,
         "keep_idx":     None,
         "centroids":    None,
+        # Campi per plot_graph_reale: rete stradale completa di sfondo
+        "coords_full":      coords_full,       # (n_all, 2) — tutti i nodi normalizzati
+        "edges_full":       edges_full,        # set archi intero grafo (indici in coords_full)
+        "spil_to_full_idx": spil_to_full_idx,  # {node_id_spil: idx_in_coords_full}
         # Metadati aggiuntivi per debug/log
         "_depot_osmid": depot_osmid,
         "_spil_nodes":  spil_nodes,
@@ -675,14 +710,29 @@ def plot_graph_reale(
     save_name: str | None = None,
     show_ui:   bool       = True,
 ) -> None:
-    """Visualizza il grafo reale di Fabriano con nodi utente colorati per tipologia.
+    """Visualizza il grafo reale di Fabriano con rete stradale completa di sfondo.
 
-    Usa le coordinate UTM normalizzate presenti in data['coords'].
-    Richiede che data provenga da generate_real_data.
+    Layer di disegno (dal basso):
+      1. Archi stradali completi  (linee grigie — coords_full / edges_full)
+      2. Nodi stradali intermedi  (pallini bianchi con bordo grigio)
+      3. Nodi utente colorati per tipologia
+      4. Deposito (stella rossa)
     """
-    coords     = data["coords"]
-    edges      = data["edges"]
+    coords     = data["coords"]        # (n_spil, 2) — deposito + utenti
     user_types = data["user_types"]
+    n_users    = data["n_users"]
+
+    # ── Sfondo stradale ───────────────────────────────────────────────────────
+    coords_full      = data.get("coords_full")       # (n_all, 2)
+    edges_full       = data.get("edges_full")        # set archi intero grafo
+    spil_to_full_idx = data.get("spil_to_full_idx")  # {node_id_spil: idx_full}
+
+    # Se i campi non ci sono (dati legacy), ricade sul comportamento originale
+    use_full_bg = (
+        coords_full is not None
+        and edges_full is not None
+        and spil_to_full_idx is not None
+    )
 
     type_colors: dict[str, str] = {
         "single":            "#378ADD",
@@ -691,31 +741,64 @@ def plot_graph_reale(
         "palazzina_grande":  "#DDC616",
     }
 
-    fig, ax = plt.subplots(figsize=(12, 12))
+    fig, ax = plt.subplots(figsize=(14, 12))
 
-    # Archi stradali
-    for (i, j) in edges:
-        ax.plot(
-            [coords[i, 0], coords[j, 0]],
-            [coords[i, 1], coords[j, 1]],
-            color="#CCCCCC", linewidth=0.6, zorder=1,
+    # ── Layer 1: archi stradali completi ─────────────────────────────────────
+    if use_full_bg:
+        # Batch plot vettorizzato: costruisce array di segmenti per LineCollection
+        import matplotlib.collections as mc
+        segments = [
+            [coords_full[i], coords_full[j]]
+            for i, j in edges_full
+        ]
+        lc = mc.LineCollection(segments, colors="#CCCCCC", linewidths=0.5, zorder=1)
+        ax.add_collection(lc)
+    else:
+        # Fallback: archi tra soli nodi SPIL (comportamento pre-fix)
+        for (i, j) in data.get("edges", set()):
+            ax.plot(
+                [coords[i, 0], coords[j, 0]],
+                [coords[i, 1], coords[j, 1]],
+                color="#CCCCCC", linewidth=0.5, zorder=1,
+            )
+
+    # ── Layer 2: nodi stradali intermedi ─────────────────────────────────────
+    if use_full_bg:
+        spil_full_indices = set(spil_to_full_idx.values())
+        n_all = len(coords_full)
+        road_mask = np.array([
+            i not in spil_full_indices for i in range(n_all)
+        ])
+        if road_mask.any():
+            road_coords = coords_full[road_mask]
+            ax.scatter(
+                road_coords[:, 0], road_coords[:, 1],
+                color="white", edgecolors="#AAAAAA",
+                s=8, linewidths=0.4, zorder=2,
+            )
+
+    # ── Layer 3: nodi utente colorati ────────────────────────────────────────
+    for u_idx in range(n_users):
+        node_spil_idx = u_idx + 1   # indice in coords (0=deposito, 1..N=utenti)
+        t    = user_types[u_idx]
+        x, y = coords[node_spil_idx]
+        ax.scatter(
+            x, y,
+            color=type_colors.get(t, "#999999"),
+            s=25, zorder=3, edgecolors="white", linewidths=0.3,
         )
 
-    # Nodi utente (indici 1..N)
-    for u_idx in range(data["n_users"]):
-        node_idx = u_idx + 1
-        t        = user_types[u_idx]
-        x, y     = coords[node_idx]
-        ax.scatter(x, y, color=type_colors.get(t, "#999999"),
-                   s=30, zorder=3, edgecolors="white", linewidths=0.3)
+    # ── Layer 4: deposito ─────────────────────────────────────────────────────
+    ax.scatter(
+        *coords[0], color="#E24B4A", s=350, zorder=11,
+        marker="*", edgecolors="white", linewidths=0.8,
+    )
+    ax.text(
+        coords[0, 0] + 0.05, coords[0, 1] + 0.05,
+        "Deposito", fontweight="bold", color="#E24B4A", zorder=11, fontsize=9,
+    )
 
-    # Deposito (indice 0)
-    ax.scatter(*coords[0], color="#E24B4A", s=300, zorder=11,
-               marker="*", edgecolors="white")
-    ax.text(coords[0, 0] + 0.05, coords[0, 1] + 0.05,
-            "Deposito", fontweight="bold", color="#E24B4A", zorder=11, fontsize=9)
-
-    # Legenda
+    # ── Legenda ───────────────────────────────────────────────────────────────
     legend_handles = [
         plt.Line2D([0], [0], marker="*", color="w",
                    markerfacecolor="#E24B4A", markersize=14, label="Deposito"),
@@ -724,12 +807,19 @@ def plot_graph_reale(
         legend_handles.append(
             mpatches.Patch(color=c, label=t.replace("_", " ").capitalize())
         )
+    if use_full_bg:
+        legend_handles.append(
+            plt.Line2D([0], [0], marker="o", color="w",
+                       markerfacecolor="white", markeredgecolor="#AAAAAA",
+                       markersize=6, label="Incrocio stradale")
+        )
 
     ax.legend(handles=legend_handles, loc="upper left", fontsize=9, framealpha=0.9)
     ax.set_title(
-        f"Grafo reale Fabriano: {data['n_users']} utenti | {data['spatial_mode']}",
+        f"Grafo reale Fabriano: {n_users} utenti | {data['spatial_mode']}",
         pad=15,
     )
+    ax.autoscale()
     plt.tight_layout()
 
     if save_name:

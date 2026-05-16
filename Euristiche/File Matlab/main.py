@@ -5,7 +5,11 @@ import time
 from pathlib import Path
 from typing import Callable
 
-from Generazione_Dati import generate_mock_data, plot_graph, USER_SCENARIOS
+from Generazione_Dati import (
+    generate_mock_data, generate_real_data,
+    plot_graph, plot_graph_reale,
+    USER_SCENARIOS,
+)
 
 import os
 import math
@@ -44,6 +48,10 @@ ALGO_LABELS: dict[str, str] = {
 }
 
 CARTELLA_OUT = Path("risultati_csv")
+
+# Percorsi mappa reale (modificabili senza toccare il codice)
+GRAPHML_PATH = Path("dati_reali/grafo_aumentato.graphml")
+UTENTI_JSON  = Path("dati_reali/utenti.json")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -206,24 +214,30 @@ def _run_algo(algo_key, grid_search_fn, data, waste_types):
     return results, elapsed
 
 
-def _esegui_run(data, scelta_algo, tag_csv, mostra_riepilogo=True, mostra_grafo_ui=False):
+def _esegui_run(data, scelta_algo, tag_csv, mostra_riepilogo=True, mostra_grafo_ui=False,
+                plot_fn=None):
     """Esegue gli algoritmi su `data` e salva il CSV.
 
     Parameters
     ----------
     data:
-        Output di generate_mock_data.
+        Output di generate_mock_data o generate_real_data.
     scelta_algo:
         "g" | "c" | "" (entrambi).
     tag_csv:
         Stringa tag per il naming del CSV.
     mostra_riepilogo:
         Se True stampa riepilogo/comparativa a console.
+    plot_fn:
+        Funzione di visualizzazione grafo. Default: plot_graph (mock).
+        Passare plot_graph_reale per la modalità mappa reale.
 
     Returns
     -------
     path : Path  — percorso del CSV scritto
     """
+    if plot_fn is None:
+        plot_fn = plot_graph
     if scelta_algo in ("c", ""):
         from ClarkeWright import grid_search as cw_gs
     if scelta_algo in ("g", ""):
@@ -267,7 +281,7 @@ def _esegui_run(data, scelta_algo, tag_csv, mostra_riepilogo=True, mostra_grafo_
     _export_csv(waste_types, results_by_algo, times_by_algo, path_csv)
 
     # CHIAMATA AL PLOT: Salva sempre, mostra solo se richiesto
-    plot_graph(data, save_name=png_filename, show_ui=mostra_grafo_ui)
+    plot_fn(data, save_name=png_filename, show_ui=mostra_grafo_ui)
     
     return path_csv
 
@@ -495,6 +509,88 @@ def _analisi_densita() -> None:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  ANALISI 5 — Mappa Reale Fabriano
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _analisi_mappa_reale() -> None:
+    _sep("="); print("  ANALISI 5 — MAPPA REALE FABRIANO"); _sep("=")
+    print(f"\n  Grafo    : {GRAPHML_PATH}")
+    print(f"  Utenti   : {UTENTI_JSON}")
+    print(f"  Deposito : Via Vittorio Bachelet 15, Fabriano (Anconambiente S.p.A.)\n")
+
+    # Verifica file
+    for p in (GRAPHML_PATH, UTENTI_JSON):
+        if not p.exists():
+            print(f"  [!] File non trovato: {p}")
+            print("       Esegui prima preprocessing_rete.py, preprocessing_edifici.py")
+            print("       e preprocessing_proiezione.py.")
+            return
+
+    # 1. Fonte tipologie
+    print("  Fonte tipologie utente:")
+    print("    [r] Tipologie reali  (da utenti.json)  ← default")
+    print("    [s] Scenario stocastico  (override)")
+    raw_fonte = input("  Scelta (r/s, Invio=r) : ").strip().lower()
+    usa_reali = raw_fonte != "s"
+
+    user_scenario_scelto = None
+    if not usa_reali:
+        print("\n  Scenari disponibili:")
+        for k, v in USER_SCENARIOS.items():
+            print(f"    {k:<20} → {v['description']}")
+        while True:
+            raw_sc = input("  Scenario (Invio=residenziale) : ").strip()
+            if not raw_sc:
+                user_scenario_scelto = "residenziale"
+                break
+            if raw_sc in USER_SCENARIOS:
+                user_scenario_scelto = raw_sc
+                break
+            print(f"  [!] Scenario non valido. Scegli tra: {list(USER_SCENARIOS.keys())}")
+
+    seed = _ask("\n  Seed (rilevante solo per tipologie stocastiche, default 42) : ", 42, int)
+
+    # 2. Avviso tempi
+    _sep()
+    print("  [INFO] Caricamento mappa reale in corso...")
+    print("         Il Dijkstra su ~4.741 nodi richiede tipicamente 30-90 s.")
+    print("         Attendi il completamento prima di procedere.")
+    _sep()
+
+    # 3. Generazione dati
+    data = generate_real_data(
+        graphml_path     = GRAPHML_PATH,
+        utenti_json_path = UTENTI_JSON,
+        user_scenario    = user_scenario_scelto,   # None → tipologie reali
+        seed             = seed,
+    )
+
+    n_users = data["n_users"]
+    fonte_label = "reali" if usa_reali else f"scenario '{user_scenario_scelto}'"
+    print(f"\n  Dati caricati: {n_users} utenti  |  tipologie: {fonte_label}")
+
+    # 4. Algoritmo e opzioni plot
+    scelta   = _chiedi_algoritmo()
+    mostra_ui = input("\n  Mostrare il grafo a schermo? (s/n) : ").strip().lower() == "s"
+
+    # 5. Tag CSV
+    if usa_reali:
+        tag = "mappa_reale"
+    else:
+        tag = f"mappa_reale_{user_scenario_scelto}"
+
+    # 6. Esecuzione
+    _esegui_run(
+        data,
+        scelta,
+        tag,
+        mostra_riepilogo  = True,
+        mostra_grafo_ui   = mostra_ui,
+        plot_fn           = plot_graph_reale,
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 #  MAIN — Menu principale
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -509,21 +605,23 @@ def main() -> None:
     [2]  Variazione Tipologia  (stesso grafo, scenari utente diversi)
     [3]  Variazione N          (rete fissa, sottoinsieme nodi attivi)
     [4]  Variazione Densità    (uniforme vs cluster gaussiani)
+    [5]  Mappa Reale Fabriano  (grafo OSM reale, deposito Via Bachelet 15)
     [0]  Esci
 """)
     _sep()
 
     while True:
-        raw = input("  Scelta [0-4] : ").strip()
-        if raw in ("0","1","2","3","4"):
+        raw = input("  Scelta [0-5] : ").strip()
+        if raw in ("0","1","2","3","4","5"):
             break
-        print("  [!]  Inserisci un valore tra 0 e 4.")
+        print("  [!]  Inserisci un valore tra 0 e 5.")
 
     if   raw == "0": print("  Uscita."); return
     elif raw == "1": _analisi_standard()
     elif raw == "2": _analisi_tipologia()
     elif raw == "3": _analisi_rete_fissa()
     elif raw == "4": _analisi_densita()
+    elif raw == "5": _analisi_mappa_reale()
 
 
 if __name__ == "__main__":
