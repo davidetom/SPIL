@@ -5,6 +5,22 @@ import numpy as np
 import time
 
 # ---------------------------------------------------------
+# 0. WEIGHTED SCORE  (nuova funzione pura, condivisa)
+# ---------------------------------------------------------
+
+def weighted_score(obj: dict, alpha: float,
+                   scala_ins: float = 1.0,
+                   scala_cost: float = 1.0) -> float:
+    """Combinazione convessa normalizzata.
+    alpha=0.5 → pesi bilanciati.
+    alpha→1   → pro-insoddisfazione.
+    alpha→0   → pro-costi.
+    scala_ins e scala_cost provengono dalla run esplorativa.
+    """
+    F_ins   = obj["F_insoddis"] / scala_ins
+    F_costi = (obj["F_costo_fisso"] + obj["F_viaggio"] + obj["F_lavoro"]) / scala_cost
+    return alpha * F_ins + (1 - alpha) * F_costi
+# ---------------------------------------------------------
 # 1. NUMPY HELPERS (calcolo vettorizzato)
 # ---------------------------------------------------------
 
@@ -66,7 +82,10 @@ def vectorized_delta_costs(
 # 2. BUILD ROUTES (Numpy Vectorized)
 # ---------------------------------------------------------
 
-def build_routes(data: dict, r: str, X_r: float) -> dict:
+def build_routes(data: dict, r: str, X_r: float,
+                 alpha: float = 0.5,
+                 scala_ins: float = 1.0,
+                 scala_cost: float = 1.0) -> dict:
     if X_r <= 0:
         raise ValueError(f"X_r deve essere > 0, ricevuto {X_r}")
 
@@ -77,9 +96,9 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
     c_fixed_r = data["c_fixed"][r]
     cd = data["cd"]
     cm = data["cm"]
-    x_star = data["x_star"]
-    alpha = data["alpha"]
-    beta = data["beta"]
+    x_star  = data["x_star"]
+    alpha_p = data["alpha"]   # penalità insoddisfazione (rinominato)
+    beta_p  = data["beta"]
 
     dist_np, time_np, Q_arr, TC_arr = _make_numpy_views(data, r, X_r)
     user_nodes = np.arange(1, n_users + 1, dtype=np.int32)
@@ -91,9 +110,9 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
         x_s = x_star[(r, t_u)]
         delta = X_r - x_s
         if delta < 0:
-            F_insoddis += alpha * (-delta)
+            F_insoddis += alpha_p * (-delta)
         elif delta > 0:
-            F_insoddis += beta * delta
+            F_insoddis += beta_p * delta
 
     # 2. Costo seed (Vettorizzato)
     d0u = dist_np[0, user_nodes]
@@ -147,7 +166,7 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
     unassigned: set[int] = set(feasible_seeds)
 
     # 5. Apri il primo veicolo
-    f_partial = F_insoddis
+    f_partial = alpha * (F_insoddis / scala_ins)
     first_seed = feasible_seeds[0]
     unassigned.discard(first_seed)
     open_vehicles.append(open_new_vehicle(first_seed))
@@ -179,7 +198,7 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
             for i in sorted_candidates_idx:
                 u = int(unassigned_arr[i])
                 dc_real = float(dcs[i])
-                fo = f_partial + dc_real
+                fo = f_partial + (1 - alpha) * (dc_real / scala_cost)
                 
                 # Ottimizzazione: se il costo base è già peggiore della miglior opzione globale, skippa
                 if fo >= best_option_cost:
@@ -209,7 +228,7 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
         if next_seed is not None:
             seed_cost = (cd * (dist_np[0, next_seed] + dist_np[next_seed, 0]) +
                          cm * (time_np[0, next_seed] + TC_arr[next_seed] + time_np[next_seed, 0]))
-            fo_new = f_partial + c_fixed_r * X_r + seed_cost
+            fo_new = f_partial + (1 - alpha) * ((c_fixed_r * X_r + seed_cost) / scala_cost)
             if fo_new < best_option_cost:
                 best_option_cost = fo_new
                 best_option = ("new", None, next_seed)
@@ -227,13 +246,17 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
             veh = open_vehicles[veh_idx]
             cur = veh["current"]
             _apply_insert(veh, chosen_u)
-            f_partial += (cd * dist_np[cur, chosen_u] +
-                          cm * (time_np[cur, chosen_u] + TC_arr[chosen_u]))
+            f_partial += (1 - alpha) * (
+                    (cd * dist_np[cur, chosen_u] +
+                    cm * (time_np[cur, chosen_u] + TC_arr[chosen_u])) / scala_cost
+            )
         else:
             new_veh = open_new_vehicle(chosen_u)
-            f_partial += (c_fixed_r * X_r +
-                          cd * dist_np[0, chosen_u] +
-                          cm * (time_np[0, chosen_u] + TC_arr[chosen_u]))
+            f_partial += (1 - alpha) * (
+                (c_fixed_r * X_r +
+                 cd * dist_np[0, chosen_u] +
+                 cm * (time_np[0, chosen_u] + TC_arr[chosen_u])) / scala_cost
+            )
             open_vehicles.append(new_veh)
 
     # 7. Chiudi tutti i veicoli ancora aperti
@@ -309,67 +332,80 @@ def compute_objective(data: dict, r: str, X_r: float, routes_result: dict) -> di
 # ---------------------------------------------------------
 
 def _evaluate_one(args: tuple) -> dict | None:
-    data, r, X_r = args
-    routes_result = build_routes(data, r, X_r)
-    
+    data, r, X_r, alpha, scala_ins, scala_cost = args
+    routes_result = build_routes(data, r, X_r, alpha, scala_ins, scala_cost)
     if routes_result["n_vehicles"] == 0:
         return None
-        
     obj = compute_objective(data, r, X_r, routes_result)
-    
     return {
-        "X_r": X_r,
-        "routes": routes_result,
+        "X_r":        X_r,
+        "routes":     routes_result,
         "n_vehicles": routes_result["n_vehicles"],
         **obj,
     }
+
 
 def grid_search(
     data: dict,
     r: str,
     X_values: list[float],
     *,
+    alpha: float = 0.5,
+    scala_ins: float = 1.0,
+    scala_cost: float = 1.0,
     max_workers: int | None = None,
     parallel_threshold: int = 6,
 ) -> dict:
-    best_X_r = None
-    best_F = None
+    best_X_r    = None
+    best_F      = None
     best_routes = None
-    best_total = float("inf")
+    best_score  = float("inf")
     all_results: list[dict] = []
 
     use_parallel = len(X_values) >= parallel_threshold
 
     if use_parallel:
-        args_list = [(data, r, X_r) for X_r in X_values]
+        args_list = [(data, r, X_r, alpha, scala_ins, scala_cost)
+                     for X_r in X_values]
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
-            future_to_X = {executor.submit(_evaluate_one, args): args[2] for args in args_list}
+            future_to_X = {
+                executor.submit(_evaluate_one, args): args[2]
+                for args in args_list
+            }
             for future in as_completed(future_to_X):
                 result = future.result()
                 if result is None:
                     continue
                 all_results.append(result)
-                if result["F_total"] < best_total:
-                    best_total = result["F_total"]
-                    best_X_r = result["X_r"]
-                    best_F = {k: result[k] for k in ("F_total", "F_insoddis", "F_costo_fisso", "F_viaggio", "F_lavoro")}
+                score = weighted_score(result, alpha, scala_ins, scala_cost)
+                if score < best_score:
+                    best_score  = score
+                    best_X_r    = result["X_r"]
+                    best_F      = {k: result[k] for k in (
+                        "F_total", "F_insoddis", "F_costo_fisso",
+                        "F_viaggio", "F_lavoro"
+                    )}
                     best_routes = result["routes"]
         all_results.sort(key=lambda d: d["X_r"])
     else:
         for X_r in X_values:
-            result = _evaluate_one((data, r, X_r))
+            result = _evaluate_one((data, r, X_r, alpha, scala_ins, scala_cost))
             if result is None:
                 continue
             all_results.append(result)
-            if result["F_total"] < best_total:
-                best_total = result["F_total"]
-                best_X_r = result["X_r"]
-                best_F = {k: result[k] for k in ("F_total", "F_insoddis", "F_costo_fisso", "F_viaggio", "F_lavoro")}
+            score = weighted_score(result, alpha, scala_ins, scala_cost)
+            if score < best_score:
+                best_score  = score
+                best_X_r    = result["X_r"]
+                best_F      = {k: result[k] for k in (
+                    "F_total", "F_insoddis", "F_costo_fisso",
+                    "F_viaggio", "F_lavoro"
+                )}
                 best_routes = result["routes"]
 
     return {
-        "best_X_r": best_X_r,
-        "best_F": best_F,
+        "best_X_r":    best_X_r,
+        "best_F":      best_F,
         "best_routes": best_routes,
         "all_results": all_results,
     }

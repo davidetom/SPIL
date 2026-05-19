@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import time
 from pathlib import Path
-from typing import Callable
 
 from Generazione_Dati import (
     generate_mock_data, generate_real_data,
@@ -16,17 +15,17 @@ import math
 import psutil
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Calcolo worker ottimali (invariato)
+# Calcolo worker ottimali
 # ──────────────────────────────────────────────────────────────────────────────
 
 def calcola_worker_ottimali(n_users: int) -> int:
-    ram_totale_gb   = psutil.virtual_memory().total / (1024 ** 3)
-    cpu_cores       = psutil.cpu_count(logical=False) or os.cpu_count() or 4
-    margine_os      = max(4.0, ram_totale_gb * 0.20)
-    ram_sicura_gb   = ram_totale_gb - margine_os
-    gb_per_worker   = max(16.0 * (n_users ** 2) / (1024 ** 3), 0.1)
-    workers_by_ram  = math.floor(ram_sicura_gb / gb_per_worker)
-    workers_by_cpu  = max(1, cpu_cores - 1)
+    ram_totale_gb  = psutil.virtual_memory().total / (1024 ** 3)
+    cpu_cores      = psutil.cpu_count(logical=False) or os.cpu_count() or 4
+    margine_os     = max(4.0, ram_totale_gb * 0.20)
+    ram_sicura_gb  = ram_totale_gb - margine_os
+    gb_per_worker  = max(16.0 * (n_users ** 2) / (1024 ** 3), 0.1)
+    workers_by_ram = math.floor(ram_sicura_gb / gb_per_worker)
+    workers_by_cpu = max(1, cpu_cores - 1)
     return max(1, min(workers_by_ram, workers_by_cpu))
 
 
@@ -40,6 +39,7 @@ CSV_FIELDS = [
     "rifiuto", "X_r", "algoritmo", "is_best",
     "n_vehicles", "F_total", "F_insoddis", "F_costo_fisso",
     "F_viaggio", "F_lavoro", "algo_time_sec",
+    "alpha", "scala_ins", "scala_cost",
 ]
 
 ALGO_LABELS: dict[str, str] = {
@@ -49,7 +49,6 @@ ALGO_LABELS: dict[str, str] = {
 
 CARTELLA_OUT = Path("risultati_csv")
 
-# Percorsi mappa reale (modificabili senza toccare il codice)
 GRAPHML_PATH = Path("dati_reali/grafo_aumentato.graphml")
 UTENTI_JSON  = Path("dati_reali/utenti.json")
 
@@ -76,7 +75,7 @@ def _chiedi_algoritmo() -> str:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Stampe a console (invariate rispetto al main originale)
+# Stampe a console
 # ──────────────────────────────────────────────────────────────────────────────
 
 def _stampa_riepilogo(algo_key, waste_types, results, elapsed):
@@ -135,27 +134,16 @@ def _stampa_comparativa(waste_types, results_by_algo, times_by_algo):
     _sep("="); print("  CONFRONTO  Greedy  vs  Clarke-Wright"); _sep("=")
     _tabella("F_Total  (insoddisfazione + costi)", righe_ft)
     _tabella("F Costi  (fisso + viaggio + lavoro)", righe_fc)
-    tg, tcw   = times_by_algo["greedy"], times_by_algo["clarke_wright"]
-    faster    = "Greedy" if tg < tcw else "CW"
-    ratio     = max(tg, tcw) / max(min(tg, tcw), 1e-9)
+    tg, tcw = times_by_algo["greedy"], times_by_algo["clarke_wright"]
+    faster  = "Greedy" if tg < tcw else "CW"
+    ratio   = max(tg, tcw) / max(min(tg, tcw), 1e-9)
     print(f"\n  {'Tempo (s)':<18}  {tg:{COL}.4f}  {tcw:{COL}.4f}  "
           f"  {faster} e' {ratio:.2f}x piu' veloce")
     _sep("=")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Export CSV  —  naming convention estesa per MATLAB
-# ──────────────────────────────────────────────────────────────────────────────
-#
-#  Naming convention:
-#    risultati_<N>u_<TAG>.csv
-#
-#  TAG per tipo analisi:
-#    standard              →  std_seed<S>
-#    tipologia utenti      →  tipo_<scenario>
-#    rete fissa            →  rete_Nmax<M>_Nact<N>_seed<S>
-#    densità spaziale      →  densita_<mode>[_K<clusters>]
-#
+# Export CSV
 # ──────────────────────────────────────────────────────────────────────────────
 
 def _csv_path(n_users: int, tag: str) -> Path:
@@ -163,7 +151,10 @@ def _csv_path(n_users: int, tag: str) -> Path:
     return CARTELLA_OUT / f"risultati_{n_users}u_{tag}.csv"
 
 
-def _export_csv(waste_types, results_by_algo, times_by_algo, path: Path) -> None:
+def _export_csv(waste_types, results_by_algo, times_by_algo, path: Path,
+                alpha: float = 0.5,
+                scala_ins: float = 1.0,
+                scala_cost: float = 1.0) -> None:
     with path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
         writer.writeheader()
@@ -185,12 +176,69 @@ def _export_csv(waste_types, results_by_algo, times_by_algo, path: Path) -> None
                         "F_viaggio":     round(entry["F_viaggio"],     4),
                         "F_lavoro":      round(entry["F_lavoro"],      4),
                         "algo_time_sec": round(algo_time,              6),
+                        "alpha":         round(alpha,                  4),
+                        "scala_ins":     round(scala_ins,              4),
+                        "scala_cost":    round(scala_cost,             4),
                     })
     print(f"  → CSV: {path.resolve()}")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Runner per singolo algoritmo (invariato nella logica, firma estesa)
+# Analisi bilanciamento pesi
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _analisi_pesi(waste_types, results_by_algo):
+    """Calcola le scale di normalizzazione dalla run esplorativa
+    e suggerisce i tre valori di alpha per la combinazione convessa.
+    """
+    _sep("=")
+    print("  ANALISI BILANCIAMENTO PESI")
+    _sep("=")
+
+    ins_vals, cost_vals = [], []
+    for algo_results in results_by_algo.values():
+        for r in waste_types:
+            bf = algo_results[r].get("best_F")
+            if bf is None:
+                continue
+            ins_vals.append(bf["F_insoddis"])
+            cost_vals.append(
+                bf["F_costo_fisso"] + bf["F_viaggio"] + bf["F_lavoro"]
+            )
+
+    if not ins_vals:
+        print("  [!] Nessun risultato disponibile per l'analisi.")
+        return None
+
+    scala_ins  = sum(ins_vals)  / len(ins_vals)
+    scala_cost = sum(cost_vals) / len(cost_vals)
+
+    if scala_ins < 1e-9 or scala_cost < 1e-9:
+        print("\n  [!] Uno dei termini è zero, impossibile calcolare le scale.")
+        return None
+
+    print(f"\n  F_insoddisfazione  (media su rifiuti/algoritmi) : {scala_ins:>12.2f}")
+    print(f"  F_costi            (media su rifiuti/algoritmi) : {scala_cost:>12.2f}")
+    print(f"\n  Rapporto F_costi / F_insoddis : {scala_cost/scala_ins:.2f}x")
+    print(f"""
+  Formulazione adottata:
+    F = α · (F_insoddis / {scala_ins:.1f}) + (1-α) · (F_costi / {scala_cost:.1f})
+
+  Scenari suggeriti:
+    [A] Bilanciato        alpha = 0.50
+    [B] Pro-costi         alpha = 0.15
+    [C] Pro-insoddisfaz.  alpha = 0.95
+""")
+    _sep("=")
+
+    return {
+        "scala_ins":  scala_ins,
+        "scala_cost": scala_cost,
+    }
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Runner singolo algoritmo
 # ──────────────────────────────────────────────────────────────────────────────
 
 def _run_algo(algo_key, grid_search_fn, data, waste_types):
@@ -214,28 +262,15 @@ def _run_algo(algo_key, grid_search_fn, data, waste_types):
     return results, elapsed
 
 
-def _esegui_run(data, scelta_algo, tag_csv, mostra_riepilogo=True, mostra_grafo_ui=False,
-                plot_fn=None):
-    """Esegue gli algoritmi su `data` e salva il CSV.
+# ──────────────────────────────────────────────────────────────────────────────
+# _esegui_run — core runner con combinazione convessa
+# ──────────────────────────────────────────────────────────────────────────────
 
-    Parameters
-    ----------
-    data:
-        Output di generate_mock_data o generate_real_data.
-    scelta_algo:
-        "g" | "c" | "" (entrambi).
-    tag_csv:
-        Stringa tag per il naming del CSV.
-    mostra_riepilogo:
-        Se True stampa riepilogo/comparativa a console.
-    plot_fn:
-        Funzione di visualizzazione grafo. Default: plot_graph (mock).
-        Passare plot_graph_reale per la modalità mappa reale.
-
-    Returns
-    -------
-    path : Path  — percorso del CSV scritto
-    """
+def _esegui_run(data, scelta_algo, tag_csv, mostra_riepilogo=True,
+                mostra_grafo_ui=False, plot_fn=None,
+                alpha: float = 0.5,
+                scala_ins: float = 1.0,
+                scala_cost: float = 1.0):
     if plot_fn is None:
         plot_fn = plot_graph
     if scelta_algo in ("c", ""):
@@ -243,15 +278,19 @@ def _esegui_run(data, scelta_algo, tag_csv, mostra_riepilogo=True, mostra_grafo_
     if scelta_algo in ("g", ""):
         from Greedy import grid_search as greedy_gs
 
-    waste_types      = data["waste_types"]
-    n_workers        = calcola_worker_ottimali(data["n_users"])
-    results_by_algo  = {}
-    times_by_algo    = {}
+    waste_types     = data["waste_types"]
+    n_workers       = calcola_worker_ottimali(data["n_users"])
+    results_by_algo = {}
+    times_by_algo   = {}
 
     if scelta_algo in ("g", ""):
         res, el = _run_algo(
             "greedy",
-            lambda d, r, x: greedy_gs(d, r, x, max_workers=n_workers),
+            lambda d, r, x: greedy_gs(d, r, x,
+                                       alpha=alpha,
+                                       scala_ins=scala_ins,
+                                       scala_cost=scala_cost,
+                                       max_workers=n_workers),
             data, waste_types,
         )
         results_by_algo["greedy"] = res
@@ -260,7 +299,11 @@ def _esegui_run(data, scelta_algo, tag_csv, mostra_riepilogo=True, mostra_grafo_
     if scelta_algo in ("c", ""):
         res, el = _run_algo(
             "clarke_wright",
-            lambda d, r, x: cw_gs(d, r, x, max_workers=n_workers),
+            lambda d, r, x: cw_gs(d, r, x,
+                                   alpha=alpha,
+                                   scala_ins=scala_ins,
+                                   scala_cost=scala_cost,
+                                   max_workers=n_workers),
             data, waste_types,
         )
         results_by_algo["clarke_wright"] = res
@@ -272,22 +315,73 @@ def _esegui_run(data, scelta_algo, tag_csv, mostra_riepilogo=True, mostra_grafo_
         if len(results_by_algo) == 2:
             _stampa_comparativa(waste_types, results_by_algo, times_by_algo)
 
-    # Costruzione nomi file
     csv_filename = f"risultati_{data['n_users']}u_{tag_csv}.csv"
     png_filename = f"grafo_{csv_filename.replace('.csv', '.png')}"
-    
-    # Salvataggio CSV
-    path_csv = _csv_path(data["n_users"], tag_csv)
-    _export_csv(waste_types, results_by_algo, times_by_algo, path_csv)
 
-    # CHIAMATA AL PLOT: Salva sempre, mostra solo se richiesto
+    path_csv = _csv_path(data["n_users"], tag_csv)
+    _export_csv(waste_types, results_by_algo, times_by_algo, path_csv,
+                alpha=alpha, scala_ins=scala_ins, scala_cost=scala_cost)
+
     plot_fn(data, save_name=png_filename, show_ui=mostra_grafo_ui)
-    
+
     return path_csv
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Studio pesi — condiviso tra analisi 1 e 5
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _esegui_studio_pesi(data, scelta, tag_base, mostra_ui,
+                        results_espl, times_espl, plot_fn=None):
+    """Analizza i pesi e lancia le 3 run con combinazione convessa A/B/C."""
+    pesi = _analisi_pesi(data["waste_types"], results_espl)
+    if pesi is None:
+        return
+
+    raw = input("\n  Eseguire le 3 run bilanciate (A/B/C)? (s/n, Invio=s) : ").strip().lower()
+    if raw == "n":
+        path_csv = _csv_path(data["n_users"], tag_base)
+        _export_csv(data["waste_types"], results_espl, times_espl,
+                    path_csv, alpha=0.5,
+                    scala_ins=pesi["scala_ins"],
+                    scala_cost=pesi["scala_cost"])
+        if plot_fn is None:
+            plot_fn = plot_graph
+        png_filename = f"grafo_risultati_{data['n_users']}u_{tag_base}.png"
+        plot_fn(data, save_name=png_filename, show_ui=False)
+        return
+
+    scala_ins  = pesi["scala_ins"]
+    scala_cost = pesi["scala_cost"]
+
+    scenari = [
+        ("A_bilanciato",      0.50),
+        ("B_pro_costi",       0.15),
+        ("C_pro_insoddisfaz", 0.95),
+    ]
+
+    _sep("=")
+    print("  FASE 2 — Run con combinazione convessa")
+    _sep("=")
+
+    for label, alpha in scenari:
+        print(f"\n  ▶  Scenario {label}  (alpha={alpha:.2f})")
+        tag = f"{tag_base}_{label}"
+        _esegui_run(data, scelta, tag,
+                    mostra_riepilogo=False,
+                    mostra_grafo_ui=False,
+                    plot_fn=plot_fn,
+                    alpha=alpha,
+                    scala_ins=scala_ins,
+                    scala_cost=scala_cost)
+
+    _sep("=")
+    print(f"  Studio pesi completato. CSV in '{CARTELLA_OUT}/'")
+    _sep("=")
+
+
 # ══════════════════════════════════════════════════════════════════════════════
-#  ANALISI 1 — Standard (comportamento originale)
+#  ANALISI 1 — Standard
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _analisi_standard() -> None:
@@ -302,12 +396,43 @@ def _analisi_standard() -> None:
     print("Dati generati!")
 
     mostra_ui = input("\nMostrare il grafo a schermo? (s/n) : ").strip().lower() == "s"
-    
-    scelta = _chiedi_algoritmo()
-    tag    = f"std_seed{seed}"
-    
-    # Passiamo la preferenza a _esegui_run
-    _esegui_run(data, scelta, tag, mostra_riepilogo=True, mostra_grafo_ui=mostra_ui)
+    scelta    = _chiedi_algoritmo()
+    n_workers = calcola_worker_ottimali(n_users)
+
+    # Run esplorativa alpha=0.5 scala=1/1
+    _sep("=")
+    print("  FASE 1 — Run esplorativa (α=0.5, scala 1.0/1.0)")
+    _sep("=")
+    results_espl, times_espl = {}, {}
+
+    if scelta in ("g", ""):
+        from Greedy import grid_search as greedy_gs
+        res, el = _run_algo("greedy",
+            lambda d, r, x: greedy_gs(d, r, x,
+                                       alpha=0.5, scala_ins=1.0, scala_cost=1.0,
+                                       max_workers=n_workers),
+            data, data["waste_types"])
+        results_espl["greedy"] = res
+        times_espl["greedy"]   = el
+
+    if scelta in ("c", ""):
+        from ClarkeWright import grid_search as cw_gs
+        res, el = _run_algo("clarke_wright",
+            lambda d, r, x: cw_gs(d, r, x,
+                                   alpha=0.5, scala_ins=1.0, scala_cost=1.0,
+                                   max_workers=n_workers),
+            data, data["waste_types"])
+        results_espl["clarke_wright"] = res
+        times_espl["clarke_wright"]   = el
+
+    for ak, res in results_espl.items():
+        _stampa_riepilogo(ak, data["waste_types"], res, times_espl[ak])
+    if len(results_espl) == 2:
+        _stampa_comparativa(data["waste_types"], results_espl, times_espl)
+
+    tag_base = f"std_seed{seed}"
+    _esegui_studio_pesi(data, scelta, tag_base, mostra_ui,
+                        results_espl, times_espl)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -330,7 +455,6 @@ def _analisi_tipologia() -> None:
     ).strip()
     if raw_sc:
         scenari = [s.strip() for s in raw_sc.split(",")]
-        # Validazione
         invalidi = [s for s in scenari if s not in USER_SCENARIOS]
         if invalidi:
             print(f"  [!] Scenari non validi: {invalidi}")
@@ -353,9 +477,9 @@ def _analisi_tipologia() -> None:
             n_users=n_users, seed=seed, r_factor=r_factor,
             user_scenario=scenario,
         )
-
         tag  = f"tipo_{scenario}"
-        path = path = _esegui_run(data, scelta, tag, mostra_riepilogo=False, mostra_grafo_ui=mostra_ui)
+        path = _esegui_run(data, scelta, tag,
+                           mostra_riepilogo=False, mostra_grafo_ui=mostra_ui)
         paths.append(path)
 
     _sep("=")
@@ -384,12 +508,10 @@ def _analisi_rete_fissa() -> None:
     else:
         n_list = [50, 100, 150]
 
-    # Validazione
     if any(n > n_max for n in n_list):
         print(f"  [!] Tutti i valori N devono essere ≤ N_max ({n_max}).")
         return
 
-    # Scenario tipologia (opzionale)
     print("\nScenari tipologia disponibili:")
     for k in USER_SCENARIOS:
         print(f"    {k}")
@@ -415,11 +537,10 @@ def _analisi_rete_fissa() -> None:
             r_factor=r_factor,
             user_scenario=scenario,
             n_max=n_max,
-            # active_nodes=None → estrazione casuale riproducibile via seed
         )
-
         tag  = f"rete_Nmax{n_max}_Nact{n_act}_seed{seed}"
-        path = path = _esegui_run(data, scelta, tag, mostra_riepilogo=False, mostra_grafo_ui=mostra_ui)
+        path = _esegui_run(data, scelta, tag,
+                           mostra_riepilogo=False, mostra_grafo_ui=mostra_ui)
         paths.append(path)
 
     _sep("=")
@@ -440,7 +561,6 @@ def _analisi_densita() -> None:
     seed     = _ask("Seed casuale       (default  42) : ",  42,  int)
     r_factor = _ask("Fattore raggio     (default 1.2) : ", 1.2,  float)
 
-    # Scenario tipologia (opzionale)
     print("\nScenari tipologia disponibili:")
     for k in USER_SCENARIOS:
         print(f"    {k}")
@@ -449,7 +569,6 @@ def _analisi_densita() -> None:
         "residenziale", str,
     )
 
-    # Sub-menu modalità spaziali
     print("\nModalità spaziali da testare:")
     print("  [1] Solo uniforme")
     print("  [2] Solo cluster")
@@ -458,7 +577,6 @@ def _analisi_densita() -> None:
     mode_map = {"1": ["uniform"], "2": ["cluster"], "3": ["uniform", "cluster"]}
     modes    = mode_map.get(raw_mode, ["uniform", "cluster"])
 
-    # Parametri cluster (attivi solo se "cluster" è nelle modalità)
     cluster_configs: list[tuple[int, float]] = []
     if "cluster" in modes:
         raw_k = input(
@@ -473,8 +591,6 @@ def _analisi_densita() -> None:
     print("\n  [Nota: verranno generati più grafi di fila]")
     mostra_ui = input("  Mostrare i grafi a schermo ad ogni step? (s/n) : ").strip().lower() == "s"
 
-    # ── Costruzione lista run ──────────────────────────────────────────────────
-    # Ogni run è una tupla (spatial_mode, n_clusters, cluster_std, tag)
     runs: list[tuple[str, int, float, str]] = []
     if "uniform" in modes:
         runs.append(("uniform", 0, 0.0, "densita_uniform"))
@@ -486,7 +602,7 @@ def _analisi_densita() -> None:
 
     paths = []
     for sp_mode, n_k, std, tag in runs:
-        label = f"uniforme" if sp_mode == "uniform" else f"cluster K={n_k}"
+        label = "uniforme" if sp_mode == "uniform" else f"cluster K={n_k}"
         print(f"\n  ▶  Modalità spaziale: {label}")
         data = generate_mock_data(
             n_users=n_users,
@@ -497,8 +613,8 @@ def _analisi_densita() -> None:
             n_clusters=n_k,
             cluster_std=std,
         )
-
-        path = _esegui_run(data, scelta, tag, mostra_riepilogo=False, mostra_grafo_ui=mostra_ui)
+        path = _esegui_run(data, scelta, tag,
+                           mostra_riepilogo=False, mostra_grafo_ui=mostra_ui)
         paths.append(path)
 
     _sep("=")
@@ -518,7 +634,6 @@ def _analisi_mappa_reale() -> None:
     print(f"  Utenti   : {UTENTI_JSON}")
     print(f"  Deposito : Via Vittorio Bachelet 15, Fabriano (Anconambiente S.p.A.)\n")
 
-    # Verifica file
     for p in (GRAPHML_PATH, UTENTI_JSON):
         if not p.exists():
             print(f"  [!] File non trovato: {p}")
@@ -526,7 +641,6 @@ def _analisi_mappa_reale() -> None:
             print("       e preprocessing_proiezione.py.")
             return
 
-    # 1. Fonte tipologie
     print("  Fonte tipologie utente:")
     print("    [r] Tipologie reali  (da utenti.json)  ← default")
     print("    [s] Scenario stocastico  (override)")
@@ -550,18 +664,16 @@ def _analisi_mappa_reale() -> None:
 
     seed = _ask("\n  Seed (rilevante solo per tipologie stocastiche, default 42) : ", 42, int)
 
-    # 2. Avviso tempi
     _sep()
     print("  [INFO] Caricamento mappa reale in corso...")
     print("         Il Dijkstra su ~4.741 nodi richiede tipicamente 30-90 s.")
     print("         Attendi il completamento prima di procedere.")
     _sep()
 
-    # 3. Generazione dati
     data = generate_real_data(
         graphml_path     = GRAPHML_PATH,
         utenti_json_path = UTENTI_JSON,
-        user_scenario    = user_scenario_scelto,   # None → tipologie reali
+        user_scenario    = user_scenario_scelto,
         seed             = seed,
     )
 
@@ -569,25 +681,46 @@ def _analisi_mappa_reale() -> None:
     fonte_label = "reali" if usa_reali else f"scenario '{user_scenario_scelto}'"
     print(f"\n  Dati caricati: {n_users} utenti  |  tipologie: {fonte_label}")
 
-    # 4. Algoritmo e opzioni plot
-    scelta   = _chiedi_algoritmo()
+    scelta    = _chiedi_algoritmo()
     mostra_ui = input("\n  Mostrare il grafo a schermo? (s/n) : ").strip().lower() == "s"
 
-    # 5. Tag CSV
-    if usa_reali:
-        tag = "mappa_reale"
-    else:
-        tag = f"mappa_reale_{user_scenario_scelto}"
+    tag = "mappa_reale" if usa_reali else f"mappa_reale_{user_scenario_scelto}"
 
-    # 6. Esecuzione
-    _esegui_run(
-        data,
-        scelta,
-        tag,
-        mostra_riepilogo  = True,
-        mostra_grafo_ui   = mostra_ui,
-        plot_fn           = plot_graph_reale,
-    )
+    # Run esplorativa
+    _sep("=")
+    print("  FASE 1 — Run esplorativa (α=0.5, scala 1.0/1.0)")
+    _sep("=")
+    results_espl, times_espl = {}, {}
+    n_workers = calcola_worker_ottimali(n_users)
+
+    if scelta in ("g", ""):
+        from Greedy import grid_search as greedy_gs
+        res, el = _run_algo("greedy",
+            lambda d, r, x: greedy_gs(d, r, x,
+                                       alpha=0.5, scala_ins=1.0, scala_cost=1.0,
+                                       max_workers=n_workers),
+            data, data["waste_types"])
+        results_espl["greedy"] = res
+        times_espl["greedy"]   = el
+
+    if scelta in ("c", ""):
+        from ClarkeWright import grid_search as cw_gs
+        res, el = _run_algo("clarke_wright",
+            lambda d, r, x: cw_gs(d, r, x,
+                                   alpha=0.5, scala_ins=1.0, scala_cost=1.0,
+                                   max_workers=n_workers),
+            data, data["waste_types"])
+        results_espl["clarke_wright"] = res
+        times_espl["clarke_wright"]   = el
+
+    for ak, res in results_espl.items():
+        _stampa_riepilogo(ak, data["waste_types"], res, times_espl[ak])
+    if len(results_espl) == 2:
+        _stampa_comparativa(data["waste_types"], results_espl, times_espl)
+
+    _esegui_studio_pesi(data, scelta, tag, mostra_ui,
+                        results_espl, times_espl,
+                        plot_fn=plot_graph_reale)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

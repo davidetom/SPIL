@@ -4,7 +4,22 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import numpy as np
 
+# ---------------------------------------------------------
+# 0. WEIGHTED SCORE  (nuova funzione pura, condivisa)
+# ---------------------------------------------------------
 
+def weighted_score(obj: dict, alpha: float,
+                   scala_ins: float = 1.0,
+                   scala_cost: float = 1.0) -> float:
+    """Combinazione convessa normalizzata.
+    alpha=0.5 → pesi bilanciati.
+    alpha→1   → pro-insoddisfazione.
+    alpha→0   → pro-costi.
+    scala_ins e scala_cost provengono dalla run esplorativa.
+    """
+    F_ins   = obj["F_insoddis"] / scala_ins
+    F_costi = (obj["F_costo_fisso"] + obj["F_viaggio"] + obj["F_lavoro"]) / scala_cost
+    return alpha * F_ins + (1 - alpha) * F_costi
 # =============================================================================
 # 1. PRE-CALCOLO ARRAY NUMPY
 # =============================================================================
@@ -36,7 +51,10 @@ def _make_numpy_views(
 # 2. BUILD ROUTES
 # =============================================================================
 
-def build_routes(data: dict, r: str, X_r: float) -> dict:
+def build_routes(data: dict, r: str, X_r: float,
+                 alpha: float = 0.5,
+                 scala_ins: float = 1.0,
+                 scala_cost: float = 1.0) -> dict:
     """Clarke-Wright con savings statici, argsort flat e check O(1).
 
     Paradigma
@@ -121,9 +139,11 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
     tv_0j = time_np[0,  fn][None, :]
     tv_ij = time_np[np.ix_(fn, fn)]
 
-    S = (c_fixed_r
-         + cd * (d_i0 + d_0j - d_ij)
-         + cm * (tv_i0 + tv_0j - tv_ij))
+    S = (1 - alpha) / scala_cost * (
+        c_fixed_r
+        + cd * (d_i0 + d_0j - d_ij)
+        + cm * (tv_i0 + tv_0j - tv_ij)
+    )
 
     np.fill_diagonal(S, -np.inf)
 
@@ -261,8 +281,8 @@ def compute_objective(data: dict, r: str, X_r: float, routes_result: dict) -> di
 # =============================================================================
 
 def _evaluate_one(args: tuple) -> dict | None:
-    data, r, X_r = args
-    routes_result = build_routes(data, r, X_r)
+    data, r, X_r, alpha, scala_ins, scala_cost = args
+    routes_result = build_routes(data, r, X_r, alpha, scala_ins, scala_cost)
     if routes_result["n_vehicles"] == 0:
         return None
     obj = compute_objective(data, r, X_r, routes_result)
@@ -279,23 +299,23 @@ def grid_search(
     r: str,
     X_values: list[float],
     *,
+    alpha: float = 0.5,
+    scala_ins: float = 1.0,
+    scala_cost: float = 1.0,
     max_workers: int | None = None,
     parallel_threshold: int = 6,
 ) -> dict:
-    """Grid search su X_values per il rifiuto r con Clarke-Wright.
-
-    Firma identica a Greedy.grid_search per completa intercambiabilita'.
-    """
     best_X_r    = None
     best_F      = None
     best_routes = None
-    best_total  = float("inf")
+    best_score  = float("inf")
     all_results: list[dict] = []
 
     use_parallel = len(X_values) >= parallel_threshold
 
     if use_parallel:
-        args_list = [(data, r, X_r) for X_r in X_values]
+        args_list = [(data, r, X_r, alpha, scala_ins, scala_cost)
+                     for X_r in X_values]
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
             future_to_X = {
                 executor.submit(_evaluate_one, args): args[2]
@@ -306,8 +326,9 @@ def grid_search(
                 if result is None:
                     continue
                 all_results.append(result)
-                if result["F_total"] < best_total:
-                    best_total  = result["F_total"]
+                score = weighted_score(result, alpha, scala_ins, scala_cost)
+                if score < best_score:
+                    best_score  = score
                     best_X_r    = result["X_r"]
                     best_F      = {k: result[k] for k in (
                         "F_total", "F_insoddis", "F_costo_fisso",
@@ -315,15 +336,15 @@ def grid_search(
                     )}
                     best_routes = result["routes"]
         all_results.sort(key=lambda d: d["X_r"])
-
     else:
         for X_r in X_values:
-            result = _evaluate_one((data, r, X_r))
+            result = _evaluate_one((data, r, X_r, alpha, scala_ins, scala_cost))
             if result is None:
                 continue
             all_results.append(result)
-            if result["F_total"] < best_total:
-                best_total  = result["F_total"]
+            score = weighted_score(result, alpha, scala_ins, scala_cost)
+            if score < best_score:
+                best_score  = score
                 best_X_r    = result["X_r"]
                 best_F      = {k: result[k] for k in (
                     "F_total", "F_insoddis", "F_costo_fisso",
