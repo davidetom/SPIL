@@ -2,6 +2,7 @@ from __future__ import annotations
 
 # ── Import ────────────────────────────────────────────────────────────────────────────
 import json
+import pickle
 import warnings
 from pathlib import Path
 
@@ -15,21 +16,6 @@ from scipy.spatial import Delaunay
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  SCENARIO REGISTRY  —  Distribuzione tipologie utente predefinite
-# ─────────────────────────────────────────────────────────────────────────────
-#  Ogni scenario è una dict con:
-#    "probs"       : array di probabilità (somma = 1.0) per
-#                    [single, famiglia, palazzina_piccola, palazzina_grande]
-#    "description" : etichetta leggibile (per CSV naming e stampe)
-#
-#  I valori sono stati scelti per massimizzare il contrasto nei benchmark:
-#
-#  "residenziale"     → quartiere tipico italiano:
-#                        famiglie e single dominano, pochi palazzi
-#  "suburbano"        → mix equilibrato, leggera prevalenza famiglie
-#  "grandi_condomini" → quasi tutto palazzi grandi (alto carico kg/ritiro)
-#  "villette"         → solo single/famiglie, nessun condominio
-#                        (caso estremo bassa densità di rifiuto)
-#  "misto_periferia"  → molte palazzine piccole, pochi grandi condomini
 # ─────────────────────────────────────────────────────────────────────────────
 
 USER_SCENARIOS: dict[str, dict] = {
@@ -55,7 +41,6 @@ USER_SCENARIOS: dict[str, dict] = {
     },
 }
 
-# Scenario di default (retrocompatibilità con chiamate senza argomento)
 DEFAULT_USER_SCENARIO = "residenziale"
 
 
@@ -67,28 +52,6 @@ def _build_graph(
     coords: np.ndarray,
     r_factor: float,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, set[tuple[int, int]]]:
-    """Costruisce il grafo planare e calcola le matrici di distanza/tempo.
-
-    Incapsula l'intera pipeline:
-      coords → Delaunay → filtraggio R → MST fallback → CSR → Dijkstra
-
-    Estratto da ``generate_mock_data`` per permettere il riuso nella
-    modalità **Rete Fissa** (grafo generato su N_max nodi, poi subsetting).
-
-    Parameters
-    ----------
-    coords:
-        Array ``(n_nodes, 2)`` delle coordinate km.
-    r_factor:
-        Moltiplicatore soglia archi Delaunay.
-
-    Returns
-    -------
-    dist_matrix : ndarray (n_nodes, n_nodes)
-    time_matrix : ndarray (n_nodes, n_nodes)
-    adj_matrix  : ndarray (n_nodes, n_nodes)  — inf=assenza arco
-    edges       : set[tuple[int,int]]
-    """
     n_nodes   = len(coords)
     speed     = 25.0 / 60.0          # km/min
 
@@ -99,9 +62,11 @@ def _build_graph(
     # ── Triangolazione di Delaunay ────────────────────────────────────────────
     tri = Delaunay(coords)
     all_delaunay_edges: set[tuple[int, int]] = set()
+    
     for simplex in tri.simplices:
         for k in range(3):
-            i, j = int(simplex[k]), int(simplex[(k + 1) % 3])
+            i = int(simplex[k])
+            j = int(simplex[(k + 1) % 3])
             all_delaunay_edges.add((min(i, j), max(i, j)))
 
     edge_arr       = np.array(list(all_delaunay_edges), dtype=np.int32)
@@ -110,6 +75,7 @@ def _build_graph(
 
     edge_dists = full_dist[edge_arr[:, 0], edge_arr[:, 1]]
     kept_edges = edge_arr[edge_dists <= R]
+    
     edges: set[tuple[int, int]] = {
         (int(kept_edges[k, 0]), int(kept_edges[k, 1]))
         for k in range(len(kept_edges))
@@ -138,10 +104,15 @@ def _build_graph(
             edges.add((min(int(i), int(j)), max(int(i), int(j))))
 
     # ── CSR sparsa → Dijkstra ─────────────────────────────────────────────────
-    rows, cols, vals = [], [], []
+    rows = []
+    cols = []
+    vals = []
+    
     for i, j in edges:
         d = full_dist[i, j]
-        rows.extend([i, j]); cols.extend([j, i]); vals.extend([d, d])
+        rows.extend([i, j])
+        cols.extend([j, i])
+        vals.extend([d, d])
 
     graph_csr   = csr_matrix((vals, (rows, cols)), shape=(n_nodes, n_nodes))
     dist_matrix = dijkstra(graph_csr, directed=False)
@@ -150,7 +121,8 @@ def _build_graph(
     adj = np.full((n_nodes, n_nodes), np.inf)
     np.fill_diagonal(adj, 0.0)
     for i, j in edges:
-        adj[i, j] = adj[j, i] = full_dist[i, j]
+        adj[i, j] = full_dist[i, j]
+        adj[j, i] = full_dist[i, j]
 
     return dist_matrix, time_matrix, adj, edges
 
@@ -166,32 +138,6 @@ def _build_problem_params(
     custom_type_probs: np.ndarray | None,
     fixed_user_types: np.ndarray | None = None,
 ) -> dict:
-    """Genera user_types e tutti i dizionari W, x_star, C, tc, c_fixed.
-
-    Separato da ``_build_graph`` perché nella modalità **Rete Fissa**
-    i parametri vengono rigenerati per il sottoinsieme attivo, mentre
-    il grafo rimane quello della città base.
-
-    Parameters
-    ----------
-    n_users:
-        Numero di utenti attivi (dimensione del sottoinsieme estratto).
-    rng:
-        Generatore NumPy già inizializzato con il seed corretto.
-    user_scenario:
-        Chiave in ``USER_SCENARIOS`` (ignorata se ``custom_type_probs`` è fornito).
-    custom_type_probs:
-        Array ``(4,)`` di probabilità custom. Ha priorità su ``user_scenario``.
-    fixed_user_types:
-        Array ``(n_users,)`` di tipologie già assegnate (es. da mappa reale).
-        Se fornito, bypassa il campionamento stocastico. Ha priorità su tutto.
-
-    Returns
-    -------
-    dict
-        Sotto-dizionario con: user_types, user_type_list, W, x_star,
-        C, tc, c_fixed, waste_types, cd, cm, L, alpha, beta, scenario_label.
-    """
     user_type_list = ["single", "famiglia", "palazzina_piccola", "palazzina_grande"]
 
     # ── Selezione probabilità ──────────────────────────────────────────────────
@@ -208,24 +154,30 @@ def _build_problem_params(
         scenario_label = user_scenario
 
     if fixed_user_types is not None:
-        # Modalità mappa reale: tipologie già definite dal preprocessing
-        user_types     = np.asarray(fixed_user_types, dtype=object)
-        scenario_label = scenario_label if custom_type_probs is None else "custom"
+        user_types = np.asarray(fixed_user_types, dtype=object)
+        if custom_type_probs is None:
+            scenario_label = scenario_label
+        else:
+            scenario_label = "custom"
     else:
-        # Modalità legacy/scenario: campionamento stocastico
-        probs /= probs.sum()   # normalizzazione difensiva
+        probs /= probs.sum()   
         type_indices = rng.choice(len(user_type_list), size=n_users, p=probs)
         user_types   = np.array([user_type_list[i] for i in type_indices], dtype=object)
 
     waste_types = ["organico", "carta", "plastica", "vetro", "indifferenziata"]
 
     W_base = {
-        "organico": 3.0, "carta": 2.0, "plastica": 1.7,
-        "vetro": 1.2,    "indifferenziata": 2.5,
+        "organico": 3.0, 
+        "carta": 2.0, 
+        "plastica": 1.7,
+        "vetro": 1.2,    
+        "indifferenziata": 2.5,
     }
     type_multiplier = {
-        "single": 0.5, "famiglia": 1.0,
-        "palazzina_piccola": 6.0, "palazzina_grande": 20.0,
+        "single": 0.5, 
+        "famiglia": 1.0,
+        "palazzina_piccola": 6.0, 
+        "palazzina_grande": 20.0,
     }
     W = {
         (r, t): W_base[r] * type_multiplier[t]
@@ -233,12 +185,17 @@ def _build_problem_params(
     }
 
     x_star_base = {
-        "organico": 2.5, "carta": 1.0, "plastica": 1.7,
-        "vetro": 0.5,    "indifferenziata": 2.0,
+        "organico": 2.5, 
+        "carta": 1.0, 
+        "plastica": 1.7,
+        "vetro": 0.5,    
+        "indifferenziata": 2.0,
     }
     x_star_type_mult = {
-        "single": 0.7, "famiglia": 1.0,
-        "palazzina_piccola": 1.5, "palazzina_grande": 2.0,
+        "single": 0.7, 
+        "famiglia": 1.0,
+        "palazzina_piccola": 1.5, 
+        "palazzina_grande": 2.0,
     }
     x_star = {
         (r, t): x_star_base[r] * x_star_type_mult[t]
@@ -246,17 +203,25 @@ def _build_problem_params(
     }
 
     C = {
-        "organico": 1500.0, "carta": 1500.0, "plastica": 1000.0,
-        "vetro": 2000.0,    "indifferenziata": 2000.0,
+        "organico": 1500.0, 
+        "carta": 1500.0, 
+        "plastica": 1000.0,
+        "vetro": 2000.0,    
+        "indifferenziata": 2000.0,
     }
 
     tc_base = {
-        "organico": 1.2, "carta": 1.0, "plastica": 1.0,
-        "vetro": 1.5,    "indifferenziata": 1.2,
+        "organico": 1.2, 
+        "carta": 1.0, 
+        "plastica": 1.0,
+        "vetro": 1.5,    
+        "indifferenziata": 1.2,
     }
     tc_type_mult = {
-        "single": 1.0, "famiglia": 1.0,
-        "palazzina_piccola": 3.0, "palazzina_grande": 3.0,
+        "single": 1.0, 
+        "famiglia": 1.0,
+        "palazzina_piccola": 3.0, 
+        "palazzina_grande": 3.0,
     }
     tc = {
         (r, t): tc_base[r] * tc_type_mult[t]
@@ -264,8 +229,11 @@ def _build_problem_params(
     }
 
     c_fixed = {
-        "organico": 120.0, "carta": 80.0, "plastica": 70.0,
-        "vetro": 110.0,    "indifferenziata": 90.0,
+        "organico": 120.0, 
+        "carta": 80.0, 
+        "plastica": 70.0,
+        "vetro": 110.0,    
+        "indifferenziata": 90.0,
     }
 
     return {
@@ -287,7 +255,93 @@ def _build_problem_params(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  generate_mock_data  —  Entry point principale (retrocompatibile)
+#  get_or_create_base_graph — Gestione Grafo Condiviso Unico e relativo PNG
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_or_create_base_graph(n_max: int = 500, seed: int = 42, r_factor: float = 1.2) -> dict:
+    """Carica o genera un grafo stradale di base costante per N_max nodi."""
+    folder = Path("grafo_condiviso")
+    folder.mkdir(exist_ok=True)
+    file_path = folder / f"base_graph_N{n_max}_seed{seed}.pkl"
+
+    if file_path.exists():
+        print(f"  [Grafo Condiviso] Caricamento da disco ({file_path.name})...")
+        with open(file_path, "rb") as f:
+            base_graph = pickle.load(f)
+    else:
+        print(f"  [Grafo Condiviso] Generazione nuovo grafo base stradale ({n_max} incroci max)...")
+        rng = np.random.default_rng(seed)
+        
+        n_nodes_max = n_max + 1
+        coords_base = rng.uniform(0, 10, size=(n_nodes_max, 2))
+        coords_base[0] = [5.0, 5.0] 
+
+        dist_base, time_base, adj_base, edges_base = _build_graph(coords_base, r_factor)
+
+        base_graph = {
+            "coords_base": coords_base,
+            "dist_base": dist_base,
+            "time_base": time_base,
+            "adj_base": adj_base,
+            "edges_base": edges_base,
+            "n_max": n_max,
+            "seed": seed
+        }
+
+        with open(file_path, "wb") as f:
+            pickle.dump(base_graph, f)
+            
+        print("  [Grafo Condiviso] Salvataggio completato.")
+
+    # Assicura il salvataggio del PNG del grafo stradale puro (uno per dimensione)
+    _salva_png_grafo_base(base_graph["coords_base"], base_graph["edges_base"], n_max)
+    
+    return base_graph
+
+
+def _salva_png_grafo_base(coords_base: np.ndarray, edges_base: set[tuple[int, int]], n_max: int) -> None:
+    """Disegna ed esporta esclusivamente la rete stradale mock pura in grafi_png."""
+    folder = Path("grafi_png")
+    folder.mkdir(exist_ok=True)
+    save_path = folder / f"grafo_base_Nmax{n_max}.png"
+    
+    # Se esiste già, evitiamo di rieseguire l'esportazione grafica rallentando i test
+    if save_path.exists():
+        return
+        
+    fig, ax = plt.subplots(figsize=(10, 10))
+    
+    # Layer 1: Rete di archi stradali
+    for (i, j) in edges_base:
+        ax.plot([coords_base[i, 0], coords_base[j, 0]],
+                [coords_base[i, 1], coords_base[j, 1]],
+                color="#CCCCCC", 
+                linewidth=0.8, 
+                zorder=1)
+                
+    # Layer 2: Tutti i nodi incrocio strutturali (senza differenziazione utenti)
+    ax.scatter(coords_base[1:, 0], coords_base[1:, 1],
+               color="white", 
+               edgecolors="black", 
+               s=30, 
+               zorder=2)
+               
+    # Layer 3: Deposito di base
+    ax.scatter(*coords_base[0], 
+               color="#E24B4A", 
+               s=250, 
+               zorder=3, 
+               marker="*")
+    
+    ax.set_title(f"Rete Stradale di Base Condivisa (N_max = {n_max})", pad=15)
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300)
+    plt.close(fig)
+    print(f"  → PNG Grafo Base Stradale salvato correttamente: {save_path}")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  generate_mock_data  —  Aggiornato per il Grafo Condiviso
 # ─────────────────────────────────────────────────────────────────────────────
 
 def generate_mock_data(
@@ -299,34 +353,43 @@ def generate_mock_data(
     spatial_mode:      str               = "uniform",
     n_clusters:        int               = 4,
     cluster_std:       float             = 1.2,
-    n_max:             int | None        = None,
-    active_nodes:      list[int] | None  = None,
+    base_graph_dict:   dict | None       = None,
 ) -> dict:
     rng = np.random.default_rng(seed)
 
-    # Variabili di appoggio per il plot
     coords_base_out = None
     edges_base_out  = None
     keep_idx_out    = None
     centroids_out   = None
 
-    if n_max is not None:
-        if n_users > n_max:
-            raise ValueError(f"n_users ({n_users}) non può superare n_max ({n_max}) in Rete Fissa.")
+    # ── LOGICA 1: Usiamo un Grafo di Base condiviso (Analisi 1, 2, 3) ──
+    if base_graph_dict is not None:
+        coords_base = base_graph_dict["coords_base"]
+        dist_base   = base_graph_dict["dist_base"]
+        time_base   = base_graph_dict["time_base"]
+        adj_base    = base_graph_dict["adj_base"]
+        edges_base  = base_graph_dict["edges_base"]
+        g_n_max     = base_graph_dict["n_max"]
 
-        n_nodes_max = n_max + 1
-        coords_base        = rng.uniform(0, 10, size=(n_nodes_max, 2))
-        coords_base[0]     = [5.0, 5.0]
+        if n_users > g_n_max:
+            raise ValueError(f"n_users ({n_users}) non può superare n_max ({g_n_max}) nel Grafo Condiviso.")
 
-        print(f"  [Rete Fissa] Generazione grafo base: {n_max} utenti ({n_nodes_max} nodi)...")
-        dist_base, time_base, adj_base, edges_base = _build_graph(coords_base, r_factor)
-
-        all_user_indices = np.arange(1, n_nodes_max)
-        if active_nodes is None:
+        all_user_indices = np.arange(1, g_n_max + 1)
+        
+        if spatial_mode == "cluster":
+            # Distribuzione Aggregata: 1 centroide fisso a [5.0, 5.0]
+            centroid = np.array([5.0, 5.0])
+            centroids_out = np.array([centroid])
+            
+            user_coords = coords_base[1:]
+            dists = np.sum((user_coords - centroid)**2, axis=1)
+            
+            closest_idx = np.argsort(dists)[:n_users]
+            chosen = np.sort(closest_idx + 1) 
+        else:
+            # Distribuzione Uniforme
             chosen = rng.choice(all_user_indices, size=n_users, replace=False)
             chosen = np.sort(chosen)
-        else:
-            chosen = np.array(active_nodes, dtype=int)
 
         keep_idx = np.concatenate([[0], chosen])
 
@@ -337,31 +400,25 @@ def generate_mock_data(
 
         idx_map   = {old: new for new, old in enumerate(keep_idx)}
         edges_sub = set()
+        
         for i, j in edges_base:
             if i in idx_map and j in idx_map:
                 edges_sub.add((idx_map[i], idx_map[j]))
+                
         edges = edges_sub
 
-        # Salviamo i dati originali per il plot
         coords_base_out = coords_base
         edges_base_out  = edges_base
         keep_idx_out    = keep_idx
 
-        print(f"  [Rete Fissa] Sottoinsieme attivo: {n_users} utenti (nodi originali: {chosen.tolist()})")
-
+    # ── LOGICA 2: Grafo generato da zero (Analisi Standard) ──
     else:
         n_nodes = n_users + 1
 
         if spatial_mode == "cluster":
-            # --- NUOVA LOGICA: Distanza di Sicurezza tra Centroidi ---
-            # Distanza inversamente proporzionale (10.0 è un buon fattore base)
-            # - 2 cluster -> 5.0 km minimi
-            # - 4 cluster -> 2.5 km minimi
-            # - 6 cluster -> 1.6 km minimi
             min_dist = 10.0 / n_clusters 
-            
             centroids = []
-            max_tentativi = 500 # Salvaguardia contro i loop infiniti
+            max_tentativi = 500
             
             for _ in range(n_clusters):
                 for tentativo in range(max_tentativi):
@@ -369,31 +426,28 @@ def generate_mock_data(
                     
                     if len(centroids) == 0:
                         centroids.append(candidato)
-                        break # Il primo centroide va sempre bene
+                        break
                         
-                    # Calcola le distanze tra il candidato e tutti i centri già approvati
                     distanze = np.sqrt(np.sum((np.array(centroids) - candidato)**2, axis=1))
                     
                     if np.all(distanze >= min_dist):
                         centroids.append(candidato)
-                        break # Distanza rispettata, usciamo dal loop dei tentativi
+                        break
                 else:
-                    # Questo blocco 'else' si attiva SOLO se il loop dei tentativi fallisce 500 volte.
-                    # Invece di far crashare il programma, accettiamo il candidato lo stesso.
                     centroids.append(candidato)
             
             centroids = np.array(centroids)
-            centroids_out = centroids # Salviamo per il plot
+            centroids_out = centroids
             
-            # --- RESTO DEL CODICE ORIGINALE PER I CLUSTER ---
             cluster_ids = rng.integers(0, n_clusters, size=n_users)
             user_coords = np.empty((n_users, 2))
+            
             for c in range(n_clusters):
                 mask = cluster_ids == c
                 cnt  = mask.sum()
                 if cnt > 0:
                     user_coords[mask] = rng.normal(loc=centroids[c], scale=cluster_std, size=(cnt, 2))
-            # Clip: nessun nodo fuori dalla griglia [0,10]²
+                    
             user_coords = np.clip(user_coords, 0.0, 10.0)
 
             coords      = np.empty((n_nodes, 2))
@@ -405,9 +459,13 @@ def generate_mock_data(
             coords[0] = [5.0, 5.0]
 
         dist_matrix, time_matrix, adj_matrix, edges = _build_graph(coords, r_factor)
-        n_max = None
+        g_n_max = None
 
     params = _build_problem_params(n_users, rng, user_scenario, custom_type_probs)
+
+    spatial_mode_str = spatial_mode
+    if base_graph_dict is not None:
+        spatial_mode_str = f"fixed_net_{spatial_mode}"
 
     return {
         "coords":         coords,
@@ -417,15 +475,13 @@ def generate_mock_data(
         "edges":          edges,
         **params,
         "n_users":        n_users,
-        "spatial_mode":   spatial_mode if n_max is None else "fixed_net",
-        "n_max":          n_max,
-        # --- Nuovi campi per il Plot ---
+        "spatial_mode":   spatial_mode_str,
+        "n_max":          g_n_max,
         "coords_base":    coords_base_out,
         "edges_base":     edges_base_out,
         "keep_idx":       keep_idx_out,
         "centroids":      centroids_out,
     }
-
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -439,53 +495,6 @@ def generate_real_data(
     custom_type_probs: np.ndarray | None = None,
     seed:              int = 42,
 ) -> dict:
-    """Carica il grafo reale di Fabriano e costruisce il dizionario SPIL.
-
-    Il grafo e le tipologie utente provengono dal preprocessing (Moduli 13-15).
-    Il dizionario restituito è strutturalmente identico all'output di
-    ``generate_mock_data``, garantendo piena compatibilità con Greedy e
-    ClarkeWright senza alcuna modifica a quei moduli.
-
-    Conversioni unità
-    -----------------
-    Il grafo è in metri UTM.  SPIL usa km per le distanze (cd in €/km).
-    dist_matrix viene divisa per 1000 prima di essere restituita.
-    travel_time_min rimane in minuti (cm in €/min).
-
-    Deposito
-    --------
-    Viene scelto il nodo stradale (is_user != True) più vicino al centroide
-    geografico della rete stradale.  Diventa il nodo 0 del dizionario SPIL.
-
-    Tipologie utente
-    ----------------
-    Se ``user_scenario`` è None (default) e ``custom_type_probs`` è None,
-    si usano le tipologie reali estratte dal preprocessing (utenti.json).
-    Se ``user_scenario`` è specificato, le tipologie vengono campionate
-    stocasticamente ignorando quelle del preprocessing (modalità "override").
-
-    Parameters
-    ----------
-    graphml_path:
-        Percorso a grafo_aumentato.graphml (output Modulo 15).
-    utenti_json_path:
-        Percorso a utenti.json (output Modulo 15).
-    user_scenario:
-        Se fornito, override stocastico delle tipologie (chiave USER_SCENARIOS).
-    custom_type_probs:
-        Array (4,) probabilità custom. Priorità su user_scenario.
-    seed:
-        Seed per eventuale campionamento stocastico tipologie.
-
-    Returns
-    -------
-    dict
-        Stesso formato di generate_mock_data: coords, dist_matrix,
-        time_matrix, adj_matrix, edges, user_types, W, x_star, C, tc,
-        c_fixed, cd, cm, L, alpha, beta, waste_types, user_type_list,
-        n_users, spatial_mode, n_max, coords_base, edges_base,
-        keep_idx, centroids.
-    """
     try:
         import osmnx as ox
     except ImportError:
@@ -495,17 +504,12 @@ def generate_real_data(
 
     warnings.filterwarnings("ignore")
 
-    # ── 1. Caricamento grafo aumentato ────────────────────────────────────────
     print(f"  [Reale] Caricamento grafo: '{graphml_path}'...")
     G = ox.load_graphml(str(graphml_path))
-    print(f"         {G.number_of_nodes()} nodi, {G.number_of_edges()} archi")
 
-    # ── 2. Caricamento lista utenti ───────────────────────────────────────────
-    print(f"  [Reale] Caricamento utenti: '{utenti_json_path}'...")
     with open(utenti_json_path, "r", encoding="utf-8") as f:
         json_data = json.load(f)
 
-    # Supporta sia il formato nuovo {deposito, utenti} che il legacy [lista]
     if isinstance(json_data, dict) and "utenti" in json_data:
         utenti_list: list[dict] = json_data["utenti"]
         depot_meta  = json_data.get("deposito", {})
@@ -516,150 +520,127 @@ def generate_real_data(
         depot_osmid = None
 
     n_users = len(utenti_list)
-    print(f"         {n_users} nodi utente")
 
-    # ── 3. Identificazione nodo deposito ──────────────────────────────────────
     if depot_osmid is not None and G.has_node(depot_osmid):
-        # Usa il deposito reale inserito dal preprocessing (Via Bachelet 15)
-        print(f"  [Reale] Deposito reale: node_id={depot_osmid} "
-              f"UTM=({float(G.nodes[depot_osmid]['x']):.0f}, "
-              f"{float(G.nodes[depot_osmid]['y']):.0f})")
+        pass
     else:
-        # Fallback: nodo stradale più vicino al centroide geografico
         road_nodes = [
             (n, d) for n, d in G.nodes(data=True)
             if d.get("is_user") != "True" and d.get("is_depot") != "True"
         ]
+        
         xs = np.array([float(d["x"]) for _, d in road_nodes])
         ys = np.array([float(d["y"]) for _, d in road_nodes])
-        cx, cy = xs.mean(), ys.mean()
+        cx = xs.mean()
+        cy = ys.mean()
+        
         dists_to_center = (xs - cx) ** 2 + (ys - cy) ** 2
         depot_osmid = road_nodes[int(np.argmin(dists_to_center))][0]
-        print(f"  [Reale] Deposito (fallback centroide): node_id={depot_osmid} "
-              f"UTM=({float(G.nodes[depot_osmid]['x']):.0f}, "
-              f"{float(G.nodes[depot_osmid]['y']):.0f})")
 
-    # ── 4. Mapping indice SPIL → node_id NetworkX ─────────────────────────────
-    # Indice 0 = deposito, indici 1..N = nodi utente (nell'ordine di utenti.json)
-    user_osmids = [u["node_id"] for u in utenti_list]   # ID negativi sintetici
-    spil_nodes  = [depot_osmid] + user_osmids            # lista ordinata
-    n_spil      = len(spil_nodes)                        # N+1
+    user_osmids = [u["node_id"] for u in utenti_list]   
+    spil_nodes  = [depot_osmid] + user_osmids            
+    n_spil      = len(spil_nodes)                        
 
-    # Dizionario inverso per costruire la CSR
     osmid_to_spil: dict = {osmid: idx for idx, osmid in enumerate(spil_nodes)}
 
-    # ── 5. Costruzione matrici dist/time con Dijkstra sull'intero grafo ──────
-    # Strategia: Dijkstra sull'intero grafo aumentato (tutti i nodi),
-    # poi estraiamo le righe/colonne corrispondenti ai nodi SPIL.
-    # Questo garantisce che i cammini minimi passino correttamente
-    # attraverso i nodi stradali intermedi che collegano utenti e deposito.
-    print("  [Reale] Costruzione matrici dist/time (Dijkstra intero grafo)...")
-
-    # Mappa node_id NetworkX → indice nella matrice globale
     all_nodes      = list(G.nodes())
     n_all          = len(all_nodes)
     node_to_global = {n: i for i, n in enumerate(all_nodes)}
 
-    rows_d, cols_d, vals_d = [], [], []
-    rows_t, cols_t, vals_t = [], [], []
+    rows_d = []
+    cols_d = []
+    vals_d = []
+    
+    rows_t = []
+    cols_t = []
+    vals_t = []
 
     for u, v, data in G.edges(data=True):
         i = node_to_global[u]
         j = node_to_global[v]
+        
         length_m = float(data.get("length", 0.0))
         tt_min   = float(data.get("travel_time_min", 0.0))
-        rows_d.append(i); cols_d.append(j); vals_d.append(length_m)
-        rows_t.append(i); cols_t.append(j); vals_t.append(tt_min)
+        
+        rows_d.append(i)
+        cols_d.append(j)
+        vals_d.append(length_m)
+        
+        rows_t.append(i)
+        cols_t.append(j)
+        vals_t.append(tt_min)
 
     graph_dist_full = csr_matrix((vals_d, (rows_d, cols_d)), shape=(n_all, n_all))
     graph_time_full = csr_matrix((vals_t, (rows_t, cols_t)), shape=(n_all, n_all))
 
-    # Dijkstra con sorgenti multiple = solo i nodi SPIL (deposito + utenti)
-    # Restituisce matrice (n_spil, n_all); poi estraiamo le colonne SPIL
-    spil_global_indices = np.array(
-        [node_to_global[n] for n in spil_nodes], dtype=np.int32
-    )
-    dist_full_m   = dijkstra(graph_dist_full, directed=True,
-                             indices=spil_global_indices)
-    time_full_min = dijkstra(graph_time_full, directed=True,
-                             indices=spil_global_indices)
+    spil_global_indices = np.array([node_to_global[n] for n in spil_nodes], dtype=np.int32)
+    
+    dist_full_m   = dijkstra(graph_dist_full, directed=True, indices=spil_global_indices)
+    time_full_min = dijkstra(graph_time_full, directed=True, indices=spil_global_indices)
 
-    # Estrai solo le colonne SPIL → matrice (n_spil, n_spil)
-    dist_m   = dist_full_m[:,   spil_global_indices]
+    dist_m   = dist_full_m[:, spil_global_indices]
     time_min = time_full_min[:, spil_global_indices]
+    dist_km  = dist_m / 1000.0
 
-    # Conversione distanze da metri a km (cd è in €/km)
-    dist_km = dist_m / 1000.0
-
-    # ── 6. Matrice di adiacenza e set edges ───────────────────────────────────
-    # adj_matrix: distanza diretta tra nodi adiacenti in km (inf se non connessi)
     adj_matrix = np.full((n_spil, n_spil), np.inf)
     np.fill_diagonal(adj_matrix, 0.0)
+    
     edges: set[tuple[int, int]] = set()
-    spil_set = set(spil_nodes)   # usato per filtrare archi diretti SPIL↔SPIL
+    spil_set = set(spil_nodes)   
 
     for u, v, data in G.edges(data=True):
         if u not in spil_set or v not in spil_set:
             continue
+            
         i = osmid_to_spil[u]
         j = osmid_to_spil[v]
         length_km = float(data.get("length", 0.0)) / 1000.0
+        
         if length_km < adj_matrix[i, j]:
             adj_matrix[i, j] = length_km
+            
         edges.add((min(i, j), max(i, j)))
 
-    # ── 7. Coordinate in km (per coerenza con il grafo legacy 10×10) ─────────
-    # Normalizziamo le coordinate UTM al range [0, 10] km
-    # mantenendo le proporzioni geografiche reali.
-    #
-    # La normalizzazione è calcolata sull'intero grafo (tutti i nodi),
-    # non solo sui nodi SPIL, in modo che coords e coords_full siano
-    # nello stesso sistema di riferimento e sovrapponibili nel plot.
     all_nodes_list = list(G.nodes())
     all_x_full = np.array([float(G.nodes[n]["x"]) for n in all_nodes_list])
     all_y_full = np.array([float(G.nodes[n]["y"]) for n in all_nodes_list])
     x_min = all_x_full.min()
     y_min = all_y_full.min()
-    span  = max(all_x_full.max() - x_min, all_y_full.max() - y_min)  # scala isotropa
+    span  = max(all_x_full.max() - x_min, all_y_full.max() - y_min)
 
-    # Coordinate normalizzate dei soli nodi SPIL (deposito + utenti)
     spil_x = np.array([float(G.nodes[n]["x"]) for n in spil_nodes])
     spil_y = np.array([float(G.nodes[n]["y"]) for n in spil_nodes])
+    
     coords = np.column_stack([
         (spil_x - x_min) / span * 10.0,
         (spil_y - y_min) / span * 10.0,
     ])
-
-    # ── 7b. Coordinate e archi dell'intero grafo (solo per il plot) ───────────
-    # Usati da plot_graph_reale per disegnare la rete stradale di sfondo.
-    # Non vengono mai letti dagli algoritmi.
-    node_to_plot_idx = {n: i for i, n in enumerate(all_nodes_list)}
 
     coords_full = np.column_stack([
         (all_x_full - x_min) / span * 10.0,
         (all_y_full - y_min) / span * 10.0,
     ])
 
-    # Un arco per coppia non ordinata (basta una direzione per il disegno)
+    node_to_plot_idx = {n: i for i, n in enumerate(all_nodes_list)}
+    
     seen_plot_edges: set[tuple[int, int]] = set()
     edges_full: set[tuple[int, int]] = set()
+    
     for u, v in G.edges():
-        i, j = node_to_plot_idx[u], node_to_plot_idx[v]
+        i = node_to_plot_idx[u]
+        j = node_to_plot_idx[v]
         key = (min(i, j), max(i, j))
+        
         if key not in seen_plot_edges:
             seen_plot_edges.add(key)
             edges_full.add(key)
 
-    # Mappa node_id SPIL → indice in coords_full (per posizionare utenti/deposito)
     spil_to_full_idx = {n: node_to_plot_idx[n] for n in spil_nodes}
 
-    # ── 8. Tipologie utente ───────────────────────────────────────────────────
     rng = np.random.default_rng(seed)
-
     use_real_types = (user_scenario is None and custom_type_probs is None)
 
     if use_real_types:
-        # Tipologie dal preprocessing: già in utenti.json
         fixed_types = np.array([u["tipologia"] for u in utenti_list], dtype=object)
         scenario_label = "mappa_reale"
     else:
@@ -673,152 +654,125 @@ def generate_real_data(
         custom_type_probs = custom_type_probs,
         fixed_user_types  = fixed_types,
     )
-    # Forza scenario_label corretto
     params["scenario_label"] = scenario_label
 
     return {
-        "coords":       coords,
-        "adj_matrix":   adj_matrix,
-        "dist_matrix":  dist_km,
-        "time_matrix":  time_min,
-        "edges":        edges,
+        "coords":           coords,
+        "adj_matrix":       adj_matrix,
+        "dist_matrix":      dist_km,
+        "time_matrix":      time_min,
+        "edges":            edges,
         **params,
-        "n_users":      n_users,
-        "spatial_mode": "mappa_reale",
-        "n_max":        None,
-        # Campi plot legacy (None: plot_graph userà il ramo mock)
-        "coords_base":  None,
-        "edges_base":   None,
-        "keep_idx":     None,
-        "centroids":    None,
-        # Campi per plot_graph_reale: rete stradale completa di sfondo
-        "coords_full":      coords_full,       # (n_all, 2) — tutti i nodi normalizzati
-        "edges_full":       edges_full,        # set archi intero grafo (indici in coords_full)
-        "spil_to_full_idx": spil_to_full_idx,  # {node_id_spil: idx_in_coords_full}
-        # Metadati aggiuntivi per debug/log
-        "_depot_osmid": depot_osmid,
-        "_spil_nodes":  spil_nodes,
+        "n_users":          n_users,
+        "spatial_mode":     "mappa_reale",
+        "n_max":            None,
+        "coords_base":      None,
+        "edges_base":       None,
+        "keep_idx":         None,
+        "centroids":        None,
+        "coords_full":      coords_full,       
+        "edges_full":       edges_full,        
+        "spil_to_full_idx": spil_to_full_idx,  
+        "_depot_osmid":     depot_osmid,
+        "_spil_nodes":      spil_nodes,
     }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  plot_graph_reale  —  Visualizzazione mappa reale (coordinate UTM)
+#  plot_graph_reale — Invariato
 # ─────────────────────────────────────────────────────────────────────────────
 
-def plot_graph_reale(
-    data:      dict,
-    save_name: str | None = None,
-    show_ui:   bool       = True,
-) -> None:
-    """Visualizza il grafo reale di Fabriano con rete stradale completa di sfondo.
-
-    Layer di disegno (dal basso):
-      1. Archi stradali completi  (linee grigie — coords_full / edges_full)
-      2. Nodi stradali intermedi  (pallini bianchi con bordo grigio)
-      3. Nodi utente colorati per tipologia
-      4. Deposito (stella rossa)
-    """
-    coords     = data["coords"]        # (n_spil, 2) — deposito + utenti
+def plot_graph_reale(data: dict, save_name: str | None = None, show_ui: bool = True) -> None:
+    coords     = data["coords"]        
     user_types = data["user_types"]
     n_users    = data["n_users"]
 
-    # ── Sfondo stradale ───────────────────────────────────────────────────────
-    coords_full      = data.get("coords_full")       # (n_all, 2)
-    edges_full       = data.get("edges_full")        # set archi intero grafo
-    spil_to_full_idx = data.get("spil_to_full_idx")  # {node_id_spil: idx_full}
+    coords_full      = data.get("coords_full")       
+    edges_full       = data.get("edges_full")        
+    spil_to_full_idx = data.get("spil_to_full_idx")  
 
-    # Se i campi non ci sono (dati legacy), ricade sul comportamento originale
-    use_full_bg = (
-        coords_full is not None
-        and edges_full is not None
-        and spil_to_full_idx is not None
-    )
-
-    type_colors: dict[str, str] = {
-        "single":            "#378ADD",
-        "famiglia":          "#1D9E75",
-        "palazzina_piccola": "#BA17AC",
-        "palazzina_grande":  "#DDC616",
+    use_full_bg = (coords_full is not None and edges_full is not None and spil_to_full_idx is not None)
+    
+    type_colors = {
+        "single": "#378ADD", 
+        "famiglia": "#1D9E75", 
+        "palazzina_piccola": "#BA17AC", 
+        "palazzina_grande":  "#DDC616"
     }
 
     fig, ax = plt.subplots(figsize=(14, 12))
 
-    # ── Layer 1: archi stradali completi ─────────────────────────────────────
     if use_full_bg:
-        # Batch plot vettorizzato: costruisce array di segmenti per LineCollection
         import matplotlib.collections as mc
-        segments = [
-            [coords_full[i], coords_full[j]]
-            for i, j in edges_full
-        ]
+        segments = []
+        for i, j in edges_full:
+            segments.append([coords_full[i], coords_full[j]])
+            
         lc = mc.LineCollection(segments, colors="#CCCCCC", linewidths=0.5, zorder=1)
         ax.add_collection(lc)
     else:
-        # Fallback: archi tra soli nodi SPIL (comportamento pre-fix)
         for (i, j) in data.get("edges", set()):
-            ax.plot(
-                [coords[i, 0], coords[j, 0]],
-                [coords[i, 1], coords[j, 1]],
-                color="#CCCCCC", linewidth=0.5, zorder=1,
-            )
+            ax.plot([coords[i, 0], coords[j, 0]], 
+                    [coords[i, 1], coords[j, 1]], 
+                    color="#CCCCCC", 
+                    linewidth=0.5, 
+                    zorder=1)
 
-    # ── Layer 2: nodi stradali intermedi ─────────────────────────────────────
     if use_full_bg:
         spil_full_indices = set(spil_to_full_idx.values())
-        n_all = len(coords_full)
-        road_mask = np.array([
-            i not in spil_full_indices for i in range(n_all)
-        ])
+        road_mask = np.array([i not in spil_full_indices for i in range(len(coords_full))])
+        
         if road_mask.any():
-            road_coords = coords_full[road_mask]
-            ax.scatter(
-                road_coords[:, 0], road_coords[:, 1],
-                color="white", edgecolors="#AAAAAA",
-                s=8, linewidths=0.4, zorder=2,
-            )
+            ax.scatter(coords_full[road_mask, 0], 
+                       coords_full[road_mask, 1], 
+                       color="white", 
+                       edgecolors="#AAAAAA", 
+                       s=8, 
+                       linewidths=0.4, 
+                       zorder=2)
 
-    # ── Layer 3: nodi utente colorati ────────────────────────────────────────
     for u_idx in range(n_users):
-        node_spil_idx = u_idx + 1   # indice in coords (0=deposito, 1..N=utenti)
-        t    = user_types[u_idx]
-        x, y = coords[node_spil_idx]
-        ax.scatter(
-            x, y,
-            color=type_colors.get(t, "#999999"),
-            s=25, zorder=3, edgecolors="white", linewidths=0.3,
-        )
+        x = coords[u_idx + 1][0]
+        y = coords[u_idx + 1][1]
+        t = user_types[u_idx]
+        
+        ax.scatter(x, y, 
+                   color=type_colors.get(t, "#999999"), 
+                   s=25, 
+                   zorder=3, 
+                   edgecolors="white", 
+                   linewidths=0.3)
 
-    # ── Layer 4: deposito ─────────────────────────────────────────────────────
-    ax.scatter(
-        *coords[0], color="#E24B4A", s=350, zorder=11,
-        marker="*", edgecolors="white", linewidths=0.8,
-    )
-    ax.text(
-        coords[0, 0] + 0.05, coords[0, 1] + 0.05,
-        "Deposito", fontweight="bold", color="#E24B4A", zorder=11, fontsize=9,
-    )
+    ax.scatter(*coords[0], 
+               color="#E24B4A", 
+               s=350, 
+               zorder=11, 
+               marker="*", 
+               edgecolors="white", 
+               linewidths=0.8)
+               
+    ax.text(coords[0, 0] + 0.05, 
+            coords[0, 1] + 0.05, 
+            "Deposito", 
+            fontweight="bold", 
+            color="#E24B4A", 
+            zorder=11, 
+            fontsize=9)
 
-    # ── Legenda ───────────────────────────────────────────────────────────────
     legend_handles = [
-        plt.Line2D([0], [0], marker="*", color="w",
-                   markerfacecolor="#E24B4A", markersize=14, label="Deposito"),
+        plt.Line2D([0], [0], marker="*", color="w", markerfacecolor="#E24B4A", markersize=14, label="Deposito")
     ]
+    
     for t, c in type_colors.items():
-        legend_handles.append(
-            mpatches.Patch(color=c, label=t.replace("_", " ").capitalize())
-        )
+        legend_handles.append(mpatches.Patch(color=c, label=t.replace("_", " ").capitalize()))
+        
     if use_full_bg:
         legend_handles.append(
-            plt.Line2D([0], [0], marker="o", color="w",
-                       markerfacecolor="white", markeredgecolor="#AAAAAA",
-                       markersize=6, label="Incrocio stradale")
+            plt.Line2D([0], [0], marker="o", color="w", markerfacecolor="white", markeredgecolor="#AAAAAA", markersize=6, label="Incrocio stradale")
         )
 
     ax.legend(handles=legend_handles, loc="upper left", fontsize=9, framealpha=0.9)
-    ax.set_title(
-        f"Grafo reale Fabriano: {n_users} utenti | {data['spatial_mode']}",
-        pad=15,
-    )
+    ax.set_title(f"Grafo reale Fabriano: {n_users} utenti | {data['spatial_mode']}", pad=15)
     ax.autoscale()
     plt.tight_layout()
 
@@ -826,7 +780,6 @@ def plot_graph_reale(
         folder = Path("grafi_png")
         folder.mkdir(exist_ok=True)
         plt.savefig(folder / save_name, dpi=300)
-        print(f"  → Grafo salvato: {folder / save_name}")
 
     if show_ui:
         plt.show()
@@ -835,11 +788,10 @@ def plot_graph_reale(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  plot_graph  —  Invariata (zero modifiche, retrocompatibile)
+#  plot_graph — Invariato
 # ─────────────────────────────────────────────────────────────────────────────
 
 def plot_graph(data: dict, save_name: str | None = None, show_ui: bool = True) -> None:
-    """Visualizza il grafo e lo salva opzionalmente come PNG."""
     coords:     np.ndarray = data["coords"]
     edges:      set        = data["edges"]
     user_types: np.ndarray = data["user_types"]
@@ -849,54 +801,75 @@ def plot_graph(data: dict, save_name: str | None = None, show_ui: bool = True) -
     keep_idx    = data.get("keep_idx")
     centroids   = data.get("centroids")
 
-    type_colors: dict[str, str] = {
-        "single":            "#378ADD",
-        "famiglia":          "#1D9E75",
-        "palazzina_piccola": "#BA17AC",
-        "palazzina_grande":  "#DDC616",
+    type_colors = {
+        "single": "#378ADD", 
+        "famiglia": "#1D9E75", 
+        "palazzina_piccola": "#BA17AC", 
+        "palazzina_grande": "#DDC616"
     }
-
+    
     fig, ax = plt.subplots(figsize=(10, 10))
 
-    # 1. Archi (zorder=1)
-    edges_to_plot = edges_base if edges_base is not None else edges
-    coords_for_edges = coords_base if coords_base is not None else coords
+    if edges_base is not None:
+        edges_to_plot = edges_base
+    else:
+        edges_to_plot = edges
+        
+    if coords_base is not None:
+        coords_for_edges = coords_base
+    else:
+        coords_for_edges = coords
+        
     for (i, j) in edges_to_plot:
-        ax.plot([coords_for_edges[i, 0], coords_for_edges[j, 0]],
-                [coords_for_edges[i, 1], coords_for_edges[j, 1]],
-                color="#CCCCCC", linewidth=0.8, zorder=1)
+        ax.plot([coords_for_edges[i, 0], coords_for_edges[j, 0]], 
+                [coords_for_edges[i, 1], coords_for_edges[j, 1]], 
+                color="#CCCCCC", 
+                linewidth=0.8, 
+                zorder=1)
 
-    # 2. Nodi Incrocio (zorder=2)
     if coords_base is not None and keep_idx is not None:
         inactive_mask = np.ones(len(coords_base), dtype=bool)
         inactive_mask[keep_idx] = False
         incroci_coords = coords_base[inactive_mask]
+        
         if len(incroci_coords) > 0:
-            ax.scatter(incroci_coords[:, 0], incroci_coords[:, 1],
-                       color="white", edgecolors="black", s=40, zorder=2)
+            ax.scatter(incroci_coords[:, 0], 
+                       incroci_coords[:, 1], 
+                       color="white", 
+                       edgecolors="black", 
+                       s=40, 
+                       zorder=2)
 
-    # 3. Utenti Attivi (zorder=3-4)
     for u_idx in range(data["n_users"]):
-        node_idx = u_idx + 1
-        t, (x, y) = user_types[u_idx], coords[node_idx]
+        t = user_types[u_idx]
+        x = coords[u_idx + 1][0]
+        y = coords[u_idx + 1][1]
+        
         ax.scatter(x, y, color=type_colors[t], s=120, zorder=3, edgecolors="white")
-        #ax.text(x + 0.12, y + 0.12, str(node_idx), fontsize=7, zorder=4)
 
-    # 4. CENTROIDI (zorder=10 - ALZATO PER VISIBILITÀ)
     if centroids is not None:
-        ax.scatter(centroids[:, 0], centroids[:, 1], color="#FF3300", 
-                   marker="X", s=200, zorder=10, edgecolors="black", label="Centri Cluster")
+        ax.scatter(centroids[:, 0], 
+                   centroids[:, 1], 
+                   color="#FF3300", 
+                   marker="X", 
+                   s=200, 
+                   zorder=10, 
+                   edgecolors="black", 
+                   label="Centri Cluster")
 
-    # 5. DEPOSITO (zorder=11)
     ax.scatter(*coords[0], color="#E24B4A", s=300, zorder=11, marker="*", edgecolors="white")
     ax.text(coords[0,0]+0.1, coords[0,1]+0.1, "Deposito", fontweight="bold", color="#E24B4A", zorder=11)
 
-    # Legenda e Titolo
-    legend_handles = [plt.Line2D([0], [0], marker='*', color='w', markerfacecolor='#E24B4A', markersize=15, label="Deposito")]
+    legend_handles = [
+        plt.Line2D([0], [0], marker='*', color='w', markerfacecolor='#E24B4A', markersize=15, label="Deposito")
+    ]
+    
     for t, c in type_colors.items():
         legend_handles.append(mpatches.Patch(color=c, label=t.replace("_", " ").capitalize()))
+        
     if coords_base is not None:
         legend_handles.append(plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='white', markeredgecolor='black', label="Incrocio"))
+        
     if centroids is not None:
         legend_handles.append(plt.Line2D([0], [0], marker='X', color='w', markerfacecolor='#FF3300', markeredgecolor='black', label="Centroide Cluster"))
 
@@ -904,14 +877,12 @@ def plot_graph(data: dict, save_name: str | None = None, show_ui: bool = True) -
     ax.set_title(f"Grafo: {data['n_users']} utenti | {data['spatial_mode']}", pad=15)
     plt.tight_layout()
 
-    # SALVATAGGIO AUTOMATICO
     if save_name:
         folder = Path("grafi_png")
         folder.mkdir(exist_ok=True)
         plt.savefig(folder / save_name, dpi=300)
-        print(f"  → Grafo salvato: {folder / save_name}")
 
     if show_ui:
         plt.show()
     else:
-        plt.close(fig) # Chiude la figura per liberare memoria
+        plt.close(fig)
