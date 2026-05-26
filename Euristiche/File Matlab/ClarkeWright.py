@@ -36,31 +36,7 @@ def _make_numpy_views(
 # 2. BUILD ROUTES
 # =============================================================================
 
-def build_routes(data: dict, r: str, X_r: float) -> dict:
-    """Clarke-Wright con savings statici, argsort flat e check O(1).
-
-    Paradigma
-    ---------
-    La matrice dei savings viene calcolata UNA SOLA VOLTA sui nodi fattibili
-    prima di qualsiasi fusione.  E' matematicamente equivalente al ricalcolo
-    dinamico perche' il saving tra i e j dipende solo dalle distanze nel grafo,
-    che sono fisse.  Cio' che cambia ad ogni iterazione e' solo il RUOLO dei
-    nodi (estremo o interno), controllato in O(1) dai dizionari.
-
-    Struttura
-    ---------
-    Fase 1  O(F)          Rotte singleton + dizionari O(1).
-    Fase 2  O(F^2 NumPy)  Matrice savings vettorizzata.
-    Fase 3  O(F^2 log F)  argsort flat decrescente; taglio savings <= 0.
-    Fase 4  O(F^2) worst  Ciclo: CHECK 1-4 in O(1), fusione in O(|rotta_j|).
-
-    Lazy deletion
-    -------------
-    Non serve un set valid_pairs separato.  I CHECK 1 e 2 fungono da lazy
-    deletion naturale: se node_i o node_j sono finiti all'interno di una rotta
-    in una fusione precedente, route_tail/route_head non puntano piu' a loro
-    e la coppia viene scartata in O(1).
-    """
+def build_routes(data: dict, r: str, X_r: float, gamma: float = 0.5, k_scala: float = 1.0) -> dict:
     if X_r <= 0:
         raise ValueError(f"X_r deve essere > 0, ricevuto {X_r}")
 
@@ -93,7 +69,7 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
     route_tail:  dict[int, int]       = {}
     route_load:  dict[int, float]     = {}
     route_time:  dict[int, float]     = {}
-    route_of:    dict[int, int]       = {}   # nodo -> rid corrente
+    route_of:    dict[int, int]       = {}   
 
     for local_idx in range(F):
         u   = int(fn[local_idx])
@@ -108,11 +84,6 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
     rid_next = F
 
     # ── Fase 2: matrice savings vettorizzata ──────────────────────────────────
-    #
-    # S[a, b] = saving di fondere la rotta il cui tail e' fn[a]
-    #           con la rotta il cui head e' fn[b].
-    # La matrice e' asimmetrica: S[a,b] != S[b,a] in generale.
-
     d_i0  = dist_np[fn, 0][:, None]
     d_0j  = dist_np[0,  fn][None, :]
     d_ij  = dist_np[np.ix_(fn, fn)]
@@ -125,10 +96,12 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
          + cd * (d_i0 + d_0j - d_ij)
          + cm * (tv_i0 + tv_0j - tv_ij))
 
+    # Moltiplichiamo per (1 - gamma) per coerenza formale con lo scenario 
+    S *= (1 - gamma)
+
     np.fill_diagonal(S, -np.inf)
 
-    # ── Fase 3: ordinamento flat decrescente con un solo argsort ─────────────
-
+    # ── Fase 3: ordinamento flat decrescente ─────────────
     flat   = S.ravel()
     order  = np.argsort(flat)[::-1]
     cutoff = int(np.searchsorted(-flat[order], 0))
@@ -138,37 +111,29 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
     cols = (order  % F).tolist()
 
     # ── Fase 4: ciclo di fusione ──────────────────────────────────────────────
-
     for a, b in zip(rows, cols):
-
         node_i = int(fn[a])
         node_j = int(fn[b])
 
         rid_i = route_of[node_i]
         rid_j = route_of[node_j]
 
-        # CHECK 1 — rotte diverse
         if rid_i == rid_j:
             continue
 
-        # CHECK 2 — regola degli estremi (lazy deletion implicita)
         if route_tail[rid_i] != node_i or route_head[rid_j] != node_j:
             continue
 
-        # CHECK 3 — capacita'
         new_load = route_load[rid_i] + route_load[rid_j]
         if new_load > C_r:
             continue
 
-        # CHECK 4 — tempo
         new_time = (route_time[rid_i] + route_time[rid_j]
                     - time_np[node_i, 0]
                     - time_np[0, node_j]
                     + time_np[node_i, node_j])
         if new_time > L:
             continue
-
-        # ── FUSIONE APPROVATA ─────────────────────────────────────────────────
 
         rid_c  = rid_next
         rid_next += 1
@@ -184,7 +149,6 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
             route_of[u] = rid_c
 
     # ── Fase 5: raccolta risultati ─────────────────────────────────────────────
-
     final_routes: list[list[int]] = []
     final_loads:  list[float]     = []
     final_times:  list[float]     = []
@@ -211,7 +175,7 @@ def build_routes(data: dict, r: str, X_r: float) -> dict:
 # 3. COMPUTE OBJECTIVE
 # =============================================================================
 
-def compute_objective(data: dict, r: str, X_r: float, routes_result: dict) -> dict:
+def compute_objective(data: dict, r: str, X_r: float, routes_result: dict, gamma: float = 0.5, k_scala: float = 1.0) -> dict:
     n_users    = data["n_users"]
     user_types = data["user_types"]
     x_star     = data["x_star"]
@@ -223,6 +187,7 @@ def compute_objective(data: dict, r: str, X_r: float, routes_result: dict) -> di
     n_vehicles = routes_result["n_vehicles"]
     routes     = routes_result["routes"]
     times      = routes_result["times"]
+    loads      = routes_result["loads"]
 
     dist_np = data["dist_matrix"].astype(np.float32)
 
@@ -245,7 +210,21 @@ def compute_objective(data: dict, r: str, X_r: float, routes_result: dict) -> di
 
     F_viaggio = X_r * cd * travel_cost_one_turn
     F_lavoro  = X_r * cm * sum(times)
-    F_total   = F_insoddis + F_costo_fisso + F_viaggio + F_lavoro
+    
+    # 1. Applicazione Bilanciamento Scenario
+    F_costi = F_costo_fisso + F_viaggio + F_lavoro
+    F_total = gamma * (F_insoddis * k_scala) + (1 - gamma) * F_costi
+
+    # 2. Calcolo metriche di saturazione veicolare
+    C_r = data["C"][r]
+    L = data["L"]
+    
+    if n_vehicles > 0:
+        sat_fisica = (sum(loads) / (n_vehicles * C_r)) * 100
+        sat_tempo = (sum(times) / (n_vehicles * L)) * 100
+    else:
+        sat_fisica = 0.0
+        sat_tempo = 0.0
 
     return {
         "F_total":       F_total,
@@ -253,6 +232,8 @@ def compute_objective(data: dict, r: str, X_r: float, routes_result: dict) -> di
         "F_costo_fisso": F_costo_fisso,
         "F_viaggio":     F_viaggio,
         "F_lavoro":      F_lavoro,
+        "sat_fisica":    sat_fisica,
+        "sat_tempo":     sat_tempo,
     }
 
 
@@ -261,11 +242,11 @@ def compute_objective(data: dict, r: str, X_r: float, routes_result: dict) -> di
 # =============================================================================
 
 def _evaluate_one(args: tuple) -> dict | None:
-    data, r, X_r = args
-    routes_result = build_routes(data, r, X_r)
+    data, r, X_r, gamma, k_scala = args
+    routes_result = build_routes(data, r, X_r, gamma, k_scala)
     if routes_result["n_vehicles"] == 0:
         return None
-    obj = compute_objective(data, r, X_r, routes_result)
+    obj = compute_objective(data, r, X_r, routes_result, gamma, k_scala)
     return {
         "X_r":        X_r,
         "routes":     routes_result,
@@ -281,11 +262,9 @@ def grid_search(
     *,
     max_workers: int | None = None,
     parallel_threshold: int = 6,
+    gamma: float = 0.5,
+    k_scala: float = 1.0,
 ) -> dict:
-    """Grid search su X_values per il rifiuto r con Clarke-Wright.
-
-    Firma identica a Greedy.grid_search per completa intercambiabilita'.
-    """
     best_X_r    = None
     best_F      = None
     best_routes = None
@@ -295,7 +274,7 @@ def grid_search(
     use_parallel = len(X_values) >= parallel_threshold
 
     if use_parallel:
-        args_list = [(data, r, X_r) for X_r in X_values]
+        args_list = [(data, r, X_r, gamma, k_scala) for X_r in X_values]
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
             future_to_X = {
                 executor.submit(_evaluate_one, args): args[2]
@@ -311,14 +290,14 @@ def grid_search(
                     best_X_r    = result["X_r"]
                     best_F      = {k: result[k] for k in (
                         "F_total", "F_insoddis", "F_costo_fisso",
-                        "F_viaggio", "F_lavoro"
+                        "F_viaggio", "F_lavoro", "sat_fisica", "sat_tempo"
                     )}
                     best_routes = result["routes"]
         all_results.sort(key=lambda d: d["X_r"])
 
     else:
         for X_r in X_values:
-            result = _evaluate_one((data, r, X_r))
+            result = _evaluate_one((data, r, X_r, gamma, k_scala))
             if result is None:
                 continue
             all_results.append(result)
@@ -327,7 +306,7 @@ def grid_search(
                 best_X_r    = result["X_r"]
                 best_F      = {k: result[k] for k in (
                     "F_total", "F_insoddis", "F_costo_fisso",
-                    "F_viaggio", "F_lavoro"
+                    "F_viaggio", "F_lavoro", "sat_fisica", "sat_tempo"
                 )}
                 best_routes = result["routes"]
 

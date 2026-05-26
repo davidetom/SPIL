@@ -39,7 +39,7 @@ X_VALUES = [x / 2 for x in range(1, 13)]   # [0.5, 1.0, … 6.0]
 CSV_FIELDS = [
     "rifiuto", "X_r", "algoritmo", "is_best",
     "n_vehicles", "F_total", "F_insoddis", "F_costo_fisso",
-    "F_viaggio", "F_lavoro", "algo_time_sec",
+    "F_viaggio", "F_lavoro", "sat_fisica", "sat_tempo", "algo_time_sec",
 ]
 
 ALGO_LABELS: dict[str, str] = {
@@ -79,10 +79,10 @@ def _chiedi_algoritmo() -> str:
 # Stampe a console (invariate rispetto al main originale)
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _stampa_riepilogo(algo_key, waste_types, results, elapsed):
+def _stampa_riepilogo(algo_key, waste_types, results, elapsed, gamma, sc_label):
     label = ALGO_LABELS[algo_key]
     _sep("=")
-    print(f"  RIEPILOGO [{label.upper()}]  --  tempo: {elapsed:.4f} s")
+    print(f"  RIEPILOGO [{label.upper()}]  -- Scenario {sc_label} (γ={gamma}) -- tempo: {elapsed:.4f} s")
     _sep("=")
     for r in waste_types:
         gs = results[r]
@@ -93,6 +93,8 @@ def _stampa_riepilogo(algo_key, waste_types, results, elapsed):
         print(f"\n  [{r.upper()}]")
         print(f"    Miglior X_r     : {gs['best_X_r']}")
         print(f"    Camion attivi   : {gs['best_routes']['n_vehicles']}")
+        print(f"    Saturaz. Fisica : {bf['sat_fisica']:.1f}%")
+        print(f"    Saturaz. Tempo  : {bf['sat_tempo']:.1f}%")
         print(f"    F totale        : {bf['F_total']:>12.2f}")
         print(f"      Insoddisfaz.  : {bf['F_insoddis']:>12.2f}")
         print(f"      Costo fisso   : {bf['F_costo_fisso']:>12.2f}")
@@ -184,6 +186,8 @@ def _export_csv(waste_types, results_by_algo, times_by_algo, path: Path) -> None
                         "F_costo_fisso": round(entry["F_costo_fisso"], 4),
                         "F_viaggio":     round(entry["F_viaggio"],     4),
                         "F_lavoro":      round(entry["F_lavoro"],      4),
+                        "sat_fisica":    round(entry["sat_fisica"],    2),
+                        "sat_tempo":     round(entry["sat_tempo"],     2),
                         "algo_time_sec": round(algo_time,              6),
                     })
     print(f"  → CSV: {path.resolve()}")
@@ -213,29 +217,31 @@ def _run_algo(algo_key, grid_search_fn, data, waste_types):
     print(f"\n  Tempo {label}: {elapsed:.4f} s")
     return results, elapsed
 
+def _calcola_fattore_scala(data: dict, waste_types: list[str]) -> float:
+    """Esegue una run di prova con Greedy per bilanciare F_insoddis e F_costi."""
+    from Greedy import grid_search as greedy_gs
+    print("\n  [!] Calcolo K_scala (run di prova Greedy)...")
+    
+    n_workers = calcola_worker_ottimali(data["n_users"])
+    tot_insoddis = 0.0
+    tot_costi = 0.0
 
-def _esegui_run(data, scelta_algo, tag_csv, mostra_riepilogo=True, mostra_grafo_ui=False,
-                plot_fn=None):
-    """Esegue gli algoritmi su `data` e salva il CSV.
+    for r in waste_types:
+        # Run base neutrale per raccogliere i totali
+        gs = greedy_gs(data, r, X_VALUES, max_workers=n_workers, gamma=0.5, k_scala=1.0)
+        for res in gs["all_results"]:
+            tot_insoddis += res["F_insoddis"]
+            tot_costi += (res["F_costo_fisso"] + res["F_viaggio"] + res["F_lavoro"])
 
-    Parameters
-    ----------
-    data:
-        Output di generate_mock_data o generate_real_data.
-    scelta_algo:
-        "g" | "c" | "" (entrambi).
-    tag_csv:
-        Stringa tag per il naming del CSV.
-    mostra_riepilogo:
-        Se True stampa riepilogo/comparativa a console.
-    plot_fn:
-        Funzione di visualizzazione grafo. Default: plot_graph (mock).
-        Passare plot_graph_reale per la modalità mappa reale.
+    if tot_insoddis == 0:
+        k_scala = 1.0
+    else:
+        k_scala = tot_costi / tot_insoddis
 
-    Returns
-    -------
-    path : Path  — percorso del CSV scritto
-    """
+    print(f"      K_scala calcolato: {k_scala:.4f}")
+    return k_scala
+
+def _esegui_run(data, scelta_algo, tag_csv, k_scala, mostra_riepilogo=True, mostra_grafo_ui=False, plot_fn=None):
     if plot_fn is None:
         plot_fn = plot_graph
     if scelta_algo in ("c", ""):
@@ -243,47 +249,59 @@ def _esegui_run(data, scelta_algo, tag_csv, mostra_riepilogo=True, mostra_grafo_
     if scelta_algo in ("g", ""):
         from Greedy import grid_search as greedy_gs
 
-    waste_types      = data["waste_types"]
-    n_workers        = calcola_worker_ottimali(data["n_users"])
-    results_by_algo  = {}
-    times_by_algo    = {}
-
-    if scelta_algo in ("g", ""):
-        res, el = _run_algo(
-            "greedy",
-            lambda d, r, x: greedy_gs(d, r, x, max_workers=n_workers),
-            data, waste_types,
-        )
-        results_by_algo["greedy"] = res
-        times_by_algo["greedy"]   = el
-
-    if scelta_algo in ("c", ""):
-        res, el = _run_algo(
-            "clarke_wright",
-            lambda d, r, x: cw_gs(d, r, x, max_workers=n_workers),
-            data, waste_types,
-        )
-        results_by_algo["clarke_wright"] = res
-        times_by_algo["clarke_wright"]   = el
-
-    if mostra_riepilogo:
-        for ak, res in results_by_algo.items():
-            _stampa_riepilogo(ak, waste_types, res, times_by_algo[ak])
-        if len(results_by_algo) == 2:
-            _stampa_comparativa(waste_types, results_by_algo, times_by_algo)
-
-    # Costruzione nomi file
-    csv_filename = f"risultati_{data['n_users']}u_{tag_csv}.csv"
-    png_filename = f"grafo_{csv_filename.replace('.csv', '.png')}"
+    waste_types = data["waste_types"]
+    n_workers   = calcola_worker_ottimali(data["n_users"])
     
-    # Salvataggio CSV
-    path_csv = _csv_path(data["n_users"], tag_csv)
-    _export_csv(waste_types, results_by_algo, times_by_algo, path_csv)
+    # Scenari politici richiesti
+    scenari_politici = [
+        (0.50, "Neutro"),
+        (0.10, "Pro-Azienda"),
+        (0.90, "Pro-Cittadino")
+    ]
 
-    # CHIAMATA AL PLOT: Salva sempre, mostra solo se richiesto
+    paths = []
+
+    for gamma, sc_label in scenari_politici:
+        print(f"\n  [--- AVVIO SCENARIO: {sc_label} (gamma={gamma:.2f}) ---]")
+        results_by_algo  = {}
+        times_by_algo    = {}
+
+        if scelta_algo in ("g", ""):
+            res, el = _run_algo(
+                "greedy",
+                lambda d, r, x: greedy_gs(d, r, x, max_workers=n_workers, gamma=gamma, k_scala=k_scala),
+                data, waste_types,
+            )
+            results_by_algo["greedy"] = res
+            times_by_algo["greedy"]   = el
+
+        if scelta_algo in ("c", ""):
+            res, el = _run_algo(
+                "clarke_wright",
+                lambda d, r, x: cw_gs(d, r, x, max_workers=n_workers, gamma=gamma, k_scala=k_scala),
+                data, waste_types,
+            )
+            results_by_algo["clarke_wright"] = res
+            times_by_algo["clarke_wright"]   = el
+
+        if mostra_riepilogo:
+            for ak, res in results_by_algo.items():
+                _stampa_riepilogo(ak, waste_types, res, times_by_algo[ak], gamma, sc_label)
+            if len(results_by_algo) == 2:
+                _stampa_comparativa(waste_types, results_by_algo, times_by_algo)
+
+        # Naming CSV aggiornato per scenario
+        tag_scenario = f"{tag_csv}_gamma{gamma:.2f}"
+        path_csv = _csv_path(data["n_users"], tag_scenario)
+        _export_csv(waste_types, results_by_algo, times_by_algo, path_csv)
+        paths.append(path_csv)
+
+    # Plot (Genera solo un grafico per la rete in sé)
+    csv_filename_base = f"risultati_{data['n_users']}u_{tag_csv}.csv"
+    png_filename = f"grafo_{csv_filename_base.replace('.csv', '.png')}"
     plot_fn(data, save_name=png_filename, show_ui=mostra_grafo_ui)
     
-    return path_csv
+    return paths
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -300,15 +318,20 @@ def _analisi_standard() -> None:
     print("\nGenerazione dati...")
     data = generate_mock_data(n_users=n_users, seed=seed, r_factor=r_factor)
     print("Dati generati!")
+    
+    # 1. Calcola il fattore di scala
+    k_scala = _calcola_fattore_scala(data, data["waste_types"])
 
     mostra_ui = input("\nMostrare il grafo a schermo? (s/n) : ").strip().lower() == "s"
-    
     scelta = _chiedi_algoritmo()
     tag    = f"std_seed{seed}"
     
-    # Passiamo la preferenza a _esegui_run
-    _esegui_run(data, scelta, tag, mostra_riepilogo=True, mostra_grafo_ui=mostra_ui)
+    # 2. Passa k_scala
+    _esegui_run(data, scelta, tag, k_scala, mostra_riepilogo=True, mostra_grafo_ui=mostra_ui)
 
+# NOTA: Per le altre _analisi_*, dovrai recuperare k_scala allo stesso modo dopo generate_mock_data 
+# e passarle a _esegui_run. Ricorda anche che _esegui_run ora restituisce una lista di paths, 
+# quindi se c'è un ciclo (es: _analisi_tipologia), cambia paths.append(path) in paths.extend(run_paths).
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  ANALISI 2 — Variazione Tipologia Utenti
