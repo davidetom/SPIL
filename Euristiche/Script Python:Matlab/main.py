@@ -155,18 +155,33 @@ def _stampa_comparativa(waste_types, results_by_algo, times_by_algo):
         gg  = results_by_algo["greedy"][r]
         cw  = results_by_algo["clarke_wright"][r]
         
-        righe_ft.append((r, _estrai(gg,"F_total"), _estrai(cw,"F_total")))
+        # 1. Popolamento riga per la tabella F_Total assoluta
+        righe_ft.append((r, _estrai(gg, "F_total"), _estrai(cw, "F_total")))
         
-        costi_g = _estrai(gg,"F_costo_fisso") + _estrai(gg,"F_viaggio") + _estrai(gg,"F_lavoro")
-        costi_cw = _estrai(cw,"F_costo_fisso") + _estrai(cw,"F_viaggio") + _estrai(cw,"F_lavoro")
-        righe_fc.append((r, costi_g, costi_cw))
+        # 2. Calcolo costo operativo giornaliero per l'algoritmo Greedy
+        if gg.get("best_F") and gg.get("best_X_r") and gg["best_X_r"] > 0:
+            costi_g_operativi = _estrai(gg, "F_costo_fisso") + _estrai(gg, "F_viaggio") + _estrai(gg, "F_lavoro")
+            costi_g_giorn = costi_g_operativi / gg["best_X_r"]
+        else:
+            costi_g_giorn = float("nan")
+            
+        # 3. Calcolo costo operativo giornaliero per l'algoritmo Clarke-Wright
+        if cw.get("best_F") and cw.get("best_X_r") and cw["best_X_r"] > 0:
+            costi_cw_operativi = _estrai(cw, "F_costo_fisso") + _estrai(cw, "F_viaggio") + _estrai(cw, "F_lavoro")
+            costi_cw_giorn = costi_cw_operativi / cw["best_X_r"]
+        else:
+            costi_cw_giorn = float("nan")
+            
+        # Aggiunta dei costi normalizzati per singola run alla lista
+        righe_fc.append((r, costi_g_giorn, costi_cw_giorn))
         
     _sep("=")
     print("  CONFRONTO  Greedy  vs  Clarke-Wright")
     _sep("=")
     
+    # Stampe finali delle due tabelle comparative con i nuovi titoli scientifici
     _tabella("F_Total  (insoddisfazione + costi)", righe_ft)
-    _tabella("F Costi  (fisso + viaggio + lavoro)", righe_fc)
+    _tabella("F Costi Giornalieri (costi operativi / best_X_r)", righe_fc)
     
     tg = times_by_algo["greedy"]
     tcw = times_by_algo["clarke_wright"]
