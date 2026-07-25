@@ -1,0 +1,680 @@
+% =========================================================================
+%  SPIL — Benchmarking Tipologia Utenti & Densità Spaziale
+%
+%  Legge automaticamente dalla cartella risultati_csv/ i file:
+%    - risultati_<N>u_tipo_<scenario>.csv     → Analisi 2 (tipologia)
+%    - risultati_<N>u_densita_<mode>.csv      → Analisi 4 (densità)
+%
+%  Produce 4 figure:
+%    Fig 1 — F_total per scenario tipologia  (bar grouped+stacked)
+%    Fig 2 — F_insoddisfazione per scenario  (bar grouped, focus utente)
+%    Fig 3 — F_viaggio e n_vehicles vs config spaziale  (linee, 2 subplot)
+%    Fig 4 — Scomposizione F per config spaziale  (bar grouped+stacked)
+%
+%  Come usare:
+%    >> benchmarking_tipologia_densita          % legge da ./risultati_csv/
+%    >> benchmarking_tipologia_densita('path')  % cartella personalizzata
+% =========================================================================
+
+%% ── 0. Setup ──────────────────────────────────────────────────────────────
+
+clearvars; clc; close all;
+
+N = 1000;
+
+if exist('BENCH_DIR', 'var') && ~isempty(BENCH_DIR)
+    csv_dir = BENCH_DIR;
+else
+    csv_dir = 'risultati_csv';
+end
+
+if ~isfolder(csv_dir)
+    error('Cartella non trovata: %s', csv_dir);
+end
+
+%% ── 1. Palette colori (coerente con analisi_pareto.m) ────────────────────
+
+ALGO_COLOR = containers.Map( ...
+    {'greedy', 'clarke_wright'}, ...
+    {[0.13 0.47 0.71], [0.84 0.37 0.05]} );
+
+ALGO_LABEL = containers.Map( ...
+    {'greedy', 'clarke_wright'}, ...
+    {'Greedy', 'Clarke-Wright'} );
+
+ALGO_MARKER = containers.Map( ...
+    {'greedy', 'clarke_wright'}, ...
+    {'o', '^'} );
+
+ALGO_LINE = containers.Map( ...
+    {'greedy', 'clarke_wright'}, ...
+    {'-', '-'} );
+
+% Componenti F: ordine fisso per le barre stacked
+COMP_FIELDS  = {'F_insoddis', 'F_costo_fisso', 'F_viaggio', 'F_lavoro'};
+COMP_LABELS  = {'Insoddisfazione', 'Costo fisso', 'Costo viaggio', 'Costo lavoro'};
+COMP_COLORS  = [ ...
+    0.29 0.67 0.31; ...   % insoddisfazione  (verde)
+    0.17 0.45 0.70; ...   % costo fisso      (blu)
+    0.99 0.56 0.05; ...   % costo viaggio    (arancio)
+    0.60 0.40 0.74; ...   % costo lavoro     (viola)
+];
+
+%% ── 2. Scansione file CSV ─────────────────────────────────────────────────
+
+listing_tipo    = dir(fullfile(csv_dir, ['risultati_', num2str(N), 'u_tipo_*.csv']));
+listing_densita = dir(fullfile(csv_dir, ['risultati_', num2str(N), 'u_densita_*.csv']));
+
+if isempty(listing_tipo) && isempty(listing_densita)
+    error(['Nessun file tipo_* o densita_* trovato in: %s\n' ...
+           'Esegui prima Analisi 2 e/o Analisi 4 da main.py.'], csv_dir);
+end
+
+fprintf('\n%s\n', repmat('=', 1, 70));
+fprintf('  SPIL — Benchmarking Tipologia & Densità\n');
+fprintf('%s\n', repmat('=', 1, 70));
+fprintf('  File tipologia trovati : %d\n', numel(listing_tipo));
+fprintf('  File densità trovati   : %d\n', numel(listing_densita));
+fprintf('%s\n\n', repmat('=', 1, 70));
+
+%% ── 3. Funzione di lettura CSV ────────────────────────────────────────────
+%
+%  Restituisce una struct con i dati best per ogni (algoritmo, rifiuto)
+%  e i tempi. Riusata sia per tipologia che per densità.
+
+% (definita come nested function alla fine del file per MATLAB R2019b+)
+
+%% ══════════════════════════════════════════════════════════════════════════
+%  SEZIONE A — TIPOLOGIA UTENTI
+%  (saltata se non ci sono file tipo_*)
+%% ══════════════════════════════════════════════════════════════════════════
+
+if ~isempty(listing_tipo)
+
+    fprintf('  ── SEZIONE A: Tipologia Utenti ──\n\n');
+
+    % ── A.1 Lettura di tutti i file tipologia ─────────────────────────────
+
+    % Estrai il nome scenario dal filename:
+    %   risultati_100u_tipo_residenziale.csv  →  "residenziale"
+    n_tipo   = numel(listing_tipo);
+    scenarios   = cell(n_tipo, 1);
+    tipo_data   = cell(n_tipo, 1);   % una struct per file
+
+    for f = 1:n_tipo
+        fname = listing_tipo(f).name;
+        tok   = regexp(fname, 'tipo_([^.]+)\.csv$', 'tokens');
+        if isempty(tok)
+            warning('Nome file non riconosciuto, saltato: %s', fname);
+            continue
+        end
+        scenarios{f}  = tok{1}{1};
+        fpath         = fullfile(csv_dir, fname);
+        tipo_data{f}  = leggi_csv_best(fpath);
+        fprintf('  Letto: %s  (scenario: %s)\n', fname, scenarios{f});
+    end
+    fprintf('\n');
+
+    % Rimuovi eventuali slot vuoti (file saltati)
+    valid_mask  = ~cellfun(@isempty, tipo_data);
+    scenarios   = scenarios(valid_mask);
+    tipo_data   = tipo_data(valid_mask);
+    n_tipo      = numel(scenarios);
+
+    if n_tipo == 0
+        warning('Nessun file tipologia valido. Sezione A saltata.');
+    else
+
+        % ── A.2 Estrai struttura comune ───────────────────────────────────
+
+        algo_keys   = tipo_data{1}.algo_keys;
+        waste_types = tipo_data{1}.waste_types;
+        n_algos     = numel(algo_keys);
+        n_waste     = numel(waste_types);
+
+        % ── A.3 Costruzione matrici dati ──────────────────────────────────
+        %
+        % Per ogni campo e ogni componente:
+        %   F_comp.(aKey)(scenario_idx, waste_idx)
+        %   n_veh.(aKey)(scenario_idx, waste_idx)
+        %   tempi.(aKey)(scenario_idx)
+
+        for a = 1:n_algos
+            ak   = algo_keys{a};
+            aKey = matlab.lang.makeValidName(ak);
+            F_total.(aKey)      = NaN(n_tipo, n_waste);
+            F_insoddis.(aKey)   = NaN(n_tipo, n_waste);
+            F_costo_fisso.(aKey)= NaN(n_tipo, n_waste);
+            F_viaggio.(aKey)    = NaN(n_tipo, n_waste);
+            F_lavoro.(aKey)     = NaN(n_tipo, n_waste);
+            n_veh.(aKey)        = NaN(n_tipo, n_waste);
+            tempi.(aKey)        = NaN(n_tipo, 1);
+        end
+
+        for f = 1:n_tipo
+            d = tipo_data{f};
+            for a = 1:n_algos
+                ak   = algo_keys{a};
+                aKey = matlab.lang.makeValidName(ak);
+                if ~isfield(d.best, aKey), continue; end
+                tempi.(aKey)(f) = d.tempi.(aKey);
+                for k = 1:n_waste
+                    rKey = matlab.lang.makeValidName(waste_types{k});
+                    if ~isfield(d.best.(aKey), rKey), continue; end
+                    row = d.best.(aKey).(rKey);
+                    F_total.(aKey)(f,k)       = row.F_total;
+                    F_insoddis.(aKey)(f,k)    = row.F_insoddis;
+                    F_costo_fisso.(aKey)(f,k) = row.F_costo_fisso;
+                    F_viaggio.(aKey)(f,k)     = row.F_viaggio;
+                    F_lavoro.(aKey)(f,k)      = row.F_lavoro;
+                    n_veh.(aKey)(f,k)         = row.n_vehicles;
+                end
+            end
+        end
+
+        % Somme per rifiuto → scalare per scenario (per label e overview)
+        for a = 1:n_algos
+            aKey = matlab.lang.makeValidName(algo_keys{a});
+            F_total_sum.(aKey)      = nansum(F_total.(aKey),      2);
+            F_insoddis_sum.(aKey)   = nansum(F_insoddis.(aKey),   2);
+            F_costo_fisso_sum.(aKey)= nansum(F_costo_fisso.(aKey),2);
+            F_viaggio_sum.(aKey)    = nansum(F_viaggio.(aKey),     2);
+            F_lavoro_sum.(aKey)     = nansum(F_lavoro.(aKey),      2);
+        end
+
+        % Label scenari per asse X (maiuscola + underscore→spazio)
+        sc_labels = cellfun(@(s) strrep(s,'_',' '), scenarios, 'UniformOutput', false);
+        sc_labels = cellfun(@(s) [upper(s(1)) s(2:end)], sc_labels, 'UniformOutput', false);
+
+        % ── FIGURA 1 — F_total per scenario (grouped + stacked) ───────────
+
+        figA1 = figure('Name','Tipologia — F_total per scenario', ...
+                       'NumberTitle','off','Position',[50 50 1100 540]);
+        hold on; grid on; box on;
+
+        bar_width    = 0.35;
+        group_gap    = 1.0;
+        group_centers= (1:n_tipo) * group_gap;
+
+        if n_algos == 1
+            algo_offsets = 0;
+        else
+            algo_offsets = linspace(-bar_width*0.55, bar_width*0.55, n_algos);
+        end
+
+        bar_handles  = gobjects(4,1);
+        comp_structs = {F_insoddis, F_costo_fisso, F_viaggio, F_lavoro};
+
+        for a = 1:n_algos
+            ak    = algo_keys{a};
+            aKey  = matlab.lang.makeValidName(ak);
+            col_a = ALGO_COLOR(ak);
+            x_pos = group_centers + algo_offsets(a);
+
+            % Matrice (n_tipo × 4) delle componenti sommate sui rifiuti
+            Y = [ nansum(F_insoddis.(aKey),   2), ...
+                  nansum(F_costo_fisso.(aKey), 2), ...
+                  nansum(F_viaggio.(aKey),     2), ...
+                  nansum(F_lavoro.(aKey),      2) ];
+
+            b = bar(x_pos, Y, bar_width, 'stacked', ...
+                    'EdgeColor', col_a*0.7, 'LineWidth', 0.8);
+
+            for c = 1:4
+                face_col   = COMP_COLORS(c,:) * 0.60 + col_a * 0.40;
+                b(c).FaceColor = face_col;
+                if a == 1
+                    bar_handles(c) = b(c);
+                end
+            end
+
+            % Etichetta in cima ad ogni barra: tempo algoritmo
+            for f = 1:n_tipo
+                tot = sum(Y(f,:), 'omitnan');
+                text(x_pos(f), tot + max(nansum(Y,2))*0.02, ...
+                     sprintf('%.1f s', tempi.(aKey)(f)), ...
+                     'HorizontalAlignment','center','FontSize',7, ...
+                     'Color', col_a*0.85);
+            end
+        end
+
+        % Legenda componenti
+        legend(bar_handles, COMP_LABELS, 'Location','northeast','FontSize',9);
+        % Patch colore algoritmo
+        for a = 1:n_algos
+            ak  = algo_keys{a};
+            col = ALGO_COLOR(ak);
+            lbl = ALGO_LABEL(ak);
+            patch(NaN, NaN, col, 'EdgeColor', col*0.7, 'DisplayName', lbl);
+        end
+        legend('show','Location','northeast','FontSize',9);
+
+        xticks(group_centers);
+        xticklabels(sc_labels);
+        xtickangle(20);
+        ylabel('F_{total}  (€)', 'FontSize', 11);
+        title('F_{total} per scenario tipologia utenti — Greedy vs Clarke-Wright', ...
+              'FontSize', 13, 'FontWeight', 'bold');
+
+        % ── FIGURA 2 — F_insoddisfazione per scenario ─────────────────────
+
+        figA2 = figure('Name','Tipologia — F_insoddis per scenario', ...
+                       'NumberTitle','off','Position',[100 100 1100 480]);
+        hold on; grid on; box on;
+
+        for a = 1:n_algos
+            ak    = algo_keys{a};
+            aKey  = matlab.lang.makeValidName(ak);
+            col_a = ALGO_COLOR(ak);
+            mk    = ALGO_MARKER(ak);
+            lbl   = ALGO_LABEL(ak);
+            x_pos = group_centers + algo_offsets(a);
+
+            vals = nansum(F_insoddis.(aKey), 2);
+
+            bar(x_pos, vals, bar_width, ...
+                'FaceColor', col_a, 'EdgeColor', col_a*0.7, ...
+                'LineWidth', 0.9, 'DisplayName', lbl);
+
+            for f = 1:n_tipo
+                text(x_pos(f), vals(f) + max(vals)*0.025, ...
+                     sprintf('%.0f', vals(f)), ...
+                     'HorizontalAlignment','center','FontSize',8, ...
+                     'Color', col_a*0.8, 'FontWeight','bold');
+            end
+        end
+
+        legend('show','Location','northeast','FontSize',10);
+        xticks(group_centers);
+        xticklabels(sc_labels);
+        xtickangle(20);
+        ylabel('F_{insoddisfazione}  (penalità)', 'FontSize', 11);
+        title(['F_{insoddisfazione} per scenario tipologia — ' ...
+               'impatto della distribuzione utenti'], ...
+               'FontSize', 13, 'FontWeight', 'bold');
+
+        % ── Console: tabella tipologia ─────────────────────────────────────
+
+        fprintf('\n%-22s', 'Scenario');
+        for a = 1:n_algos
+            lbl = ALGO_LABEL(algo_keys{a});
+            fprintf('  %-12s  %-12s  %-10s', ...
+                    [lbl ' F_tot'], [lbl ' F_ins'], [lbl ' t(s)']);
+        end
+        fprintf('\n%s\n', repmat('-',1,22 + n_algos*38));
+
+        for f = 1:n_tipo
+            fprintf('%-22s', sc_labels{f});
+            for a = 1:n_algos
+                aKey = matlab.lang.makeValidName(algo_keys{a});
+                fprintf('  %-12.0f  %-12.0f  %-10.4f', ...
+                    F_total_sum.(aKey)(f), ...
+                    F_insoddis_sum.(aKey)(f), ...
+                    tempi.(aKey)(f));
+            end
+            fprintf('\n');
+        end
+        fprintf('\n');
+
+    end % if n_tipo > 0
+end % if ~isempty(listing_tipo)
+
+
+%% ══════════════════════════════════════════════════════════════════════════
+%  SEZIONE B — DENSITÀ SPAZIALE
+%  (saltata se non ci sono file densita_*)
+%% ══════════════════════════════════════════════════════════════════════════
+
+if ~isempty(listing_densita)
+
+    fprintf('  ── SEZIONE B: Densità Spaziale ──\n\n');
+
+    % ── B.1 Lettura file densità ──────────────────────────────────────────
+    %
+    %  Tag attesi (da main.py):
+    %    densita_uniform
+    %    densita_cluster_K2, densita_cluster_K4, ...
+    %
+    %  Ordine di visualizzazione: prima uniform, poi cluster per K crescente.
+
+    n_dens    = numel(listing_densita);
+    dens_tags = cell(n_dens, 1);
+    dens_data = cell(n_dens, 1);
+
+    for f = 1:n_dens
+        fname = listing_densita(f).name;
+        tok   = regexp(fname, 'densita_([^.]+)\.csv$', 'tokens');
+        if isempty(tok)
+            warning('Nome file non riconosciuto, saltato: %s', fname);
+            continue
+        end
+        dens_tags{f} = tok{1}{1};
+        fpath        = fullfile(csv_dir, fname);
+        dens_data{f} = leggi_csv_best(fpath);
+        fprintf('  Letto: %s  (tag: %s)\n', fname, dens_tags{f});
+    end
+    fprintf('\n');
+
+    valid_mask = ~cellfun(@isempty, dens_data);
+    dens_tags  = dens_tags(valid_mask);
+    dens_data  = dens_data(valid_mask);
+    n_dens     = numel(dens_tags);
+
+    if n_dens == 0
+        warning('Nessun file densità valido. Sezione B saltata.');
+    else
+
+        % Ordina: "uniform" prima, poi cluster per numero K crescente
+        is_uniform = strcmp(dens_tags, 'uniform');
+        k_vals     = zeros(n_dens, 1);
+        for f = 1:n_dens
+            if is_uniform(f)
+                k_vals(f) = 0;
+            else
+                tok = regexp(dens_tags{f}, 'cluster_K(\d+)', 'tokens');
+                if ~isempty(tok)
+                    k_vals(f) = str2double(tok{1}{1});
+                else
+                    k_vals(f) = 999;   % fallback: in fondo
+                end
+            end
+        end
+        [~, sort_idx] = sort(k_vals);
+        dens_tags = dens_tags(sort_idx);
+        dens_data = dens_data(sort_idx);
+        n_dens    = numel(dens_tags);
+
+        % Label leggibili per asse X
+        dens_labels = cell(n_dens, 1);
+        for f = 1:n_dens
+            t = dens_tags{f};
+            if strcmp(t, 'uniform')
+                dens_labels{f} = 'Uniforme';
+            else
+                tok = regexp(t, 'cluster_K(\d+)', 'tokens');
+                if ~isempty(tok)
+                    dens_labels{f} = sprintf('Cluster K=%s', tok{1}{1});
+                else
+                    dens_labels{f} = strrep(t,'_',' ');
+                end
+            end
+        end
+
+        % ── B.2 Struttura common ──────────────────────────────────────────
+
+        algo_keys_d  = dens_data{1}.algo_keys;
+        waste_types_d= dens_data{1}.waste_types;
+        n_algos_d    = numel(algo_keys_d);
+        n_waste_d    = numel(waste_types_d);
+
+        % Matrici (n_dens × n_waste) per ogni componente e algoritmo
+        for a = 1:n_algos_d
+            aKey = matlab.lang.makeValidName(algo_keys_d{a});
+            dF_total.(aKey)      = NaN(n_dens, n_waste_d);
+            dF_insoddis.(aKey)   = NaN(n_dens, n_waste_d);
+            dF_costo_fisso.(aKey)= NaN(n_dens, n_waste_d);
+            dF_viaggio.(aKey)    = NaN(n_dens, n_waste_d);
+            dF_lavoro.(aKey)     = NaN(n_dens, n_waste_d);
+            dN_veh.(aKey)        = NaN(n_dens, n_waste_d);
+            dTempi.(aKey)        = NaN(n_dens, 1);
+        end
+
+        for f = 1:n_dens
+            d = dens_data{f};
+            for a = 1:n_algos_d
+                ak   = algo_keys_d{a};
+                aKey = matlab.lang.makeValidName(ak);
+                if ~isfield(d.best, aKey), continue; end
+                dTempi.(aKey)(f) = d.tempi.(aKey);
+                for k = 1:n_waste_d
+                    rKey = matlab.lang.makeValidName(waste_types_d{k});
+                    if ~isfield(d.best.(aKey), rKey), continue; end
+                    row = d.best.(aKey).(rKey);
+                    dF_total.(aKey)(f,k)       = row.F_total;
+                    dF_insoddis.(aKey)(f,k)    = row.F_insoddis;
+                    dF_costo_fisso.(aKey)(f,k) = row.F_costo_fisso;
+                    dF_viaggio.(aKey)(f,k)     = row.F_viaggio;
+                    dF_lavoro.(aKey)(f,k)      = row.F_lavoro;
+                    dN_veh.(aKey)(f,k)         = row.n_vehicles;
+                end
+            end
+        end
+
+        x_dens = 1:n_dens;
+
+        % ── FIGURA 3 — F_viaggio e n_vehicles vs config spaziale ──────────
+
+        figB1 = figure('Name','Densità — F_viaggio e n_vehicles', ...
+                       'NumberTitle','off','Position',[150 150 1200 500]);
+
+        % Subplot sinistra: F_viaggio
+        ax1 = subplot(1,2,1);
+        hold(ax1,'on'); grid(ax1,'on'); box(ax1,'on');
+        leg_h1 = gobjects(0); leg_t1 = {};
+
+        for a = 1:n_algos_d
+            ak   = algo_keys_d{a};
+            aKey = matlab.lang.makeValidName(ak);
+            col  = ALGO_COLOR(ak);
+            mk   = ALGO_MARKER(ak);
+            lbl  = ALGO_LABEL(ak);
+
+            vals = nansum(dF_viaggio.(aKey), 2);
+            h = plot(ax1, x_dens, vals, [ALGO_LINE(ak) mk], ...
+                     'Color', col, 'LineWidth', 2.2, ...
+                     'MarkerSize', 8, 'MarkerFaceColor', col, ...
+                     'MarkerEdgeColor','w');
+            leg_h1(end+1) = h; %#ok<AGROW>
+            leg_t1{end+1} = lbl; %#ok<AGROW>
+
+            for f = 1:n_dens
+                if ~isnan(vals(f))
+                    text(ax1, x_dens(f), vals(f)*1.04, ...
+                         sprintf('%.0f', vals(f)), ...
+                         'HorizontalAlignment','center','FontSize',8, ...
+                         'Color', col*0.8);
+                end
+            end
+        end
+
+        xticks(ax1, x_dens);
+        xticklabels(ax1, dens_labels);
+        xtickangle(ax1, 20);
+        ylabel(ax1, 'F_{viaggio}  (€)', 'FontSize', 11);
+        title(ax1, 'Costo di Viaggio vs Distribuzione Spaziale', ...
+              'FontSize', 11, 'FontWeight','bold');
+        legend(ax1, leg_h1, leg_t1, 'Location','best','FontSize',9);
+
+        % Subplot destra: n_vehicles (somma su tutti i rifiuti)
+        ax2 = subplot(1,2,2);
+        hold(ax2,'on'); grid(ax2,'on'); box(ax2,'on');
+        leg_h2 = gobjects(0); leg_t2 = {};
+
+        for a = 1:n_algos_d
+            ak   = algo_keys_d{a};
+            aKey = matlab.lang.makeValidName(ak);
+            col  = ALGO_COLOR(ak);
+            mk   = ALGO_MARKER(ak);
+            lbl  = ALGO_LABEL(ak);
+
+            vals = nansum(dN_veh.(aKey), 2);
+            h = plot(ax2, x_dens, vals, [ALGO_LINE(ak) mk], ...
+                     'Color', col, 'LineWidth', 2.2, ...
+                     'MarkerSize', 8, 'MarkerFaceColor', col, ...
+                     'MarkerEdgeColor','w');
+            leg_h2(end+1) = h; %#ok<AGROW>
+            leg_t2{end+1} = lbl; %#ok<AGROW>
+
+            for f = 1:n_dens
+                if ~isnan(vals(f))
+                    text(ax2, x_dens(f), vals(f)+max(vals)*0.025, ...
+                         sprintf('%d', round(vals(f))), ...
+                         'HorizontalAlignment','center','FontSize',8, ...
+                         'Color', col*0.8, 'FontWeight','bold');
+                end
+            end
+        end
+
+        xticks(ax2, x_dens);
+        xticklabels(ax2, dens_labels);
+        xtickangle(ax2, 20);
+        ylabel(ax2, 'Veicoli totali attivati  (∑ rifiuti)', 'FontSize', 11);
+        title(ax2, 'Flotta Attiva vs Distribuzione Spaziale', ...
+              'FontSize', 11, 'FontWeight','bold');
+        legend(ax2, leg_h2, leg_t2, 'Location','best','FontSize',9);
+
+        sgtitle(figB1, ...
+            'Impatto della Densità Spaziale su Routing e Flotta — Greedy vs Clarke-Wright', ...
+            'FontSize', 13, 'FontWeight','bold');
+
+        % ── FIGURA 4 — Scomposizione F per config spaziale (grouped+stacked)
+
+        figB2 = figure('Name','Densità — Scomposizione F', ...
+                       'NumberTitle','off','Position',[200 200 1100 520]);
+        hold on; grid on; box on;
+
+        group_centers_d = (1:n_dens) * 1.0;
+        if n_algos_d == 1
+            offsets_d = 0;
+        else
+            offsets_d = linspace(-bar_width*0.55, bar_width*0.55, n_algos_d);
+        end
+
+        bar_han_d = gobjects(4,1);
+
+        for a = 1:n_algos_d
+            ak    = algo_keys_d{a};
+            aKey  = matlab.lang.makeValidName(ak);
+            col_a = ALGO_COLOR(ak);
+            x_pos = group_centers_d + offsets_d(a);
+
+            Y = [ nansum(dF_insoddis.(aKey),   2), ...
+                  nansum(dF_costo_fisso.(aKey), 2), ...
+                  nansum(dF_viaggio.(aKey),     2), ...
+                  nansum(dF_lavoro.(aKey),      2) ];
+
+            b = bar(x_pos, Y, bar_width, 'stacked', ...
+                    'EdgeColor', col_a*0.7, 'LineWidth', 0.8);
+
+            for c = 1:4
+                b(c).FaceColor = COMP_COLORS(c,:)*0.60 + col_a*0.40;
+                if a == 1
+                    bar_han_d(c) = b(c);
+                end
+            end
+
+            for f = 1:n_dens
+                tot = sum(Y(f,:),'omitnan');
+                text(x_pos(f), tot + max(nansum(Y,2))*0.02, ...
+                     ALGO_LABEL(ak), ...
+                     'HorizontalAlignment','center','FontSize',7, ...
+                     'Color', col_a*0.85, 'FontWeight','bold');
+            end
+        end
+
+        legend(bar_han_d, COMP_LABELS, 'Location','northeast','FontSize',9);
+        for a = 1:n_algos_d
+            ak  = algo_keys_d{a};
+            col = ALGO_COLOR(ak);
+            patch(NaN, NaN, col, 'EdgeColor', col*0.7, ...
+                  'DisplayName', ALGO_LABEL(ak));
+        end
+        legend('show','Location','northeast','FontSize',9);
+
+        xticks(group_centers_d);
+        xticklabels(dens_labels);
+        xtickangle(20);
+        ylabel('F_{total}  (€)', 'FontSize', 11);
+        title('Scomposizione F_{total} per distribuzione spaziale — Greedy vs Clarke-Wright', ...
+              'FontSize', 13, 'FontWeight','bold');
+
+        % ── Console: tabella densità ───────────────────────────────────────
+
+        fprintf('\n%-20s', 'Config spaziale');
+        for a = 1:n_algos_d
+            lbl = ALGO_LABEL(algo_keys_d{a});
+            fprintf('  %-12s  %-12s  %-12s  %-10s', ...
+                    [lbl ' F_tot'], [lbl ' F_viag'], ...
+                    [lbl ' n_veh'], [lbl ' t(s)']);
+        end
+        fprintf('\n%s\n', repmat('-',1, 20 + n_algos_d*50));
+
+        for f = 1:n_dens
+            fprintf('%-20s', dens_labels{f});
+            for a = 1:n_algos_d
+                aKey = matlab.lang.makeValidName(algo_keys_d{a});
+                fprintf('  %-12.0f  %-12.0f  %-12.0f  %-10.4f', ...
+                    nansum(dF_total.(aKey)(f,:)), ...
+                    nansum(dF_viaggio.(aKey)(f,:)), ...
+                    nansum(dN_veh.(aKey)(f,:)), ...
+                    dTempi.(aKey)(f));
+            end
+            fprintf('\n');
+        end
+        fprintf('\n');
+
+    end % if n_dens > 0
+end % if ~isempty(listing_densita)
+
+fprintf('  Script completato.\n\n');
+
+
+%% ══════════════════════════════════════════════════════════════════════════
+%  FUNZIONE LOCALE: leggi_csv_best
+%
+%  Legge un CSV SPIL e restituisce una struct con:
+%    .algo_keys    — cell array degli algoritmi trovati
+%    .waste_types  — cell array dei rifiuti trovati
+%    .best.(aKey).(rKey)  — struct con F_total, F_insoddis, ...
+%    .tempi.(aKey)         — tempo algoritmo (scalare)
+%
+%  Usata sia per tipologia che per densità, zero duplicazione.
+%% ══════════════════════════════════════════════════════════════════════════
+
+function S = leggi_csv_best(fpath)
+    opts = detectImportOptions(fpath);
+    opts.VariableNamesLine = 1;
+    T = readtable(fpath, opts);
+
+    if ~iscell(T.rifiuto),   T.rifiuto   = cellstr(T.rifiuto);   end
+    if ~iscell(T.algoritmo), T.algoritmo = cellstr(T.algoritmo); end
+
+    S.algo_keys   = unique(T.algoritmo, 'stable');
+    S.waste_types = unique(T.rifiuto,   'stable');
+    S.best        = struct();
+    S.tempi       = struct();
+
+    for a = 1:numel(S.algo_keys)
+        ak   = S.algo_keys{a};
+        aKey = matlab.lang.makeValidName(ak);
+        amask = strcmp(T.algoritmo, ak);
+
+        % Tempo: identico per tutte le righe dell'algoritmo in questo file
+        idx_first = find(amask, 1);
+        if ~isempty(idx_first)
+            S.tempi.(aKey) = T.algo_time_sec(idx_first);
+        else
+            S.tempi.(aKey) = NaN;
+        end
+
+        S.best.(aKey) = struct();
+
+        for k = 1:numel(S.waste_types)
+            r    = S.waste_types{k};
+            rKey = matlab.lang.makeValidName(r);
+            mask = amask & strcmp(T.rifiuto, r) & (T.is_best == 1);
+
+            if ~any(mask), continue; end
+
+            row = struct();
+            row.F_total       = T.F_total(find(mask,1));
+            row.F_insoddis    = T.F_insoddis(find(mask,1));
+            row.F_costo_fisso = T.F_costo_fisso(find(mask,1));
+            row.F_viaggio     = T.F_viaggio(find(mask,1));
+            row.F_lavoro      = T.F_lavoro(find(mask,1));
+            row.n_vehicles    = T.n_vehicles(find(mask,1));
+
+            S.best.(aKey).(rKey) = row;
+        end
+    end
+end
