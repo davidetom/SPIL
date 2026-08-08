@@ -1,111 +1,188 @@
 % =========================================================================
 % BENCH 5: Analisi Standard (Grafo generato da zero)
+% Ruolo narrativo: istanza di riferimento sintetica. Confronto diretto
+% con B4 (Fabriano) per verificare se le tendenze sintetiche reggono
+% su rete reale. Anche base per la trasversale T2 (profilo F(X_r)).
 % =========================================================================
 clear; clc; close all;
 
 dataDir = 'risultati_csv';
-% Cerca i file generati dall'analisi standard (es. risultati_100u_std_seed42_gamma0.50.csv)
 files = dir(fullfile(dataDir, '*_std_*_gamma*.csv'));
 
 if isempty(files)
     error('Nessun file trovato per l''analisi standard. Controlla la cartella.');
 end
 
-VarTypes = {'double', 'string', 'double', 'double', 'double', 'double', 'double', 'double'};
-VarNames = {'Gamma', 'Algoritmo', 'F_insoddis', 'F_logistica', 'F_tot', 'Sat_Fisica', 'Sat_Tempo', 'Vehicles'};
+% Colori standard
+colorGreedy = [0.13, 0.47, 0.71];
+colorCW     = [0.84, 0.37, 0.05];
+
+% =========================================================================
+% 1. PARSING E LETTURA DATI
+%    Leggiamo anche il seed dal nome file per eventuale tracciabilità
+% =========================================================================
+VarTypes = {'double','double','string','double','double','double','double','double','double','double'};
+VarNames = {'Gamma','Seed','Algoritmo','F_insoddis','F_logistica','F_tot','Sat_Fisica','Sat_Tempo','Vehicles','N_Serviti'};
 ResTable = table('Size', [0, length(VarNames)], 'VariableTypes', VarTypes, 'VariableNames', VarNames);
 
-% 1. PARSING E LETTURA DATI
 for i = 1:length(files)
     filename = files(i).name;
-    
+
     gamma_str = regexp(filename, 'gamma(\d+\.\d+)', 'tokens');
+    seed_str  = regexp(filename, 'seed(\d+)',        'tokens');
+
     if isempty(gamma_str), continue; end
-    
+
     gamma_val = str2double(gamma_str{1}{1});
-    
+    seed_val  = 0;
+    if ~isempty(seed_str)
+        seed_val = str2double(seed_str{1}{1});
+    end
+
     filepath = fullfile(dataDir, filename);
-    T = readtable(filepath, detectImportOptions(filepath));
-    T_best = T(T.is_best == 1, :);
-    
+    T        = readtable(filepath, detectImportOptions(filepath));
+    T_best   = T(T.is_best == 1, :);
+
     algos = {'greedy', 'clarke_wright'};
     for a = 1:length(algos)
         T_algo = T_best(strcmp(T_best.algoritmo, algos{a}), :);
         if isempty(T_algo), continue; end
-        
-        f_ins = sum(T_algo.F_insoddis);
-        f_log = sum(T_algo.F_costo_fisso + T_algo.F_viaggio + T_algo.F_lavoro);
-        f_tot = sum(T_algo.F_total);
-        s_fis = mean(T_algo.sat_fisica);
-        s_tem = mean(T_algo.sat_tempo);
-        v_tot = sum(T_algo.n_vehicles);
-        
-        ResTable = [ResTable; {gamma_val, algos{a}, f_ins, f_log, f_tot, s_fis, s_tem, v_tot}];
+
+        f_ins  = sum(T_algo.F_insoddis);
+        f_log  = sum(T_algo.F_costo_fisso + T_algo.F_viaggio + T_algo.F_lavoro);
+        f_tot  = sum(T_algo.F_total);
+        s_fis  = mean(T_algo.sat_fisica);
+        s_tem  = mean(T_algo.sat_tempo);
+        v_tot  = sum(T_algo.n_vehicles);
+        n_serv = sum(T_algo.n_utenti_serviti);
+
+        ResTable = [ResTable; {gamma_val, seed_val, algos{a}, f_ins, f_log, f_tot, s_fis, s_tem, v_tot, n_serv}];
     end
 end
 
-% Prepariamo i dati per il plot
-ResTable = sortrows(ResTable, {'Gamma', 'Algoritmo'});
-gamma_unique = unique(ResTable.Gamma);
-gamma_labels = categorical(gamma_unique);
-gamma_labels = renamecats(gamma_labels, {'0.1', '0.5', '0.9'}, ...
+if height(ResTable) == 0
+    error('Nessun dato valido estratto. Controlla i nomi file e le colonne CSV.');
+end
+
+% Se ci sono più seed, aggrega per media (robustezza)
+% Se c'è un solo seed, groupsummary restituisce comunque la media (= il valore stesso)
+ResAgg = groupsummary(ResTable, {'Gamma', 'Algoritmo'}, 'mean', ...
+    {'F_insoddis','F_logistica','F_tot','Sat_Fisica','Sat_Tempo','Vehicles','N_Serviti'});
+ResAgg.Properties.VariableNames = strrep(ResAgg.Properties.VariableNames, 'mean_', '');
+ResAgg = sortrows(ResAgg, {'Gamma', 'Algoritmo'});
+
+g_unique = unique(ResAgg.Gamma);
+n_g      = length(g_unique);
+
+% Label gamma robusta con containers.Map (stessa logica di Bench_4)
+g_cat     = categorical(g_unique);
+label_map = containers.Map([0.10, 0.50, 0.90], ...
     {'Pro-Azienda (\gamma=0.10)', 'Neutro (\gamma=0.50)', 'Pro-Cittadino (\gamma=0.90)'});
 
-colorGreedy = [0.0, 0.45, 0.74]; 
-colorCW = [0.85, 0.33, 0.10]; 
+g_labels_pretty = cell(1, n_g);
+for g = 1:n_g
+    gv = g_unique(g);
+    if isKey(label_map, gv)
+        g_labels_pretty{g} = label_map(gv);
+    else
+        g_labels_pretty{g} = sprintf('\\gamma=%.2f', gv);
+    end
+end
+
+subG_all = sortrows(ResAgg(strcmp(ResAgg.Algoritmo, 'greedy'),        :), 'Gamma');
+subC_all = sortrows(ResAgg(strcmp(ResAgg.Algoritmo, 'clarke_wright'), :), 'Gamma');
 
 % =========================================================================
-% GRAFICO 1: Transizione Politiche (Scomposizione FO)
+% GRAFICO 1: Transizione Politiche — Scomposizione F_tot
 % =========================================================================
-figure('Name', 'Transizione Politiche (Standard)', 'Position', [100, 100, 900, 500]);
-sgtitle('Grafo Standard: Scomposizione Funzione Obiettivo');
+fig1 = figure('Name', 'Transizione Politiche (Standard)', 'Position', [50, 50, 950, 500]);
+sgtitle('B5 — Grafo Standard: Scomposizione F_{tot} per Politica', 'FontWeight', 'bold');
 
-algos = {'greedy', 'clarke_wright'};
-titles = {'Greedy', 'Clarke-Wright'};
+algo_tables = {subG_all, subC_all};
+algo_titles = {'Greedy', 'Clarke-Wright'};
+
 for a = 1:2
     subplot(1, 2, a);
-    sub_T = ResTable(strcmp(ResTable.Algoritmo, algos{a}), :);
-    
+    sub_T = algo_tables{a};
     yData = [sub_T.F_insoddis, sub_T.F_logistica];
-    b = bar(gamma_labels, yData, 'stacked');
-    b(1).FaceColor = [0.47, 0.67, 0.19]; 
-    b(2).FaceColor = [0.30, 0.30, 0.30]; 
-    
-    title(titles{a}); ylabel('Costo FO (Assoluto)'); grid on;
-    if a == 1, legend('F_{insoddis}', 'Costi Logistici', 'Location', 'northwest'); end
+    b = bar(g_cat, yData, 'stacked');
+    b(1).FaceColor = [0.47, 0.67, 0.19];
+    b(2).FaceColor = [0.30, 0.30, 0.30];
+    title(algo_titles{a}, 'FontWeight', 'bold');
+    ylabel('F_{tot} (valore assoluto)');
+    xlabel('Politica (\gamma)');
+    set(gca, 'XTickLabel', g_labels_pretty); xtickangle(20);
+    legend('F_{insoddis} \times k_{scala}', 'F_{logistica}', 'Location', 'best');
+    grid on; box on;
 end
 
 % =========================================================================
-% GRAFICO 2: Saturazione Camion vs Politica
+% GRAFICO 2: Saturazione Fisica e Temporale vs Politica
 % =========================================================================
-figure('Name', 'Saturazioni (Standard)', 'Position', [150, 150, 900, 400]);
-sgtitle('Grafo Standard: Efficienza dei Veicoli al variare del \gamma');
+fig2 = figure('Name', 'Saturazioni (Standard)', 'Position', [100, 100, 950, 420]);
+sgtitle('B5 — Grafo Standard: Saturazione dei Veicoli al variare della Politica', 'FontWeight', 'bold');
 
 subplot(1, 2, 1);
-yDataFis = reshape(ResTable.Sat_Fisica, 2, [])'; 
-b = bar(gamma_labels, yDataFis, 'grouped');
+yFis = [subG_all.Sat_Fisica, subC_all.Sat_Fisica];
+b = bar(g_cat, yFis, 'grouped');
 b(1).FaceColor = colorGreedy; b(2).FaceColor = colorCW;
-title('Saturazione Fisica'); ylabel('%'); ylim([0 100]); grid on;
-legend('Greedy', 'CW', 'Location', 'southwest');
+title('Saturazione Fisica', 'FontWeight', 'bold');
+ylabel('Capacità sfruttata (%)'); ylim([0 100]);
+set(gca, 'XTickLabel', g_labels_pretty); xtickangle(20);
+legend('Greedy', 'CW', 'Location', 'southwest'); grid on; box on;
 
 subplot(1, 2, 2);
-yDataTem = reshape(ResTable.Sat_Tempo, 2, [])';
-b = bar(gamma_labels, yDataTem, 'grouped');
+yTem = [subG_all.Sat_Tempo, subC_all.Sat_Tempo];
+b = bar(g_cat, yTem, 'grouped');
 b(1).FaceColor = colorGreedy; b(2).FaceColor = colorCW;
-title('Saturazione Temporale'); ylabel('%'); ylim([0 100]); grid on;
+title('Saturazione Temporale', 'FontWeight', 'bold');
+ylabel('Turno sfruttato (%)'); ylim([0 100]);
+set(gca, 'XTickLabel', g_labels_pretty); xtickangle(20);
+grid on; box on;
 
 % =========================================================================
-% GRAFICO 3: Dimensione Flotta
+% GRAFICO 3: Flotta e Utenti Serviti vs Politica
 % =========================================================================
-figure('Name', 'Flotta Veicoli (Standard)', 'Position', [200, 200, 600, 450]);
+fig3 = figure('Name', 'Flotta e Servizio (Standard)', 'Position', [150, 150, 950, 420]);
+sgtitle('B5 — Grafo Standard: Flotta e Copertura Utenti', 'FontWeight', 'bold');
 
+subplot(1, 2, 1);
+yVeh = [subG_all.Vehicles, subC_all.Vehicles];
+b = bar(g_cat, yVeh, 'grouped');
+b(1).FaceColor = colorGreedy; b(2).FaceColor = colorCW;
+title('Veicoli Totali per Politica', 'FontWeight', 'bold');
+ylabel('Numero veicoli (tutti i rifiuti)');
+set(gca, 'XTickLabel', g_labels_pretty); xtickangle(20);
+legend('Greedy', 'CW', 'Location', 'northwest'); grid on; box on;
+
+subplot(1, 2, 2); hold on;
+plot(g_cat, subG_all.N_Serviti, '-o', 'Color', colorGreedy, 'LineWidth', 2, ...
+    'MarkerFaceColor', colorGreedy, 'MarkerSize', 8, 'DisplayName', 'Greedy');
+plot(g_cat, subC_all.N_Serviti, '-s', 'Color', colorCW,     'LineWidth', 2, ...
+    'MarkerFaceColor', colorCW,     'MarkerSize', 8, 'DisplayName', 'Clarke-Wright');
+title('Utenti Serviti per Politica', 'FontWeight', 'bold');
+ylabel('n\_utenti\_serviti (somma 5 rifiuti)');
+set(gca, 'XTickLabel', g_labels_pretty); xtickangle(20);
+legend('Location', 'best'); grid on; box on;
+
+% =========================================================================
+% GRAFICO 4: Gap relativo Greedy–CW vs Politica
+% =========================================================================
+fig4 = figure('Name', 'Gap Greedy vs CW (Standard)', 'Position', [200, 200, 650, 420]);
+sgtitle('B5 — Gap Relativo F_{tot}: Greedy vs Clarke-Wright (Grafo Standard)', 'FontWeight', 'bold');
 hold on;
-sub_G = ResTable(strcmp(ResTable.Algoritmo, 'greedy'), :);
-sub_C = ResTable(strcmp(ResTable.Algoritmo, 'clarke_wright'), :);
 
-b = bar(gamma_labels, [sub_G.Vehicles, sub_C.Vehicles], 'grouped');
-b(1).FaceColor = colorGreedy; b(2).FaceColor = colorCW;
+if height(subG_all) == height(subC_all) && height(subG_all) > 0
+    gap_pct = (subG_all.F_tot - subC_all.F_tot) ./ min(subG_all.F_tot, subC_all.F_tot) * 100;
+    bar(g_cat, gap_pct, 'FaceColor', [0.4 0.4 0.4], 'EdgeColor', 'k');
+    for g = 1:n_g
+        text(g, gap_pct(g) + sign(gap_pct(g)) * 0.3, sprintf('%.1f%%', gap_pct(g)), ...
+            'HorizontalAlignment', 'center', 'FontSize', 9, 'FontWeight', 'bold');
+    end
+end
 
-title('Grafo Standard: Impatto del \gamma sui Veicoli');
-ylabel('Numero Totale di Veicoli');
-grid on; legend('Greedy', 'Clarke-Wright', 'Location', 'northwest');
+yline(0, '--k', 'LineWidth', 1);
+set(gca, 'XTickLabel', g_labels_pretty); xtickangle(20);
+ylabel('Gap % = (F_{Greedy} - F_{CW}) / min \times 100');
+title('Gap positivo → CW migliore; negativo → Greedy migliore');
+grid on; box on;

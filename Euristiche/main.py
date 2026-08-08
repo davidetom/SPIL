@@ -38,10 +38,12 @@ def calcola_worker_ottimali(n_users: int) -> int:
 
 X_VALUES = [x / 2 for x in range(1, 13)]   # [0.5, 1.0, … 6.0]
 
+# ✅ CORREZIONE 1: Aggiunta di "gamma" e "k_scala" ai CSV_FIELDS
 CSV_FIELDS = [
     "rifiuto", "X_r", "algoritmo", "is_best",
-    "n_vehicles", "F_total", "F_insoddis", "F_costo_fisso",
-    "F_viaggio", "F_lavoro", "sat_fisica", "sat_tempo", "algo_time_sec",
+    "n_vehicles", "n_utenti_serviti", "F_total", "F_insoddis", "F_costo_fisso",
+    "F_viaggio", "F_lavoro", "sat_fisica", "sat_tempo",
+    "gamma", "k_scala", "algo_time_sec",
 ]
 
 ALGO_LABELS: dict[str, str] = {
@@ -96,6 +98,8 @@ def _stampa_riepilogo(algo_key, waste_types, results, elapsed, gamma, sc_label):
         print(f"\n  [{r.upper()}]")
         print(f"    Miglior X_r     : {gs['best_X_r']}")
         print(f"    Camion attivi   : {gs['best_routes']['n_vehicles']}")
+        n_serviti = sum(1 for route in gs["best_routes"]["routes"] for u in route if u != 0)
+        print(f"    Utenti serviti  : {n_serviti}")
         print(f"    Saturaz. Fisica : {bf['sat_fisica']:.1f}%")
         print(f"    Saturaz. Tempo  : {bf['sat_tempo']:.1f}%")
         print(f"    F totale        : {bf['F_total']:>12.2f}")
@@ -201,7 +205,8 @@ def _csv_path(n_users: int, tag: str) -> Path:
     return CARTELLA_OUT / f"risultati_{n_users}u_{tag}.csv"
 
 
-def _export_csv(waste_types, results_by_algo, times_by_algo, path: Path) -> None:
+# ✅ CORREZIONE 2: Modifica firma di _export_csv per ricevere gamma e k_scala
+def _export_csv(waste_types, results_by_algo, times_by_algo, path: Path, gamma: float, k_scala: float) -> None:
     with path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
         writer.writeheader()
@@ -219,13 +224,17 @@ def _export_csv(waste_types, results_by_algo, times_by_algo, path: Path) -> None
                         is_best_val = 1
                     else:
                         is_best_val = 0
-                        
+                    
+                    routes_list = entry["routes"]["routes"]
+                    n_serviti = sum(1 for route in routes_list for u in route if u != 0)
+
                     writer.writerow({
                         "rifiuto":       r,
                         "X_r":           entry["X_r"],
                         "algoritmo":     algo_key,
                         "is_best":       is_best_val,
                         "n_vehicles":    entry["n_vehicles"],
+                        "n_utenti_serviti": n_serviti,
                         "F_total":       round(entry["F_total"],       4),
                         "F_insoddis":    round(entry["F_insoddis"],    4),
                         "F_costo_fisso": round(entry["F_costo_fisso"], 4),
@@ -233,6 +242,8 @@ def _export_csv(waste_types, results_by_algo, times_by_algo, path: Path) -> None
                         "F_lavoro":      round(entry["F_lavoro"],      4),
                         "sat_fisica":    round(entry["sat_fisica"],    2),
                         "sat_tempo":     round(entry["sat_tempo"],     2),
+                        "gamma":         round(gamma,                  4),
+                        "k_scala":       round(k_scala,                4),
                         "algo_time_sec": round(algo_time,              6),
                     })
                     
@@ -334,7 +345,8 @@ def _esegui_run(data, scelta_algo, tag_csv, k_scala, mostra_riepilogo=True, most
 
         tag_scenario = f"{tag_csv}_gamma{gamma:.2f}"
         path_csv = _csv_path(data["n_users"], tag_scenario)
-        _export_csv(waste_types, results_by_algo, times_by_algo, path_csv)
+        # ✅ CORREZIONE 4: Aggiorna la chiamata a _export_csv per passare gamma e k_scala
+        _export_csv(waste_types, results_by_algo, times_by_algo, path_csv, gamma, k_scala)
         paths.append(path_csv)
 
     csv_filename_base = f"risultati_{data['n_users']}u_{tag_csv}.csv"
