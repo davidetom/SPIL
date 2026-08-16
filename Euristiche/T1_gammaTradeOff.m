@@ -22,13 +22,13 @@ colorCW     = [0.84, 0.37, 0.05];
 VarTypes_raw = {'string','double','string','string','double','double','double','double','double'};
 VarNames_raw = {'Benchmark','Gamma','Rifiuto','Algoritmo','F_insoddis','F_logistica','F_tot','Sat_Fisica','Sat_Tempo'};
 RawTable = table('Size', [0, length(VarNames_raw)], ...
-    'VariableTypes', VarTypes_raw, 'VariableNames', VarNames_raw);
+                 'VariableTypes', VarTypes_raw, 'VariableNames', VarNames_raw);
 
 % Tabella separata per X_r ottimo per rifiuto (G3)
 VarTypes_xr = {'string','double','string','string','double'};
 VarNames_xr = {'Benchmark','Gamma','Rifiuto','Algoritmo','X_r_best'};
 XrTable = table('Size', [0, length(VarNames_xr)], ...
-    'VariableTypes', VarTypes_xr, 'VariableNames', VarNames_xr);
+                'VariableTypes', VarTypes_xr, 'VariableNames', VarNames_xr);
 
 for i = 1:length(files)
     filename  = files(i).name;
@@ -99,11 +99,11 @@ hold on;
 
 % Curve
 plot(subG_agg.F_logistica, subG_agg.F_insoddis, '-o', ...
-    'Color', colorGreedy, 'LineWidth', 2, 'MarkerFaceColor', colorGreedy, ...
-    'MarkerSize', 8, 'DisplayName', 'Greedy');
+     'Color', colorGreedy, 'LineWidth', 2, 'MarkerFaceColor', colorGreedy, ...
+     'MarkerSize', 8, 'DisplayName', 'Greedy');
 plot(subC_agg.F_logistica, subC_agg.F_insoddis, '-s', ...
-    'Color', colorCW,     'LineWidth', 2, 'MarkerFaceColor', colorCW, ...
-    'MarkerSize', 8, 'DisplayName', 'Clarke-Wright');
+     'Color', colorCW,     'LineWidth', 2, 'MarkerFaceColor', colorCW, ...
+     'MarkerSize', 8, 'DisplayName', 'Clarke-Wright');
 
 % Annotazione gamma su ogni punto Greedy
 for g = 1:n_g
@@ -111,17 +111,14 @@ for g = 1:n_g
     row_g = subG_agg(subG_agg.Gamma == gv, :);
     if isempty(row_g), continue; end
     text(row_g.F_logistica + 0.01 * abs(row_g.F_logistica), row_g.F_insoddis, ...
-        sprintf('  \\gamma=%.2f', gv), 'FontSize', 8, 'Color', colorGreedy);
+         sprintf('  \\gamma=%.2f', gv), 'FontSize', 8, 'Color', colorGreedy);
 end
 
-% Freccia direzione gamma crescente (dal punto min al punto max gamma)
-if height(subG_agg) >= 2
-    x1 = subG_agg.F_logistica(1);   y1 = subG_agg.F_insoddis(1);
-    x2 = subG_agg.F_logistica(2);   y2 = subG_agg.F_insoddis(2);
-    annotation('arrow', ...
-        [x1, x2] / (xlim * [0;1] + (xlim * [1;0] - xlim * [0;1])) + [0 0], ...
-        [y1, y2] / (ylim * [0;1] + (ylim * [1;0] - ylim * [0;1])) + [0 0]);
-end
+% Indicazione testuale della direzione gamma crescente
+xl = xlim; yl = ylim;
+text(xl(1) + 0.02*(xl(2)-xl(1)), yl(2) - 0.05*(yl(2)-yl(1)), ...
+     '\gamma crescente \rightarrow', 'FontSize', 8, 'Color', [0.4 0.4 0.4], ...
+     'HorizontalAlignment', 'left');
 
 xlabel('F_{logistica} (costi operativi medi)');
 ylabel('F_{insoddis} \times k_{scala} (media)');
@@ -135,18 +132,18 @@ sgtitle('T1 — Componenti della Funzione Obiettivo al variare di \gamma', 'Font
 
 subplot(1, 2, 1); hold on;
 plot(subG_agg.Gamma, subG_agg.F_insoddis, '-o', 'Color', colorGreedy, 'LineWidth', 2, ...
-    'MarkerFaceColor', colorGreedy, 'DisplayName', 'Greedy');
+     'MarkerFaceColor', colorGreedy, 'DisplayName', 'Greedy');
 plot(subC_agg.Gamma, subC_agg.F_insoddis, '-s', 'Color', colorCW,     'LineWidth', 2, ...
-    'MarkerFaceColor', colorCW,     'DisplayName', 'CW');
+     'MarkerFaceColor', colorCW,     'DisplayName', 'CW');
 xlabel('\gamma'); ylabel('F_{insoddis} \times k_{scala} (media)');
 title('Insoddisfazione vs \gamma', 'FontWeight', 'bold');
 legend('Location', 'best'); grid on; box on;
 
 subplot(1, 2, 2); hold on;
 plot(subG_agg.Gamma, subG_agg.F_logistica, '-o', 'Color', colorGreedy, 'LineWidth', 2, ...
-    'MarkerFaceColor', colorGreedy, 'DisplayName', 'Greedy');
+     'MarkerFaceColor', colorGreedy, 'DisplayName', 'Greedy');
 plot(subC_agg.Gamma, subC_agg.F_logistica, '-s', 'Color', colorCW,     'LineWidth', 2, ...
-    'MarkerFaceColor', colorCW,     'DisplayName', 'CW');
+     'MarkerFaceColor', colorCW,     'DisplayName', 'CW');
 xlabel('\gamma'); ylabel('F_{logistica} (media)');
 title('Costi Logistici vs \gamma', 'FontWeight', 'bold');
 legend('Location', 'best'); grid on; box on;
@@ -165,7 +162,7 @@ colori_rif = [
     0.12, 0.47, 0.71;   % blu      — plastica
     0.58, 0.40, 0.74;   % viola    — vetro
     0.55, 0.34, 0.29;   % marrone  — indifferenziata
-    ];
+];
 
 fig3 = figure('Name', 'X_r ottimo vs Gamma', 'Position', [150, 150, 1050, 480]);
 sgtitle('T1 — Frequenza Ottima X^*_r per Rifiuto al variare di \gamma', 'FontWeight', 'bold');
@@ -178,7 +175,7 @@ for a = 1:2
     for r = 1:n_rif
         rif_name = rifiuti_list(r);
         sub_xr   = XrTable(strcmp(XrTable.Rifiuto, rif_name) & ...
-            strcmp(XrTable.Algoritmo, algo_keys{a}), :);
+                           strcmp(XrTable.Algoritmo, algo_keys{a}), :);
         if isempty(sub_xr), continue; end
 
         % Media su benchmark per ogni gamma
@@ -187,8 +184,8 @@ for a = 1:2
 
         col_r = colori_rif(mod(r-1, size(colori_rif,1)) + 1, :);
         plot(xr_agg.Gamma, xr_agg.mean_X_r_best, '-o', ...
-            'Color', col_r, 'LineWidth', 1.8, 'MarkerFaceColor', col_r, ...
-            'DisplayName', char(rif_name));
+             'Color', col_r, 'LineWidth', 1.8, 'MarkerFaceColor', col_r, ...
+             'DisplayName', char(rif_name));
     end
     xlabel('\gamma');
     ylabel('X^*_r ottimo (raccolta/settimana)');
@@ -206,18 +203,18 @@ sgtitle('T1 — Saturazione Media dei Veicoli al variare di \gamma', 'FontWeight
 
 subplot(1, 2, 1); hold on;
 plot(subG_agg.Gamma, subG_agg.Sat_Fisica, '-o', 'Color', colorGreedy, 'LineWidth', 2, ...
-    'MarkerFaceColor', colorGreedy, 'DisplayName', 'Greedy');
+     'MarkerFaceColor', colorGreedy, 'DisplayName', 'Greedy');
 plot(subC_agg.Gamma, subC_agg.Sat_Fisica, '-s', 'Color', colorCW,     'LineWidth', 2, ...
-    'MarkerFaceColor', colorCW,     'DisplayName', 'CW');
+     'MarkerFaceColor', colorCW,     'DisplayName', 'CW');
 xlabel('\gamma'); ylabel('Saturazione fisica media (%)');
 title('Saturazione Fisica vs \gamma', 'FontWeight', 'bold');
 ylim([0 100]); legend('Location', 'best'); grid on; box on;
 
 subplot(1, 2, 2); hold on;
 plot(subG_agg.Gamma, subG_agg.Sat_Tempo, '-o', 'Color', colorGreedy, 'LineWidth', 2, ...
-    'MarkerFaceColor', colorGreedy, 'DisplayName', 'Greedy');
+     'MarkerFaceColor', colorGreedy, 'DisplayName', 'Greedy');
 plot(subC_agg.Gamma, subC_agg.Sat_Tempo, '-s', 'Color', colorCW,     'LineWidth', 2, ...
-    'MarkerFaceColor', colorCW,     'DisplayName', 'CW');
+     'MarkerFaceColor', colorCW,     'DisplayName', 'CW');
 xlabel('\gamma'); ylabel('Saturazione temporale media (%)');
 title('Saturazione Temporale vs \gamma', 'FontWeight', 'bold');
-ylim([0 100]); legend('Location', 'best'); grid on; box on;
+ylim([0 100]); legend('Location', 'northeast'); grid on; box on;

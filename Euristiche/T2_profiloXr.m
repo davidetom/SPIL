@@ -1,7 +1,8 @@
 % =========================================================================
-% T1: Analisi Trasversale — Effetto Gamma (Politica di Compromesso)
-% Usa tutti i CSV disponibili, aggregati per gamma.
-% Domanda: come si sposta il compromesso sociale/economico al variare di γ?
+% T2: Analisi Trasversale — Profilo F(X_r)
+% Usa TUTTE le righe dei CSV (non solo is_best) per mostrare la forma
+% della funzione obiettivo sulla griglia X_r = [0.5, 1.0, ..., 6.0].
+% Domanda: dove si trova il minimo? Perché? Cosa cambia col gamma?
 % =========================================================================
 clear; clc; close all;
 
@@ -16,55 +17,41 @@ colorGreedy = [0.13, 0.47, 0.71];
 colorCW     = [0.84, 0.37, 0.05];
 
 % =========================================================================
-% 1. LETTURA DATI — tutte le righe is_best=1 di tutti i benchmark
-%    Una riga per (benchmark × rifiuto × algoritmo × gamma)
+% 1. LETTURA DATI — TUTTE le righe (is_best=0 e is_best=1)
+%    Una riga per (benchmark × rifiuto × algoritmo × gamma × X_r)
 % =========================================================================
-VarTypes_raw = {'string','double','string','string','double','double','double','double','double'};
-VarNames_raw = {'Benchmark','Gamma','Rifiuto','Algoritmo','F_insoddis','F_logistica','F_tot','Sat_Fisica','Sat_Tempo'};
+VarTypes_raw = {'string','double','string','string','double', ...
+                'double','double','double','double','double','double','double'};
+VarNames_raw = {'Benchmark','Gamma','Rifiuto','Algoritmo','X_r', ...
+                'F_insoddis','F_logistica','F_tot','Sat_Fisica','Sat_Tempo','N_Serviti','Vehicles'};
 RawTable = table('Size', [0, length(VarNames_raw)], ...
-    'VariableTypes', VarTypes_raw, 'VariableNames', VarNames_raw);
-
-% Tabella separata per X_r ottimo per rifiuto (G3)
-VarTypes_xr = {'string','double','string','string','double'};
-VarNames_xr = {'Benchmark','Gamma','Rifiuto','Algoritmo','X_r_best'};
-XrTable = table('Size', [0, length(VarNames_xr)], ...
-    'VariableTypes', VarTypes_xr, 'VariableNames', VarNames_xr);
+                 'VariableTypes', VarTypes_raw, 'VariableNames', VarNames_raw);
 
 for i = 1:length(files)
     filename  = files(i).name;
     gamma_str = regexp(filename, 'gamma(\d+\.\d+)', 'tokens');
     if isempty(gamma_str), continue; end
 
-    gamma_val = str2double(gamma_str{1}{1});
-
-    % Etichetta benchmark dal nome file (tutto prima di _gamma)
-    bench_str = regexp(filename, '^(.+)_gamma', 'tokens');
-    if isempty(bench_str)
-        bench_label = filename;
-    else
-        bench_label = string(bench_str{1}{1});
-    end
+    gamma_val   = str2double(gamma_str{1}{1});
+    bench_str   = regexp(filename, '^(.+)_gamma', 'tokens');
+    bench_label = string(bench_str{1}{1});
 
     filepath = fullfile(dataDir, filename);
     T        = readtable(filepath, detectImportOptions(filepath));
-    T_best   = T(T.is_best == 1, :);
-    if isempty(T_best), continue; end
 
     algos = {'greedy', 'clarke_wright'};
     for a = 1:length(algos)
-        T_algo = T_best(strcmp(T_best.algoritmo, algos{a}), :);
+        T_algo = T(strcmp(T.algoritmo, algos{a}), :);
         if isempty(T_algo), continue; end
 
-        % Una riga per rifiuto (per X_r per rifiuto in G3)
-        for r_idx = 1:height(T_algo)
-            row     = T_algo(r_idx, :);
-            rifiuto = string(row.rifiuto);
+        for row_idx = 1:height(T_algo)
+            row     = T_algo(row_idx, :);
             f_log_r = row.F_costo_fisso + row.F_viaggio + row.F_lavoro;
+            n_serv  = row.n_utenti_serviti;
 
-            RawTable = [RawTable; {bench_label, gamma_val, rifiuto, algos{a}, ...
-                row.F_insoddis, f_log_r, row.F_total, row.sat_fisica, row.sat_tempo}];
-
-            XrTable = [XrTable; {bench_label, gamma_val, rifiuto, algos{a}, row.X_r}];
+            RawTable = [RawTable; {bench_label, gamma_val, string(row.rifiuto), ...
+                algos{a}, row.X_r, row.F_insoddis, f_log_r, row.F_total, ...
+                row.sat_fisica, row.sat_tempo, n_serv, row.n_vehicles}];
         end
     end
 end
@@ -73,151 +60,224 @@ if height(RawTable) == 0
     error('Nessun dato valido estratto.');
 end
 
-% =========================================================================
-% 2. AGGREGAZIONE per (Gamma × Algoritmo) — media su benchmark e rifiuti
-%    Usiamo la media perché i valori assoluti variano tra benchmark
-%    (N diversi, rete diversa). La forma della curva è ciò che conta.
-% =========================================================================
-AggTable = groupsummary(RawTable, {'Gamma','Algoritmo'}, 'mean', ...
-    {'F_insoddis','F_logistica','F_tot','Sat_Fisica','Sat_Tempo'});
-AggTable.Properties.VariableNames = strrep(AggTable.Properties.VariableNames, 'mean_', '');
-AggTable = sortrows(AggTable, {'Algoritmo', 'Gamma'});
-
-g_unique = unique(AggTable.Gamma);
-n_g      = length(g_unique);
-
-subG_agg = sortrows(AggTable(strcmp(AggTable.Algoritmo, 'greedy'),        :), 'Gamma');
-subC_agg = sortrows(AggTable(strcmp(AggTable.Algoritmo, 'clarke_wright'), :), 'Gamma');
+g_unique  = unique(RawTable.Gamma);
+n_g       = length(g_unique);
+xr_unique = unique(RawTable.X_r);
 
 % =========================================================================
-% GRAFICO 1: Curva di Trade-off F_insoddis vs F_logistica (Pareto empirica)
-% Ogni punto è un valore di gamma; la freccia indica gamma crescente.
+% GRAFICO 1: Profilo F_tot(X_r) aggregato su tutti i benchmark e rifiuti
+% Separato per gamma (colore) e algoritmo (subplot)
+% Il minimo di ogni curva è evidenziato con un marker grande
 % =========================================================================
-fig1 = figure('Name', 'Frontiera Pareto Empirica', 'Position', [50, 50, 750, 600]);
-sgtitle('T1 — Frontiera di Pareto Empirica: Insoddisfazione vs Logistica', 'FontWeight', 'bold');
-hold on;
+fig1 = figure('Name', 'Profilo F(X_r)', 'Position', [50, 50, 1050, 480]);
+sgtitle('T2 — Profilo della Funzione Obiettivo F_{tot}(X_r)', 'FontWeight', 'bold');
 
-% Curve
-plot(subG_agg.F_logistica, subG_agg.F_insoddis, '-o', ...
-    'Color', colorGreedy, 'LineWidth', 2, 'MarkerFaceColor', colorGreedy, ...
-    'MarkerSize', 8, 'DisplayName', 'Greedy');
-plot(subC_agg.F_logistica, subC_agg.F_insoddis, '-s', ...
-    'Color', colorCW,     'LineWidth', 2, 'MarkerFaceColor', colorCW, ...
-    'MarkerSize', 8, 'DisplayName', 'Clarke-Wright');
-
-% Annotazione gamma su ogni punto Greedy
-for g = 1:n_g
-    gv = g_unique(g);
-    row_g = subG_agg(subG_agg.Gamma == gv, :);
-    if isempty(row_g), continue; end
-    text(row_g.F_logistica + 0.01 * abs(row_g.F_logistica), row_g.F_insoddis, ...
-        sprintf('  \\gamma=%.2f', gv), 'FontSize', 8, 'Color', colorGreedy);
-end
-
-% Freccia direzione gamma crescente (dal punto min al punto max gamma)
-if height(subG_agg) >= 2
-    x1 = subG_agg.F_logistica(1);   y1 = subG_agg.F_insoddis(1);
-    x2 = subG_agg.F_logistica(2);   y2 = subG_agg.F_insoddis(2);
-    annotation('arrow', ...
-        [x1, x2] / (xlim * [0;1] + (xlim * [1;0] - xlim * [0;1])) + [0 0], ...
-        [y1, y2] / (ylim * [0;1] + (ylim * [1;0] - ylim * [0;1])) + [0 0]);
-end
-
-xlabel('F_{logistica} (costi operativi medi)');
-ylabel('F_{insoddis} \times k_{scala} (media)');
-legend('Location', 'best'); grid on; box on;
-
-% =========================================================================
-% GRAFICO 2: F_insoddis e F_logistica separatamente vs gamma
-% =========================================================================
-fig2 = figure('Name', 'Componenti vs Gamma', 'Position', [100, 100, 950, 420]);
-sgtitle('T1 — Componenti della Funzione Obiettivo al variare di \gamma', 'FontWeight', 'bold');
-
-subplot(1, 2, 1); hold on;
-plot(subG_agg.Gamma, subG_agg.F_insoddis, '-o', 'Color', colorGreedy, 'LineWidth', 2, ...
-    'MarkerFaceColor', colorGreedy, 'DisplayName', 'Greedy');
-plot(subC_agg.Gamma, subC_agg.F_insoddis, '-s', 'Color', colorCW,     'LineWidth', 2, ...
-    'MarkerFaceColor', colorCW,     'DisplayName', 'CW');
-xlabel('\gamma'); ylabel('F_{insoddis} \times k_{scala} (media)');
-title('Insoddisfazione vs \gamma', 'FontWeight', 'bold');
-legend('Location', 'best'); grid on; box on;
-
-subplot(1, 2, 2); hold on;
-plot(subG_agg.Gamma, subG_agg.F_logistica, '-o', 'Color', colorGreedy, 'LineWidth', 2, ...
-    'MarkerFaceColor', colorGreedy, 'DisplayName', 'Greedy');
-plot(subC_agg.Gamma, subC_agg.F_logistica, '-s', 'Color', colorCW,     'LineWidth', 2, ...
-    'MarkerFaceColor', colorCW,     'DisplayName', 'CW');
-xlabel('\gamma'); ylabel('F_{logistica} (media)');
-title('Costi Logistici vs \gamma', 'FontWeight', 'bold');
-legend('Location', 'best'); grid on; box on;
-
-% =========================================================================
-% GRAFICO 3: X*_r ottimo per rifiuto vs gamma
-% Aggregato su benchmark (media), separato per rifiuto e algoritmo
-% =========================================================================
-rifiuti_list = unique(XrTable.Rifiuto);
-n_rif        = length(rifiuti_list);
-
-% Palette per i rifiuti (5 colori distinti)
-colori_rif = [
-    0.84, 0.15, 0.16;   % rosso    — organico
-    0.17, 0.63, 0.17;   % verde    — carta
-    0.12, 0.47, 0.71;   % blu      — plastica
-    0.58, 0.40, 0.74;   % viola    — vetro
-    0.55, 0.34, 0.29;   % marrone  — indifferenziata
-    ];
-
-fig3 = figure('Name', 'X_r ottimo vs Gamma', 'Position', [150, 150, 1050, 480]);
-sgtitle('T1 — Frequenza Ottima X^*_r per Rifiuto al variare di \gamma', 'FontWeight', 'bold');
+% Palette gamma: dal blu chiaro (gamma basso = Pro-Azienda) al verde (Pro-Cittadino)
+gamma_colors = [
+    0.20, 0.63, 0.86;   % gamma 0.10 — celeste
+    0.50, 0.50, 0.50;   % gamma 0.50 — grigio
+    0.18, 0.63, 0.33;   % gamma 0.90 — verde
+];
+gamma_styles = {'-', '--', ':'};
 
 algo_keys   = {'greedy', 'clarke_wright'};
 algo_titles = {'Greedy', 'Clarke-Wright'};
+algo_colors = {colorGreedy, colorCW};
 
 for a = 1:2
     subplot(1, 2, a); hold on;
-    for r = 1:n_rif
-        rif_name = rifiuti_list(r);
-        sub_xr   = XrTable(strcmp(XrTable.Rifiuto, rif_name) & ...
-            strcmp(XrTable.Algoritmo, algo_keys{a}), :);
-        if isempty(sub_xr), continue; end
 
-        % Media su benchmark per ogni gamma
-        xr_agg = groupsummary(sub_xr, 'Gamma', 'mean', 'X_r_best');
-        xr_agg = sortrows(xr_agg, 'Gamma');
+    for g = 1:n_g
+        gv    = g_unique(g);
+        sub   = RawTable(strcmp(RawTable.Algoritmo, algo_keys{a}) & RawTable.Gamma == gv, :);
+        if isempty(sub), continue; end
 
-        col_r = colori_rif(mod(r-1, size(colori_rif,1)) + 1, :);
-        plot(xr_agg.Gamma, xr_agg.mean_X_r_best, '-o', ...
-            'Color', col_r, 'LineWidth', 1.8, 'MarkerFaceColor', col_r, ...
-            'DisplayName', char(rif_name));
+        % Media F_tot per X_r (aggrega su benchmark e rifiuti)
+        agg = groupsummary(sub, 'X_r', 'mean', 'F_tot');
+        agg = sortrows(agg, 'X_r');
+
+        col_g = gamma_colors(mod(g-1, size(gamma_colors,1)) + 1, :);
+        plot(agg.X_r, agg.mean_F_tot, gamma_styles{g}, ...
+             'Color', col_g, 'LineWidth', 2, ...
+             'DisplayName', sprintf('\\gamma = %.2f', gv));
+
+        % Marca il minimo — testo a destra del punto, leggermente sotto
+        [~, idx_min] = min(agg.mean_F_tot);
+        yl = ylim;
+        y_offset = (yl(2) - yl(1)) * 0.05;
+        plot(agg.X_r(idx_min), agg.mean_F_tot(idx_min), 'v', ...
+             'Color', col_g, 'MarkerFaceColor', col_g, 'MarkerSize', 10, ...
+             'HandleVisibility', 'off');
+        text(agg.X_r(idx_min) + 0.15, agg.mean_F_tot(idx_min) + y_offset, ...
+             sprintf('X^*=%.1f', agg.X_r(idx_min)), ...
+             'Color', col_g, 'FontSize', 8, 'FontWeight', 'bold');
     end
-    xlabel('\gamma');
-    ylabel('X^*_r ottimo (raccolta/settimana)');
+
+    xlabel('X_r (raccolta/settimana)');
+    ylabel('F_{tot} medio (aggregato)');
     title(algo_titles{a}, 'FontWeight', 'bold');
     legend('Location', 'best', 'FontSize', 8);
     grid on; box on;
-    ylim([0, max(cellfun(@str2double, {'6.5'}))]);  % adatta al tuo range X_VALUES
 end
 
 % =========================================================================
-% GRAFICO 4: Saturazione media vs gamma
+% GRAFICO 2: Scomposizione F(X_r) — F_insoddis vs F_logistica
+% Istanza std seed42, gamma=0.50, rifiuto di riferimento = organico
+% Non si aggrega su tutti i rifiuti: ogni rifiuto ha X*_r diverso,
+% la media non corrisponde all'ottimo di nessuno specifico.
 % =========================================================================
-fig4 = figure('Name', 'Saturazione vs Gamma', 'Position', [200, 200, 950, 420]);
-sgtitle('T1 — Saturazione Media dei Veicoli al variare di \gamma', 'FontWeight', 'bold');
+gv_ref       = 0.50;
+[~, idx_ref] = min(abs(g_unique - gv_ref));
+gv_ref       = g_unique(idx_ref);
+rif_ref      = "organico";  % rifiuto di riferimento — cambia qui se necessario
 
-subplot(1, 2, 1); hold on;
-plot(subG_agg.Gamma, subG_agg.Sat_Fisica, '-o', 'Color', colorGreedy, 'LineWidth', 2, ...
-    'MarkerFaceColor', colorGreedy, 'DisplayName', 'Greedy');
-plot(subC_agg.Gamma, subC_agg.Sat_Fisica, '-s', 'Color', colorCW,     'LineWidth', 2, ...
-    'MarkerFaceColor', colorCW,     'DisplayName', 'CW');
-xlabel('\gamma'); ylabel('Saturazione fisica media (%)');
-title('Saturazione Fisica vs \gamma', 'FontWeight', 'bold');
-ylim([0 100]); legend('Location', 'best'); grid on; box on;
+fig2 = figure('Name', 'Scomposizione F(X_r)', 'Position', [100, 100, 1050, 480]);
+sgtitle(sprintf('T2 — Scomposizione F_{tot}(X_r): rifiuto "%s"  (\\gamma = %.2f, istanza std)', ...
+        char(rif_ref), gv_ref), 'FontWeight', 'bold');
 
-subplot(1, 2, 2); hold on;
-plot(subG_agg.Gamma, subG_agg.Sat_Tempo, '-o', 'Color', colorGreedy, 'LineWidth', 2, ...
-    'MarkerFaceColor', colorGreedy, 'DisplayName', 'Greedy');
-plot(subC_agg.Gamma, subC_agg.Sat_Tempo, '-s', 'Color', colorCW,     'LineWidth', 2, ...
-    'MarkerFaceColor', colorCW,     'DisplayName', 'CW');
-xlabel('\gamma'); ylabel('Saturazione temporale media (%)');
-title('Saturazione Temporale vs \gamma', 'FontWeight', 'bold');
-ylim([0 100]); legend('Location', 'best'); grid on; box on;
+% Pre-calcola range Y condiviso
+y_all2 = [];
+for a = 1:2
+    bench_ref = RawTable.Benchmark == "risultati_200u_std_seed42";
+    sub_pre = RawTable(bench_ref & strcmp(RawTable.Algoritmo, algo_keys{a}) & ...
+                       RawTable.Gamma == gv_ref & RawTable.Rifiuto == rif_ref, :);
+    if isempty(sub_pre)
+        sub_pre = RawTable(strcmp(RawTable.Algoritmo, algo_keys{a}) & ...
+                           RawTable.Gamma == gv_ref & RawTable.Rifiuto == rif_ref, :);
+    end
+    if ~isempty(sub_pre)
+        y_all2 = [y_all2; sub_pre.F_insoddis; sub_pre.F_logistica; ...
+                  sub_pre.F_insoddis + sub_pre.F_logistica];
+    end
+end
+y_min_shared = 0;
+y_max_shared = max(y_all2) * 1.08;
+
+for a = 1:2
+    subplot(1, 2, a); hold on;
+
+    bench_ref = RawTable.Benchmark == "risultati_200u_std_seed42";
+    sub = RawTable(bench_ref & strcmp(RawTable.Algoritmo, algo_keys{a}) & ...
+                   RawTable.Gamma == gv_ref & RawTable.Rifiuto == rif_ref, :);
+
+    if isempty(sub)
+        sub = RawTable(strcmp(RawTable.Algoritmo, algo_keys{a}) & ...
+                       RawTable.Gamma == gv_ref & RawTable.Rifiuto == rif_ref, :);
+        warning('Benchmark std seed42 non trovato per rifiuto %s, uso tutti.', char(rif_ref));
+    end
+    if isempty(sub)
+        title(sprintf('%s — nessun dato', algo_titles{a})); continue;
+    end
+
+    sub = sortrows(sub, 'X_r');
+
+    % Su singolo rifiuto + singolo benchmark non serve groupsummary —
+    % una riga per X_r, prendo direttamente i valori
+    plot(sub.X_r, sub.F_insoddis, '-o', ...
+         'Color', [0.47, 0.67, 0.19], 'LineWidth', 2, 'MarkerFaceColor', [0.47, 0.67, 0.19], ...
+         'DisplayName', 'F_{insoddis} \times k_{scala}');
+    plot(sub.X_r, sub.F_logistica, '-s', ...
+         'Color', [0.30, 0.30, 0.30], 'LineWidth', 2, 'MarkerFaceColor', [0.30, 0.30, 0.30], ...
+         'DisplayName', 'F_{logistica}');
+    f_tot_calc = sub.F_insoddis + sub.F_logistica;
+    plot(sub.X_r, f_tot_calc, '-^', ...
+         'Color', algo_colors{a}, 'LineWidth', 2.5, 'MarkerFaceColor', algo_colors{a}, ...
+         'DisplayName', 'F_{tot}  =  F_{insoddis} + F_{logistica}');
+
+    % Minimo di F_tot
+    [~, idx_min] = min(f_tot_calc);
+    xline(sub.X_r(idx_min), '--k', 'LineWidth', 1.2, 'HandleVisibility', 'off');
+    yl = ylim;
+    text(sub.X_r(idx_min) + 0.08, yl(1) + (yl(2)-yl(1))*0.04, ...
+         sprintf('X^*=%.1f', sub.X_r(idx_min)), ...
+         'FontSize', 8, 'FontWeight', 'bold', 'Color', [0.2 0.2 0.2]);
+
+    xlabel('X_r (raccolta/settimana)');
+    ylabel('Valore componente');
+    title(algo_titles{a}, 'FontWeight', 'bold');
+    ylim([y_min_shared, y_max_shared]);
+    legend('Location', 'northeast', 'FontSize', 8);
+    grid on; box on;
+end
+
+% =========================================================================
+% GRAFICO 3: Profilo F(X_r) per singolo rifiuto — gamma=0.50, entrambi gli algoritmi
+% Organico e vetro avranno comportamenti strutturalmente diversi
+% =========================================================================
+rifiuti_list = unique(RawTable.Rifiuto);
+n_rif        = length(rifiuti_list);
+
+colori_rif = [
+    0.84, 0.15, 0.16;
+    0.17, 0.63, 0.17;
+    0.12, 0.47, 0.71;
+    0.58, 0.40, 0.74;
+    0.55, 0.34, 0.29;
+];
+
+fig3 = figure('Name', 'Profilo F(X_r) per Rifiuto', 'Position', [150, 150, 1050, 480]);
+sgtitle(sprintf('T2 — Profilo F_{tot}(X_r) per Rifiuto (\\gamma = %.2f)', gv_ref), ...
+        'FontWeight', 'bold');
+
+for a = 1:2
+    subplot(1, 2, a); hold on;
+
+    for r = 1:n_rif
+        rif_name = rifiuti_list(r);
+        sub_r    = RawTable(strcmp(RawTable.Algoritmo, algo_keys{a}) & ...
+                            RawTable.Gamma == gv_ref & ...
+                            strcmp(RawTable.Rifiuto, rif_name), :);
+        if isempty(sub_r), continue; end
+
+        agg_r = groupsummary(sub_r, 'X_r', 'mean', 'F_tot');
+        agg_r = sortrows(agg_r, 'X_r');
+
+        col_r = colori_rif(mod(r-1, size(colori_rif,1)) + 1, :);
+        plot(agg_r.X_r, agg_r.mean_F_tot, '-o', ...
+             'Color', col_r, 'LineWidth', 1.8, 'MarkerFaceColor', col_r, ...
+             'DisplayName', char(rif_name));
+
+        % Minimo per rifiuto
+        [~, idx_min] = min(agg_r.mean_F_tot);
+        plot(agg_r.X_r(idx_min), agg_r.mean_F_tot(idx_min), 'v', ...
+             'Color', col_r, 'MarkerFaceColor', col_r, 'MarkerSize', 9, ...
+             'HandleVisibility', 'off');
+    end
+
+    xlabel('X_r (raccolta/settimana)');
+    ylabel('F_{tot} medio');
+    title(algo_titles{a}, 'FontWeight', 'bold');
+    legend('Location', 'southeast', 'FontSize', 8);
+    grid on; box on;
+end
+
+% =========================================================================
+% GRAFICO 4: Veicoli(X_r) — relazione meccanica tra frequenza e flotta
+% Al crescere di X_r i carichi Q_u=W/X_r diminuiscono → meno veicoli
+% =========================================================================
+fig4 = figure('Name', 'Veicoli vs X_r', 'Position', [200, 200, 1050, 480]);
+sgtitle('T2 — Veicoli Utilizzati al variare di X_r', 'FontWeight', 'bold', 'FontSize', 11);
+
+for a = 1:2
+    subplot(1, 2, a); hold on;
+
+    for g = 1:n_g
+        gv  = g_unique(g);
+        sub = RawTable(strcmp(RawTable.Algoritmo, algo_keys{a}) & RawTable.Gamma == gv, :);
+        if isempty(sub), continue; end
+
+        agg_v = groupsummary(sub, 'X_r', 'mean', 'Vehicles');
+        agg_v = sortrows(agg_v, 'X_r');
+
+        col_g = gamma_colors(mod(g-1, size(gamma_colors,1)) + 1, :);
+        plot(agg_v.X_r, agg_v.mean_Vehicles, gamma_styles{g}, ...
+             'Color', col_g, 'LineWidth', 2, ...
+             'DisplayName', sprintf('\\gamma = %.2f', gv));
+    end
+
+    xlabel('X_r (raccolta/settimana)');
+    ylabel('Veicoli medi (somma 5 rifiuti)');
+    title(algo_titles{a}, 'FontWeight', 'bold');
+    legend('Location', 'northeast', 'FontSize', 8);
+    grid on; box on;
+end
