@@ -19,6 +19,16 @@ gamma_colors = [
     0.18, 0.63, 0.33;
 ];
 
+% Cartella di output per l'export delle figure (creata se non esiste)
+% NB: getenv('HOME') su Windows spesso e' vuoto -> path relativo sbagliato.
+%     java.lang.System.getProperty('user.home') funziona su Win/Mac/Linux.
+homeDir = char(java.lang.System.getProperty('user.home'));
+outDir  = fullfile(homeDir, 'Desktop', 'immagini');
+if ~exist(outDir, 'dir')
+    mkdir(outDir);
+end
+fprintf('  [INFO] Le figure verranno salvate in: %s\n', outDir);
+
 % =========================================================================
 % 1. PARSING E LETTURA DATI
 % =========================================================================
@@ -108,6 +118,8 @@ for a = 1:2
     grid on; box on;
 end
 
+exportgraphics(fig1, fullfile(outDir, 'B4 Scomposizione Ftot per Politica.png'), 'Resolution', 300);
+
 % =========================================================================
 % GRAFICO 2: Saturazione Fisica e Temporale vs Politica
 % =========================================================================
@@ -132,6 +144,8 @@ title('Saturazione Temporale', 'FontWeight', 'bold');
 ylabel('Turno sfruttato (%)'); ylim([0 100]);
 set(gca, 'XTickLabel', g_labels); xtickangle(20);
 grid on; box on;
+
+exportgraphics(fig2, fullfile(outDir, 'B4 Saturazione Veicoli per Politica.png'), 'Resolution', 300);
 
 % =========================================================================
 % GRAFICO 3: Flotta e Utenti Serviti vs Politica
@@ -166,6 +180,8 @@ ylabel('F_{tot} / N_{utenti}');
 set(gca, 'XTickLabel', g_labels); xtickangle(20);
 legend('Location', 'northeast'); grid on; box on;
 
+exportgraphics(fig3, fullfile(outDir, 'B4 Flotta e Copertura Utenti per Politica.png'), 'Resolution', 300);
+
 % =========================================================================
 % GRAFICO 4: Gap relativo Greedy–CW vs Politica (barre con annotazioni)
 % =========================================================================
@@ -189,3 +205,5 @@ yline(0, '--k', 'LineWidth', 1);
 set(gca, 'XTickLabel', g_labels); xtickangle(20);
 ylabel('Gap %  =  (F_{Greedy} - F_{CW}) / min \times 100');
 grid on; box on;
+
+exportgraphics(fig4, fullfile(outDir, 'B4 Gap Prestazionale tra Greedy e CW.png'), 'Resolution', 300);

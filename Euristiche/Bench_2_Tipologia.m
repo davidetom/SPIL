@@ -21,6 +21,16 @@ gamma_colors = [
     0.18, 0.63, 0.33;   % gamma 0.90 — verde
 ];
 
+% Cartella di output per l'export delle figure (creata se non esiste)
+% NB: getenv('HOME') su Windows spesso e' vuoto -> path relativo sbagliato.
+%     java.lang.System.getProperty('user.home') funziona su Win/Mac/Linux.
+homeDir = char(java.lang.System.getProperty('user.home'));
+outDir  = fullfile(homeDir, 'Desktop', 'immagini');
+if ~exist(outDir, 'dir')
+    mkdir(outDir);
+end
+fprintf('  [INFO] Le figure verranno salvate in: %s\n', outDir);
+
 % =========================================================================
 % 1. PARSING E LETTURA DATI
 % =========================================================================
@@ -99,6 +109,8 @@ for a = 1:2
     grid on; box on; xtickangle(35);
 end
 
+exportgraphics(fig1, fullfile(outDir, 'ScomposizioneFtot2.png'), 'Resolution', 300);
+
 % =========================================================================
 % GRAFICO 2: F_tot e F_insoddis vs Tipologia — colore = gamma, marker = algoritmo
 % =========================================================================
@@ -144,6 +156,8 @@ ylabel('F_{insoddis} (scalata)');
 title('Insoddisfazione per Tipologia');
 legend('Location', 'northeast'); grid on; box on; xtickangle(35);
 
+exportgraphics(fig2, fullfile(outDir, 'FtotperTipologia.png'), 'Resolution', 300);
+
 % =========================================================================
 % GRAFICO 3: Saturazione Fisica e Temporale vs Tipologia (pannello 2×n_g)
 % =========================================================================
@@ -181,6 +195,8 @@ end
 lgd = legend(ax_leg3, 'Greedy', 'CW', 'Location', 'northeast');
 lgd.FontSize = 9;
 
+exportgraphics(fig3, fullfile(outDir, 'SaturazioneFisicaTemporale.png'), 'Resolution', 300);
+
 % =========================================================================
 % GRAFICO 4: Gap relativo Greedy–CW per Tipologia
 % =========================================================================
@@ -210,3 +226,5 @@ lg = legend('FontSize', 8, 'Box', 'on');
 lg.Units    = 'normalized';
 lg.Position = [0.13, 0.72, 0.12, 0.18];  % [x, y, larghezza, altezza]
 grid on; box on; xtickangle(35);
+
+exportgraphics(fig4, fullfile(outDir, 'GapPrestazionale.png'), 'Resolution', 300);

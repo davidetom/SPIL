@@ -16,6 +16,16 @@ end
 colorGreedy = [0.13, 0.47, 0.71];
 colorCW     = [0.84, 0.37, 0.05];
 
+% Cartella di output per l'export delle figure (creata se non esiste)
+% NB: getenv('HOME') su Windows spesso e' vuoto -> path relativo sbagliato.
+%     java.lang.System.getProperty('user.home') funziona su Win/Mac/Linux.
+homeDir = char(java.lang.System.getProperty('user.home'));
+outDir  = fullfile(homeDir, 'Desktop', 'immagini');
+if ~exist(outDir, 'dir')
+    mkdir(outDir);
+end
+fprintf('  [INFO] Le figure verranno salvate in: %s\n', outDir);
+
 % =========================================================================
 % 1. LETTURA DATI — TUTTE le righe (is_best=0 e is_best=1)
 %    Una riga per (benchmark × rifiuto × algoritmo × gamma × X_r)
@@ -120,6 +130,8 @@ for a = 1:2
     grid on; box on;
 end
 
+exportgraphics(fig1, fullfile(outDir, 't2 Ftot rispetto a Xr.png'), 'Resolution', 300);
+
 % =========================================================================
 % GRAFICO 2: Scomposizione F(X_r) — F_insoddis vs F_logistica
 % Istanza std seed42, gamma=0.50, rifiuto di riferimento = organico
@@ -200,6 +212,8 @@ for a = 1:2
     grid on; box on;
 end
 
+exportgraphics(fig2, fullfile(outDir, 't2 Scomposizione Ftot (Organico) rispetto a Xr.png'), 'Resolution', 300);
+
 % =========================================================================
 % GRAFICO 3: Profilo F(X_r) per singolo rifiuto — gamma=0.50, entrambi gli algoritmi
 % Organico e vetro avranno comportamenti strutturalmente diversi
@@ -251,6 +265,8 @@ for a = 1:2
     grid on; box on;
 end
 
+exportgraphics(fig3, fullfile(outDir, 't2 Ftot per Rifiuto rispetto a Xr.png'), 'Resolution', 300);
+
 % =========================================================================
 % GRAFICO 4: Veicoli(X_r) — relazione meccanica tra frequenza e flotta
 % Al crescere di X_r i carichi Q_u=W/X_r diminuiscono → meno veicoli
@@ -281,3 +297,5 @@ for a = 1:2
     legend('Location', 'northeast', 'FontSize', 8);
     grid on; box on;
 end
+
+exportgraphics(fig4, fullfile(outDir, 't2 Veicoli rispetto a Xr.png'), 'Resolution', 300);

@@ -19,6 +19,16 @@ gamma_colors = [
     0.18, 0.63, 0.33;
 ];
 
+% Cartella di output per l'export delle figure (creata se non esiste)
+% NB: getenv('HOME') su Windows spesso e' vuoto -> path relativo sbagliato.
+%     java.lang.System.getProperty('user.home') funziona su Win/Mac/Linux.
+homeDir = char(java.lang.System.getProperty('user.home'));
+outDir  = fullfile(homeDir, 'Desktop', 'immagini');
+if ~exist(outDir, 'dir')
+    mkdir(outDir);
+end
+fprintf('  [INFO] Le figure verranno salvate in: %s\n', outDir);
+
 % =========================================================================
 % 1. PARSING E LETTURA DATI
 % =========================================================================
@@ -117,6 +127,8 @@ end
 ylabel('Veicoli totali (n)'); title('Flotta Utilizzata');
 legend('Location', 'northwest'); grid on; box on;
 
+exportgraphics(fig1, fullfile(outDir, 'Costi di Viaggio e Flotta.png'), 'Resolution', 300);
+
 % =========================================================================
 % GRAFICO 2: Scomposizione F_tot per modalità (gamma = 0.50)
 % =========================================================================
@@ -141,6 +153,8 @@ for a = 1:2
     legend('F_{logistica}', 'F_{insoddis} \times k_{scala}', 'Location', 'northwest');
     grid on; box on;
 end
+
+exportgraphics(fig2, fullfile(outDir, 'Ftot vs Distribuzione Spaziale.png'), 'Resolution', 300);
 
 % =========================================================================
 % GRAFICO 3: Saturazione Fisica e Temporale vs Modalità (pannello 2×n_g)
@@ -170,6 +184,8 @@ for g = 1:n_g
     ylabel('Temporale (%)'); ylim([0 100]); grid on; box on;
 end
 
+exportgraphics(fig3, fullfile(outDir, 'Saturazione Fisica e Temporale.png'), 'Resolution', 300);
+
 % =========================================================================
 % GRAFICO 4: Gap relativo Greedy–CW per Modalità
 % =========================================================================
@@ -195,3 +211,5 @@ end
 yline(0, '--k', 'LineWidth', 1, 'DisplayName', 'Pareggio');
 ylabel('Gap %  =  (F_{Greedy} - F_{CW}) / min \times 100');
 legend('Location', 'best'); grid on; box on;
+
+exportgraphics(fig4, fullfile(outDir, 'Gap Prestazionale tra Greedy e CW.png'), 'Resolution', 300);

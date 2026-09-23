@@ -15,6 +15,16 @@ end
 colorGreedy = [0.13, 0.47, 0.71];
 colorCW     = [0.84, 0.37, 0.05];
 
+% Cartella di output per l'export delle figure (creata se non esiste)
+% NB: getenv('HOME') su Windows spesso e' vuoto -> path relativo sbagliato.
+%     java.lang.System.getProperty('user.home') funziona su Win/Mac/Linux.
+homeDir = char(java.lang.System.getProperty('user.home'));
+outDir  = fullfile(homeDir, 'Desktop', 'immagini');
+if ~exist(outDir, 'dir')
+    mkdir(outDir);
+end
+fprintf('  [INFO] Le figure verranno salvate in: %s\n', outDir);
+
 % =========================================================================
 % 1. LETTURA DATI — tutte le righe is_best=1 di tutti i benchmark
 %    Una riga per (benchmark × rifiuto × algoritmo × gamma)
@@ -124,6 +134,8 @@ xlabel('F_{logistica} (costi operativi medi)');
 ylabel('F_{insoddis} \times k_{scala} (media)');
 legend('Location', 'best'); grid on; box on;
 
+exportgraphics(fig1, fullfile(outDir, 't1 Frontiera di Pareto.png'), 'Resolution', 300);
+
 % =========================================================================
 % GRAFICO 2: F_insoddis e F_logistica separatamente vs gamma
 % =========================================================================
@@ -147,6 +159,8 @@ plot(subC_agg.Gamma, subC_agg.F_logistica, '-s', 'Color', colorCW,     'LineWidt
 xlabel('\gamma'); ylabel('F_{logistica} (media)');
 title('Costi Logistici vs \gamma', 'FontWeight', 'bold');
 legend('Location', 'best'); grid on; box on;
+
+exportgraphics(fig2, fullfile(outDir, 't1 Funz Obiettivo in base a Gamma.png'), 'Resolution', 300);
 
 % =========================================================================
 % GRAFICO 3: X*_r ottimo per rifiuto vs gamma
@@ -195,6 +209,8 @@ for a = 1:2
     ylim([0, max(cellfun(@str2double, {'6.5'}))]);  % adatta al tuo range X_VALUES
 end
 
+exportgraphics(fig3, fullfile(outDir, 't1 Xr_ x Rifiuto in base a Gamma.png'), 'Resolution', 300);
+
 % =========================================================================
 % GRAFICO 4: Saturazione media vs gamma
 % =========================================================================
@@ -218,3 +234,5 @@ plot(subC_agg.Gamma, subC_agg.Sat_Tempo, '-s', 'Color', colorCW,     'LineWidth'
 xlabel('\gamma'); ylabel('Saturazione temporale media (%)');
 title('Saturazione Temporale vs \gamma', 'FontWeight', 'bold');
 ylim([0 100]); legend('Location', 'northeast'); grid on; box on;
+
+exportgraphics(fig4, fullfile(outDir, 't1 Saturazione Media in base a Gamma.png'), 'Resolution', 300);

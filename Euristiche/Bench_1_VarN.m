@@ -14,6 +14,16 @@ end
 colorGreedy = [0.13, 0.47, 0.71];   % Blu profondo
 colorCW     = [0.84, 0.37, 0.05];   % Arancio bruciato
 
+% Cartella di output per l'export delle figure (creata se non esiste)
+% NB: getenv('HOME') su Windows spesso e' vuoto -> path relativo sbagliato.
+%     java.lang.System.getProperty('user.home') funziona su Win/Mac/Linux.
+homeDir = char(java.lang.System.getProperty('user.home'));
+outDir  = fullfile(homeDir, 'Desktop', 'immagini');
+if ~exist(outDir, 'dir')
+    mkdir(outDir);
+end
+fprintf('  [INFO] Le figure verranno salvate in: %s\n', outDir);
+
 % =========================================================================
 % 1. PARSING E LETTURA DATI
 % =========================================================================
@@ -92,6 +102,8 @@ for a = 1:2
     grid on; box on;
 end
 
+exportgraphics(fig1, fullfile(outDir, 'scomposizione_F_tot.png'), 'Resolution', 300);
+
 % =========================================================================
 % GRAFICO 2: F_tot vs N per entrambi gli algoritmi e tutti i gamma
 % =========================================================================
@@ -151,6 +163,8 @@ title('Tempo di Calcolo');
 legend('Location', 'northwest'); grid on; box on;
 set(gca, 'YScale', 'log');   % DOPO i plot, altrimenti MATLAB resetta la scala
 
+exportgraphics(fig2, fullfile(outDir, 'funzione_obiettivo_tempo.png'), 'Resolution', 300);
+
 % =========================================================================
 % GRAFICO 3: Saturazione Fisica e Temporale vs N (pannello 2×n_g)
 % =========================================================================
@@ -181,6 +195,8 @@ for g = 1:n_g
     ylabel('Temporale (%)'); ylim([0 100]); grid on; box on;
 end
 
+exportgraphics(fig3, fullfile(outDir, 'saturazione_vs_N.png'), 'Resolution', 300);
+
 % =========================================================================
 % GRAFICO 4: Utenti Serviti vs N — cambio vincolo attivo
 % =========================================================================
@@ -207,6 +223,8 @@ plot(subC_ref.N, subC_ref.N_Serviti, '-s', 'Color', colorCW,     'LineWidth', 2,
 xlabel('Utenti attivi (N)'); ylabel('n\_utenti\_serviti (somma 5 rifiuti)');
 legend('Location', 'northwest'); grid on; box on;
 
+exportgraphics(fig4, fullfile(outDir, 'B1_utenti_serviti_vs_N.png'), 'Resolution', 300);
+
 % =========================================================================
 % GRAFICO 5: Gap relativo Greedy–CW vs N
 % =========================================================================
@@ -231,3 +249,5 @@ yline(0, '--k', 'LineWidth', 1, 'DisplayName', 'Pareggio');
 xlabel('Utenti attivi (N)');
 ylabel('Gap %  =  (F_{Greedy} - F_{CW}) / min \times 100');
 legend('Location', 'best'); grid on; box on;
+
+exportgraphics(fig5, fullfile(outDir, 'B1 Gap Prestazionale.png'), 'Resolution', 300);
