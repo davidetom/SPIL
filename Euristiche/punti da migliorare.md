@@ -1,0 +1,15 @@
+**1. Mancanza di un ancoraggio alla realtà (Analisi troppo "relativa")** Attualmente la tesina confronta gli algoritmi tra loro (Greedy vs Clarke-Wright) e analizza la variazione dei parametri (es. $\gamma$), ma manca un confronto con lo "stato attuale" delle cose. Non viene mai dimostrato se il sistema proposto porterebbe un miglioramento effettivo rispetto a come l'azienda reale (es. Anconambiente) gestisce oggi la raccolta. Claude suggerisce di procurarsi dei dati reali (numero di mezzi usati attualmente, frequenze attuali) per fare un confronto quantitativo/qualitativo o, se non è possibile, di inserire un paragrafo in cui si discute esplicitamente questo limite, ipotizzando una stima del potenziale risparmio.
+
+**2. I benchmark sono isolati e non "dialogano" tra loro**
+Ogni benchmark ha le sue conclusioni separate, ma manca un "collante testuale" che incroci i risultati per far emergere considerazioni più profonde. Claude propone quattro incroci fondamentali da aggiungere:
+
+- **B4 (Fabriano) vs B1 (Scalabilità):** Verificare se il gap prestazionale tra Greedy e CW calcolato su Fabriano ricade nel _plateau_ osservato in B1 per grandi reti (N elevato).
+- **B4 (Fabriano) vs B2 (Tipologia Urbanistica):** Analizzare la distribuzione reale delle utenze di Fabriano (quanti single, famiglie, palazzine) e associarla a uno degli scenari sintetici di B2 (residenziale, suburbano, ecc.) per vedere se i risultati coincidono.
+- **B4 (Fabriano) vs B3 (Distribuzione Spaziale):** Osservare visivamente la mappa di Fabriano per stabilire se si comporta più come lo scenario "uniforme" o quello "clusterizzato", e verificare se i costi di viaggio e la flotta rispecchiano le aspettative di B3.
+- **B4 (Fabriano) vs T2 (Frequenze ottime):** Verificare se le frequenze di raccolta ideali ($X_r^*$) trovate nel benchmark trasversale T2 rimangono coerenti anche applicando il modello al caso reale di Fabriano (B4).
+
+**3. Il vero motivo del crollo del gap in Fabriano (Topologia del grafo)**
+Incrociando i dati, si nota che nella mappa reale di Fabriano (B4) il vantaggio di Clarke-Wright su Greedy si dimezza sistematicamente rispetto ai grafi sintetici. Claude ipotizza che la causa non sia la distribuzione spaziale, ma la **topologia del grafo**. I grafi sintetici sono iper-connessi, dando a CW molte alternative per fondere le rotte in modo vantaggioso. Una rete stradale reale (OSM), invece, ha strade obbligate e incroci con poche alternative. Essendoci meno percorsi possibili, entrambi gli algoritmi sono costretti a fare scelte simili. Claude suggerisce di verificare e dimostrare questa intuizione confrontando il _grado medio dei nodi_ del grafo reale con quello del grafo sintetico.
+
+**4. Conclusioni più nette e decisionali** 
+Attualmente le conclusioni della tesina sono puramente descrittive (spiegano _come_ si comportano gli algoritmi). Claude consiglia di riscrivere il paragrafo finale prendendo una posizione esplicita e fornendo una vera e propria "raccomandazione operativa" per un'ipotetica azienda, trasformando il lavoro da un puro test di laboratorio a un reale strumento di supporto decisionale.
