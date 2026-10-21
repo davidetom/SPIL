@@ -1,0 +1,28 @@
+\babel@toc {italian}{}\relax 
+\babel@toc {italian}{}\relax 
+\addvspace {10pt}
+\addvspace {10pt}
+\addvspace {10pt}
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Schema generale della procedura risolutiva: esplorazione a griglia della frequenza $X_r$, con costruzione delle rotte affidata, alternativamente, all'euristica Greedy o all'euristica Clarke-Wright.}}{13}{figure.2.1}%
+\addvspace {10pt}
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Benchmark 1: gap su $F_{\mathrm {tot}}$ tra Greedy e Clarke-Wright al variare di $N$ per le tre politiche (media su 30 seed).}}{42}{figure.3.1}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Benchmark 1: gap logistico tra Greedy e CW (fisso, viaggio e lavoro) a frequenza $X_r$ comune, calcolato per rifiuto e mediato sui rifiuti e sui 30 seed, per quattro valori di $N$ (fasce IC95).}}{43}{figure.3.2}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Benchmark 1 ($N=1000$): soluzione selezionata al variare di $\gamma $ (media su 30 seed, fasce IC95): camion per giro, attivazioni settimanali, chilometri, ore di lavoro, disservizio grezzo e frequenze ottime $X^*_r$ per rifiuto (CW continuo, Greedy tratteggiato).}}{44}{figure.3.3}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Benchmark 2: gap su $F_{\mathrm {tot}}$ tra Greedy e Clarke-Wright per scenario urbanistico e politica (media su 30 seed, barre: IC95).}}{48}{figure.3.4}%
+\contentsline {figure}{\numberline {3.5}{\ignorespaces Camion per giro dell'organico in funzione della frequenza $X_r$ (media su 30 seed, fasce IC95): $B1$ con $N=1000$, grandi condomini e villette con $N=400$. La linea tratteggiata è $V\cdot X$ costante, ancorata al valore di Greedy a $X_r=0.5$.}}{49}{figure.3.5}%
+\contentsline {figure}{\numberline {3.6}{\ignorespaces Benchmark 3: gap logistico tra Greedy e CW a frequenza $X_r$ comune, per distribuzione uniforme e aggregata ($N=400$, media su 30 seed, fasce IC95).}}{53}{figure.3.6}%
+\contentsline {figure}{\numberline {3.7}{\ignorespaces Benchmark 4: soluzioni distinte (punti) e intervalli di $\gamma $ per cui sono ottime. Asse $x$: costo logistico grezzo settimanale; asse $y$: disservizio grezzo.}}{57}{figure.3.7}%
+\contentsline {figure}{\numberline {3.8}{\ignorespaces Benchmark 4: grandezze fisiche e frequenze ottime al variare di $\gamma $ (CW continuo, Greedy tratteggiato dove distinguibile).}}{58}{figure.3.8}%
+\contentsline {figure}{\numberline {3.9}{\ignorespaces Gap logistico tra Greedy e CW a frequenza $X_r$ comune con $N=1000$: sintetico originale ($A=100$\,km$^2$), sintetico con area e mix di Fabriano (B1S) e sottocampioni di utenti reali di Fabriano (B4sub) (media su 30 seed, fasce IC95).}}{59}{figure.3.9}%
+\contentsline {figure}{\numberline {3.10}{\ignorespaces Gap su $F_{\mathrm {tot}}$ in funzione di $N$ per le tre politiche: sintetico originale, sintetico con area e mix di Fabriano, utenti reali campionati (barre: IC95); la stella indica Fabriano con tutti gli utenti.}}{61}{figure.3.10}%
+\contentsline {figure}{\numberline {3.11}{\ignorespaces Benchmark 5 ($N=200$): soluzione selezionata al variare di $\gamma $ (media su 30 seed, fasce IC95); stessi pannelli della Figura~\ref {fig:b1_fisica}.}}{65}{figure.3.11}%
+\contentsline {figure}{\numberline {3.12}{\ignorespaces Scomposizione del gap su $F_{\mathrm {tot}}$ (punti percentuali, media su 30 seed) in routing a pari frequenza e spostamento di $X^*$, per le tre politiche: Benchmark 1 al variare di $N$, Benchmark 2 per scenario, Benchmark 5.}}{66}{figure.3.12}%
+\contentsline {figure}{\numberline {3.13}{\ignorespaces Frontiera di Pareto empirica: illustra il trade-off tra l'insoddisfazione media degli utenti e i costi logistici operativi medi al variare del parametro $\gamma $.}}{69}{figure.3.13}%
+\contentsline {figure}{\numberline {3.14}{\ignorespaces Andamento separato delle componenti di insoddisfazione (sinistra) e dei costi logistici (destra) al variare del parametro $\gamma $ nel benchmark trasversale.}}{71}{figure.3.14}%
+\contentsline {figure}{\numberline {3.15}{\ignorespaces Frequenza ottima di raccolta $X_r^*$ per ciascuna tipologia di rifiuto al variare del parametro $\gamma $ nel benchmark trasversale.}}{72}{figure.3.15}%
+\contentsline {figure}{\numberline {3.16}{\ignorespaces Saturazione fisica e temporale media della flotta al variare del parametro $\gamma $ nel benchmark trasversale.}}{74}{figure.3.16}%
+\contentsline {figure}{\numberline {3.17}{\ignorespaces Profilo aggregato della funzione obiettivo $F_{tot}$ al variare della frequenza di raccolta $X_r$ e della politica decisionale $\gamma $.}}{77}{figure.3.17}%
+\contentsline {figure}{\numberline {3.18}{\ignorespaces Scomposizione della funzione obiettivo $F_{tot}$ nelle componenti di insoddisfazione e costo logistico per il rifiuto organico ($\gamma =0.50$).}}{79}{figure.3.18}%
+\contentsline {figure}{\numberline {3.19}{\ignorespaces Profilo della funzione obiettivo $F_{tot}$ in relazione alla frequenza $X_r$, differenziato per tipologia di rifiuto ($\gamma =0.50$).}}{80}{figure.3.19}%
+\contentsline {figure}{\numberline {3.20}{\ignorespaces Andamento del numero medio di veicoli impiegati al variare della frequenza di raccolta $X_r$.}}{82}{figure.3.20}%
+\addvspace {10pt}

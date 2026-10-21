@@ -1,0 +1,66 @@
+% Classe appositamente creata per tesi di Ingegneria Informatica all'università Roma Tre
+\documentclass{TesiDiaUniroma3}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{float} 
+\usepackage{eurosym}
+\usepackage[algo2e]{algorithm2e} %aggiunto sofia
+% \usepackage[ruled,vlined]{algorithm2e} %aggiunto sofia
+\usepackage{tikz} %aggiunto sofia per cap 2
+\usetikzlibrary{shapes.geometric, arrows, positioning} %aggiunto sofia per cap 2
+\usepackage{longtable} %aggiunti sofia
+\usepackage{array} %aggiunti sofia
+\usepackage{amssymb} %aggiunto sofia
+\usepackage{amsmath} %aggiunto sofia
+\usepackage{graphicx}
+
+% --- INIZIO dati relativi al template TesiDiaUniroma3
+% dati obbligatori, necessari al frontespizio
+\titolo{Simulazione dei Processi Industriali e Logistici}
+\autore{Sofia Garofoli \\  Davide Tommasino}
+\relatore{Prof. Ludovica Adacher}
+\correlatore{Prof. Nome Cognome} % modifica anche TesiDiaUniroma3.cls se vuoi avere un correlatore
+\annoAccademico{2025/2026}
+
+% dati opzionali
+\dedica{ a me} % solo se nel documento si usa il comando \generaDedica
+% --- FINE dati relativi al template TesiDiaUniroma3
+
+% --- INIZIO richiamo di pacchetti di utilità. Questi sono un esempio e non sono strettamente necessari al modello per la tesi.
+\usepackage[plainpages=false]{hyperref}	% generazione di collegamenti ipertestuali su indice e riferimenti
+\usepackage[all]{hypcap} % per far si che i link ipertestuali alle immagini puntino all'inizio delle stesse e non alla didascalia sottostante
+\usepackage{amsthm}	% per definizioni e teoremi
+\usepackage{amsmath}	% per ``cases'' environment
+% --- FINE riachiamo di pacchetti di utilità
+
+\begin{document}
+% ----- Pagine di fronespizio, numerate in romano (i,ii,iii,iv...) (obbligatorio)
+\frontmatter
+\generaFrontespizio
+% \generaDedica
+% \ringraziamenti{ringraziamenti}	% inserisce i ringraziamenti e li prende in questo caso da ringraziamenti.tex
+\introduzione{introduzione}		% inserisce l'introduzione e la prende in questo caso da introduzione.tex
+\generaIndice
+\generaIndiceFigure
+
+% ----- Pagine di tesi, numerate in arabo (1,2,3,4,...) (obbligatorio)
+\mainmatter
+% il comando ``capitolo'' ha come parametri:
+% 1) il titolo del capitolo
+% 2) il nome del file tex (senza estensione) che contiene il capitolo. Tale nome \`e usato anche come label del capitolo
+\capitolo{Formulazione del problema}{capitolo-1}
+\capitolo{Algoritmi Euristici per il Problema}{capitolo-2}
+\capitolo{Analisi sulle Istanze del Problema}{capitolo-3}
+
+
+
+% ----- Parte finale della tesi (obbligatorio)
+\backmatter
+\conclusioni{conclusioni}
+
+% Bibliografia con BibTeX (obbligatoria)
+% Non si deve specificare lo stile della bibliografia
+% NON CREDO SERVA
+% \bibliography{bibliografia} % inserisce la bibliografia e la prende in questo caso da bibliografia.bib
+
+\end{document}

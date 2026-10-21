@@ -1,0 +1,496 @@
+\section{Introduzione all'approccio euristico}\label{se:prima-sezione}
+
+Il problema di pianificazione della raccolta differenziata descritto nel Capitolo 1 appartiene alla classe dei problemi di ottimizzazione combinatoria e presenta una struttura fortemente accoppiata tra decisioni di natura strategica e operativa. In particolare, la determinazione delle frequenze di raccolta, l'assegnazione dei veicoli e la costruzione dei percorsi devono essere effettuate nel rispetto di vincoli di capacità e di durata dei turni, minimizzando contemporaneamente i costi logistici e l'insoddisfazione degli utenti.
+
+La presenza di una funzione obiettivo bi-criterio rende il problema computazionalmente complesso. Anche per istanze di dimensione moderata, il numero di possibili configurazioni cresce molto velocemente, rendendo difficoltosa l'applicazione di metodi esatti di ottimizzazione, soprattutto quando si desidera ottenere soluzioni in tempi di calcolo compatibili con un utilizzo operativo.
+
+Per tale motivo, il presente lavoro adotta un approccio euristico. Le euristiche non garantiscono il raggiungimento dell'ottimo globale del problema, ma consentono di individuare in tempi contenuti soluzioni di elevata qualità, rappresentando un compromesso efficace tra accuratezza e costo computazionale. Questo aspetto risulta particolarmente importante nel contesto della gestione dei servizi di raccolta dei rifiuti, dove le decisioni devono poter essere aggiornate rapidamente al variare della domanda, della distribuzione territoriale degli utenti o delle politiche aziendali.
+
+L'approccio proposto si basa su due euristiche costruttive di routing, denominate \emph{Greedy} e \emph{Clarke-Wright Savings}, alternative tra loro: entrambe generano, per ogni tipologia di rifiuto e per un dato valore della frequenza di raccolta $X_r$, un insieme ammissibile di rotte. La variabile decisionale $X_r$ non viene ottimizzata mediante una procedura di ricerca locale, bensì esplorata su un insieme discreto e predefinito di valori candidati, secondo una strategia di \emph{Grid Search}: per ciascun valore candidato le rotte vengono ricostruite da zero e la funzione obiettivo $F$ viene ricalcolata integralmente, selezionando infine la configurazione a costo minimo.
+
+Le due euristiche di routing non sono quindi impiegate in sequenza all'interno di un'unica pipeline, ma costituiscono due metodi risolutivi indipendenti e alternativi, applicati allo stesso problema e successivamente confrontati tra loro (\emph{benchmarking}) in termini di qualità della soluzione e tempo di calcolo. Questo aspetto verrà ripreso ed esplicitato nella Sezione~\ref{se:architettura} e nella Sezione~\ref{se:algoritmo-complessivo}.
+
+\section{Architettura generale del metodo risolutivo}\label{se:architettura}
+
+L'approccio risolutivo proposto è stato sviluppato secondo una logica modulare, nella quale la costruzione delle rotte e l'esplorazione della frequenza di raccolta vengono affrontate in maniera integrata. L'algoritmo riceve in ingresso tutte le informazioni relative alla rete di raccolta, ai parametri economici e ai vincoli operativi e produce in uscita, per ciascuna tipologia di rifiuto, la configurazione di servizio caratterizzata dal valore minimo della funzione obiettivo definita nel Capitolo 1.
+
+In una prima fase vengono acquisiti i dati relativi agli utenti, alla tipologia di rifiuto considerata, alle distanze e ai tempi di percorrenza tra i nodi del grafo, alle capacità dei veicoli e ai parametri economici che compongono la funzione obiettivo. A partire da tali informazioni viene definito, per ciascuna tipologia di rifiuto, un insieme discreto di valori candidati per la frequenza di raccolta settimanale $X_r$.
+
+Per ciascun valore candidato $X_r$ viene quindi eseguita la fase di costruzione delle rotte. A seconda dello scenario analizzato, i percorsi dei veicoli vengono generati mediante una delle due euristiche di routing implementate:
+
+\begin{itemize}
+\item euristica costruttiva Greedy;
+\item euristica Clarke-Wright.
+\end{itemize}
+
+\noindent
+Le due euristiche non vengono mai applicate in sequenza sulla stessa istanza: ogni run dell'algoritmo utilizza \emph{una sola} delle due per costruire le rotte relative a un dato $X_r$. Il confronto tra i due metodi avviene a valle, ripetendo l'intero procedimento con l'altra euristica e confrontando i risultati ottenuti (Sezione~\ref{se:algoritmo-complessivo}).
+
+Durante la costruzione delle rotte, ogni utente per cui non esiste un inserimento singolo ammissibile -- ossia tale per cui $Q_{ru}(X_r) \leq C_r$ e il tempo del percorso elementare deposito--utente--deposito non superi $L$ -- viene escluso dalla soluzione e segnalato, poiché non può essere servito da nessun veicolo compatibilmente con i vincoli correnti. Le rotte ottenute vengono quindi sottoposte alla verifica dei restanti vincoli operativi: per ogni veicolo viene controllato il rispetto del vincolo di capacità $\sum_{u \in P_v} Q_{ru}(X_r) \leq C_r$ e del vincolo di durata del turno di lavoro $T_v \leq L$.
+
+Per la configurazione così ottenuta vengono calcolate tutte le componenti della funzione obiettivo:
+
+\begin{itemize}
+\item costo di insoddisfazione degli utenti;
+\item costi fissi di attivazione dei veicoli;
+\item costi di percorrenza;
+\item costi di manodopera.
+\end{itemize}
+
+\noindent
+Il valore ottenuto sommando tutte le componenti rappresenta la qualità complessiva della soluzione associata al valore $X_r$ correntemente valutato.
+
+Questo procedimento -- costruzione delle rotte e calcolo di $F$ -- viene ripetuto integralmente per ciascun valore $X_r$ appartenente alla griglia di valori candidati, in modo indipendente: non esiste una soluzione "corrente" che viene progressivamente perturbata, bensì un insieme finito di soluzioni alternative, ciascuna valutata da zero. Al termine dell'esplorazione, viene selezionata la configurazione a valore minimo di $F$ (criterio $\arg\min$).
+
+La soluzione finale restituita dall'algoritmo, per ciascuna tipologia di rifiuto e per ciascuna euristica di routing, è quindi costituita da:
+
+\begin{itemize}
+\item la frequenza di raccolta $X_r$ che minimizza la funzione obiettivo;
+\item il numero di veicoli necessari;
+\item l'insieme delle rotte associate ai veicoli;
+\item il valore finale della funzione obiettivo, scomposto nelle sue quattro componenti.
+\end{itemize}
+
+L'intero processo può essere riassunto dal seguente schema logico:
+
+\begin{center}
+Input dati $\rightarrow$
+definizione della griglia di valori $X_r$ $\rightarrow$
+\emph{per ciascun} $X_r$: costruzione delle rotte $\rightarrow$
+filtro di fattibilità ed esclusione utenti non servibili $\rightarrow$
+verifica dei vincoli sulle rotte $\rightarrow$
+calcolo della funzione obiettivo $\rightarrow$
+aggiornamento della miglior soluzione trovata $\rightarrow$
+selezione finale per $\arg\min F$.
+\end{center}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+node distance=1.5cm,
+every node/.style={font=\small},
+block/.style={
+    rectangle,
+    rounded corners,
+    draw=black,
+    minimum width=6cm,
+    minimum height=1cm,
+    align=center
+},
+decision/.style={
+    diamond,
+    draw=black,
+    aspect=2.4,
+    align=center
+},
+line/.style={
+    draw,
+    -latex'
+}
+]
+
+\node (input) [block] {Input dei dati del problema e definizione della griglia $\{X_r\}$};
+\node (loop) [block, below of=input] {Estrai il prossimo valore $X_r$ dalla griglia};
+\node (routing) [block, below of=loop] {Costruzione delle rotte\\(Greedy \emph{oppure} Clarke-Wright)};
+\node (feas) [block, below of=routing] {Esclusione utenti non fattibili singolarmente};
+\node (check) [decision, below of=feas, yshift=-0.6cm] {Vincoli di\\capacità/tempo\\soddisfatti?};
+\node (obj) [block, below of=check, yshift=-0.9cm] {Calcolo di $F(X_r) = F_{\text{insoddis}}+F_{\text{fisso}}+F_{\text{viaggio}}+F_{\text{lavoro}}$};
+\node (update) [block, below of=obj] {Aggiorna il miglior risultato se $F(X_r) < F_{\text{best}}$};
+\node (more) [decision, below of=update, yshift=-0.6cm] {Altri valori\\$X_r$ nella\\griglia?};
+\node (stop) [block, below of=more, yshift=-0.9cm] {Configurazione ottima $(X_r^*, P_v^*, F^*)$};
+
+\path [line] (input) -- (loop);
+\path [line] (loop) -- (routing);
+\path [line] (routing) -- (feas);
+\path [line] (feas) -- (check);
+\path [line] (check) -- node[right]{Sì} (obj);
+\path [line] (obj) -- (update);
+\path [line] (update) -- (more);
+\path [line] (more.east) -- ++(2.2,0) node[right]{Sì} |- (loop.east);
+\path [line] (more) -- node[right]{No} (stop);
+\path [line] (check.west) -- ++(-2.6,0) node[left]{No, rotta scartata} |- (update.west);
+
+\end{tikzpicture}
+\caption{Schema generale della procedura risolutiva: esplorazione a griglia della frequenza $X_r$, con costruzione delle rotte affidata, alternativamente, all'euristica Greedy o all'euristica Clarke-Wright.}
+\label{fig:flow_algoritmo}
+\end{figure}
+
+\section{Euristica Greedy}
+
+\subsection{Principio di funzionamento}
+
+L'euristica Greedy costituisce il primo metodo di costruzione delle rotte implementato nel presente lavoro. Essa appartiene alla classe degli algoritmi costruttivi, ossia procedure che generano una soluzione completa mediante una sequenza di decisioni prese in maniera iterativa, valutando ad ogni passo la mossa localmente più conveniente.
+
+A differenza di un classico algoritmo di tipo \emph{Nearest Neighbor}, in cui la scelta del nodo successivo dipende unicamente dalla distanza geometrica dal nodo corrente, il criterio adottato in questo lavoro valuta il \textbf{costo marginale economico} dell'inserimento, calcolato come variazione del costo operativo totale (percorrenza più manodopera) indotta dall'aggiunta del nodo alla rotta. Inoltre, ad ogni iterazione la scelta non è limitata a un singolo veicolo attivo: l'algoritmo valuta simultaneamente \emph{tutti} i veicoli correntemente aperti, oltre alla possibilità di attivarne uno nuovo, e seleziona l'opzione a costo marginale complessivamente minimo. Si tratta quindi di una euristica di tipo \emph{cheapest insertion} competitiva multi-rotta, più che di un Nearest Neighbor in senso stretto.
+
+Formalmente, siano $cur$ il nodo corrente di un veicolo $v$ aperto e $u$ un utente non ancora assegnato. Il costo marginale del suo inserimento in coda alla rotta di $v$ è definito come:
+
+\[
+\Delta_{cur,u} \;=\; \underbrace{cd\,(d_{cur,u}+d_{u,0}) + cm\,(\tau_{cur,u}+s_{r t_u}\cdot Q_{ru}(X_r)+\tau_{u,0})}_{\text{costo se } u \text{ viene servito e si chiude la rotta}} \;-\; \underbrace{\big(cd\,d_{cur,0}+cm\,\tau_{cur,0}\big)}_{\text{costo di chiusura immediata}}
+\]
+
+Ad ogni iterazione, tra tutte le coppie (veicolo aperto, utente candidato ammissibile) e l'opzione di apertura di un nuovo veicolo, viene scelta quella con $\Delta$ minimo.
+
+L'algoritmo inizia dal deposito attivando il primo veicolo sull'utente "più economico da servire da solo" (minimo costo del percorso elementare deposito--utente--deposito) e prosegue fino a quando tutti gli utenti fattibili sono stati assegnati. Utenti il cui percorso elementare violi da solo il vincolo di capacità o di tempo vengono esclusi a priori e segnalati, poiché non possono essere serviti da nessun veicolo nella configurazione corrente di $X_r$.
+
+La scelta di ottimizzare localmente il costo marginale, anziché la sola distanza, non garantisce comunque il raggiungimento dell'ottimo globale del problema di instradamento. Tuttavia, essa consente di ottenere in tempi di calcolo molto contenuti una soluzione ammissibile e di buona qualità economica, caratteristica particolarmente importante nel contesto della raccolta differenziata, dove le rotte devono essere ricostruite da zero per ciascun valore candidato di $X_r$ esplorato nella Grid Search (Sezione~\ref{se:grid-search}), rendendo la rapidità di esecuzione un requisito centrale.
+
+L'algoritmo può essere sintetizzato dal seguente schema iterativo:
+
+\begin{enumerate}
+\item inizializzazione: apertura del primo veicolo sull'utente fattibile a minor costo di percorso elementare;
+\item per ogni veicolo attualmente aperto, individuazione del miglior utente non ancora servito da inserire (costo marginale minimo, tra i soli inserimenti ammissibili);
+\item valutazione dell'opzione alternativa di apertura di un nuovo veicolo sul prossimo utente fattibile disponibile;
+\item selezione dell'opzione a costo marginale complessivamente minimo tra tutte quelle valutate ai punti 2 e 3;
+\item applicazione della mossa scelta e aggiornamento di carico, tempo e costo parziale accumulato;
+\item chiusura di un veicolo (ritorno al deposito) quando nessun ulteriore inserimento risulta ammissibile per esso;
+\item ripetizione della procedura fino al completo servizio di tutti gli utenti fattibili.
+\end{enumerate}
+
+\subsection{Costruzione delle rotte}
+
+Come anticipato, la costruzione delle rotte non procede veicolo per veicolo fino a completamento, bensì in maniera competitiva su più rotte aperte simultaneamente. Ad ogni iterazione, l'algoritmo confronta il miglior inserimento possibile per \emph{ciascun} veicolo attualmente aperto con il costo di apertura di un nuovo veicolo, e applica la mossa complessivamente più economica.
+
+Sia $O$ l'insieme dei veicoli attualmente aperti e, per ciascun $v \in O$, sia $cur_v$ il nodo in cui $v$ si trova. Per ciascun veicolo $v$ viene determinato il miglior utente inseribile:
+
+\[
+u^*_v = \arg\min_{u \in U'} \Delta_{cur_v,\,u} \quad \text{tra gli inserimenti ammissibili per } v,
+\]
+
+dove $U'$ è l'insieme degli utenti ancora non assegnati. La mossa applicata all'iterazione corrente è quella a costo marginale minimo tra $\{\Delta_{cur_v, u^*_v}\}_{v \in O}$ e il costo di apertura di un nuovo veicolo sul successivo utente fattibile disponibile.
+
+Un inserimento è considerato ammissibile solo se, a seguito dell'aggiunta del nodo, risultano rispettati contemporaneamente:
+
+\begin{itemize}
+\item il vincolo di capacità del veicolo;
+\item il vincolo di durata del turno di lavoro, comprensivo del tempo di ritorno al deposito.
+\end{itemize}
+
+Se per un veicolo aperto non esiste alcun inserimento ammissibile tra gli utenti rimasti, il veicolo viene chiuso (ritorno al deposito) e rimosso dall'insieme dei veicoli attivi per le iterazioni successive. Il processo termina quando tutti gli utenti fattibili sono stati assegnati; i veicoli ancora aperti a quel punto vengono chiusi.
+
+\begin{algorithm}[H]
+\caption{Euristica Greedy (\emph{cheapest insertion} multi-rotta) per la costruzione delle rotte}
+\KwIn{Insieme utenti $U_G$, matrici $d_{ij}$, $\tau_{ij}$, capacità $C_r$, tempo massimo $L$, $cd$, $cm$, $c_r$, frequenza $X_r$}
+\KwOut{Insieme delle rotte $P_v$}
+
+Calcola $Q_{ru}(X_r)$ e $s_{r t_u}$ per ogni utente\;
+Escludi e segnala gli utenti il cui percorso elementare deposito-utente-deposito violi $C_r$ o $L$\;
+Ordina gli utenti fattibili per costo crescente del percorso elementare\;
+
+Apri il primo veicolo sull'utente fattibile a costo minimo\;
+Inizializza costo parziale $f_{\text{partial}}$\;
+
+\While{esistono utenti non assegnati}{
+    \ForEach{veicolo $v$ aperto}{
+        Calcola $\Delta_{cur_v,u}$ per tutti gli utenti $u$ non assegnati (vettorizzato)\;
+        Individua $u^*_v = \arg\min_u \Delta_{cur_v,u}$ tra gli inserimenti ammissibili\;
+        \If{nessun inserimento ammissibile}{
+            Chiudi $v$ (ritorno al deposito) e rimuovilo dai veicoli aperti\;
+        }
+    }
+    Valuta il costo di apertura di un nuovo veicolo sul prossimo utente fattibile\;
+    Seleziona la mossa complessivamente più economica tra inserimenti e apertura\;
+    Applica la mossa, aggiorna carico, tempo, $f_{\text{partial}}$ e rimuovi l'utente da $U'$\;
+}
+Chiudi tutti i veicoli ancora aperti\;
+\Return{$P$}
+\end{algorithm}
+
+\subsection{Verifica dei vincoli}
+
+Durante la fase di costruzione delle rotte, ogni inserimento di un nodo all'interno del percorso di un veicolo è subordinato alla verifica del rispetto dei vincoli operativi del sistema. Tali vincoli derivano direttamente dalla formulazione matematica del problema e rappresentano condizioni necessarie affinché una soluzione sia considerata ammissibile.
+
+Il primo vincolo riguarda la capacità massima del veicolo. Sia $Q_{ru}(X_r)$ la quantità di rifiuto associata all'utente $u$ in funzione della frequenza di raccolta $X_r$. L'inserimento di un nuovo nodo $u$ in una rotta associata al veicolo $v$ è consentito solo se:
+
+\[
+\sum_{u \in P_v} Q_{ru}(X_r) \leq C_r
+\]
+
+dove $C_r$ rappresenta la capacità massima del mezzo dedicato alla tipologia di rifiuto $r$. Questo vincolo garantisce che il carico accumulato lungo il percorso non superi la capacità fisica del veicolo, evitando situazioni di sovraccarico non ammissibili.
+
+Il secondo vincolo è relativo alla durata complessiva del turno di lavoro. Per ogni veicolo $v$, il tempo totale di servizio è definito come somma dei tempi di percorrenza tra i nodi e dei tempi di raccolta presso ciascun utente, \emph{incluso il tempo del tragitto di ritorno al deposito}. L'inserimento di un nuovo nodo è quindi ammesso solo se:
+
+\[
+T_v \leq L
+\]
+
+dove $L$ rappresenta la durata massima del turno lavorativo consentito. Il controllo viene effettuato includendo sempre il ritorno al deposito nel tempo simulato, in modo da non generare rotte che risultino fattibili solo "a metà tragitto" ma non chiudibili in tempo.
+
+Dal punto di vista algoritmico, la verifica dei vincoli viene effettuata in modo incrementale ad ogni possibile inserimento, simulando l'effetto del nodo candidato sul carico e sul tempo totale della rotta prima di accettarlo definitivamente. Nel caso in cui nessun nodo candidato risulti ammissibile per un dato veicolo, quel veicolo viene chiuso e riportato al deposito, mentre gli utenti rimanenti continuano a essere valutati per l'inserimento negli altri veicoli aperti o per l'apertura di uno nuovo.
+
+Questo meccanismo garantisce la generazione di soluzioni sempre fattibili dal punto di vista operativo, pur mantenendo la rapidità computazionale tipica dell'approccio Greedy.
+
+\section{Euristica Clarke-Wright}
+
+L'euristica di Clarke-Wright rappresenta una delle strategie più consolidate per la risoluzione del problema di Vehicle Routing Problem (VRP) in contesti reali caratterizzati da vincoli di capacità e tempo. A differenza dell'approccio Greedy, che costruisce le rotte incrementalmente basandosi su scelte marginali locali, l'algoritmo di Clarke-Wright parte da una soluzione iniziale estremamente frammentata e la migliora progressivamente mediante operazioni di fusione (\emph{merge}) tra rotte, guidate da una matrice di risparmi calcolata in un'unica soluzione globale.
+
+\subsection{Soluzione iniziale}
+
+L'euristica di Clarke-Wright Savings si basa su una strategia di tipo \emph{merge-based}, che parte da una soluzione iniziale volutamente estrema dal punto di vista logistico: ogni utente è servito, in partenza, da un veicolo dedicato.
+
+Formalmente, per ogni utente $u \in U_G$ fattibile viene definito un percorso elementare:
+
+\[
+P_u = \{0, u, 0\}
+\]
+
+dove $0$ rappresenta il deposito centrale da cui partono e a cui ritornano tutti i veicoli.
+
+A differenza di quanto si potrebbe assumere, l'ammissibilità di questa soluzione iniziale \emph{non} è automatica per ogni utente. Un percorso elementare $\{0,u,0\}$ è incluso nella soluzione di partenza solo se soddisfa individualmente i due vincoli del sistema:
+
+\[
+Q_{ru}(X_r) \leq C_r \qquad \text{e} \qquad \tau_{0,u}+s_{r t_u}\cdot Q_{ru}(X_r)+\tau_{u,0} \leq L
+\]
+
+Gli utenti che non soddisfano questa doppia condizione -- tipicamente utenti ad alto carico, come le palazzine grandi, quando $X_r$ è piccolo -- vengono esclusi e segnalati: non esiste, per quel valore di $X_r$, alcun veicolo capace di servirli nemmeno da soli. Indicando con $U_{\text{feas}} \subseteq U_G$ il sottoinsieme degli utenti fattibili individualmente, il numero iniziale di veicoli attivi coincide con la cardinalità di tale sottoinsieme:
+
+\[
+|V_{\text{iniziale}}| = |U_{\text{feas}}|
+\]
+
+Per tutti gli utenti in $U_{\text{feas}}$, essendo il percorso composto da un solo nodo cliente, il carico e il tempo del percorso non sono cumulativi con altri utenti, e la soluzione iniziale risulta quindi ammissibile per costruzione limitatamente a tale sottoinsieme. Questa configurazione, per quanto inefficiente dal punto di vista economico, costituisce il punto di partenza a partire dal quale verranno applicate le fusioni di rotte per ridurre progressivamente la funzione obiettivo $F$.
+
+\subsection{Definizione del risparmio}
+
+Il cuore dell'euristica di Clarke-Wright è rappresentato dalla definizione del \emph{saving} (risparmio), che quantifica il beneficio economico ottenuto fondendo due rotte inizialmente separate in un'unica rotta.
+
+A differenza della formulazione classica del problema di VRP, che definisce il saving unicamente in funzione della distanza risparmiata, nel presente modello il saving deve tenere conto anche del risparmio sul costo fisso di attivazione dei veicoli e sul costo della manodopera, poiché la fusione di due rotte elimina l'attivazione di un veicolo e ne riduce il tempo complessivo di utilizzo. Il saving associato alla fusione, in cui la rotta che termina nel nodo $i$ viene collegata alla rotta che inizia nel nodo $j$, è definito come:
+
+\begin{equation}
+S_{ij} \;=\; \underbrace{c_r}_{\text{risparmio costo fisso}} \;+\; \underbrace{cd\,(d_{0i}+d_{0j}-d_{ij})}_{\text{risparmio di percorrenza}} \;+\; \underbrace{cm\,(\tau_{0i}+\tau_{0j}-\tau_{ij})}_{\text{risparmio di manodopera}}
+\label{eq:saving-completo}
+\end{equation}
+
+Il termine $c_r$ è incluso perché, ogniqualvolta due rotte vengono fuse, il numero di veicoli attivi si riduce di un'unità: eliminare un'attivazione comporta un risparmio fisso pari a $c_r$, indipendentemente dalla distanza tra i nodi coinvolti.
+
+Una differenza importante rispetto alla formulazione classica riguarda la \textbf{direzionalità} del saving: poiché una fusione collega sempre la \emph{coda} di una rotta alla \emph{testa} di un'altra, il saving $S_{ij}$ (coda di $i$ verso testa di $j$) e il saving $S_{ji}$ (coda di $j$ verso testa di $i$) sono in generale distinti, $S_{ij} \neq S_{ji}$, pur condividendo lo stesso termine $c_r$ e la stessa componente di distanza/tempo simmetrica $d_{0i}+d_{0j}-d_{ij}$: ciò che cambia è quale delle due rotte fornisce la coda e quale la testa nella rotta risultante dalla fusione. Entrambe le direzioni vengono quindi calcolate e valutate separatamente.
+
+Poiché le distanze e i tempi tra i nodi sono fissi (non dipendono dallo stato di fusione corrente), l'intera matrice dei savings può essere calcolata \textbf{una sola volta}, prima di iniziare il processo di fusione, ed è quello che accade nell'implementazione: tutti i savings vengono calcolati in blocco tramite operazioni vettorizzate, ordinati in ordine decrescente, e i valori non positivi ($S_{ij}\leq 0$, ossia fusioni economicamente svantaggiose) vengono scartati a priori.
+
+\subsection{Fusione delle rotte}
+
+Una volta calcolata e ordinata in modo decrescente la matrice dei savings $S_{ij}$, l'algoritmo procede alla fase di costruzione delle rotte attraverso un processo iterativo di fusione, esaminando le coppie $(i,j)$ nell'ordine di saving decrescente.
+
+Per ciascuna coppia $(i,j)$, siano $r_i$ e $r_j$ le rotte correnti che contengono rispettivamente $i$ e $j$. La fusione viene tentata solo se $r_i \neq r_j$, e viene accettata solo se risultano soddisfatte simultaneamente tutte le seguenti condizioni:
+
+\begin{itemize}
+    \item \textbf{Vincolo di connettività (regola degli estremi):} il nodo $i$ deve trovarsi in \emph{coda} alla rotta $r_i$ e il nodo $j$ deve trovarsi in \emph{testa} alla rotta $r_j$. Questa condizione, oltre a evitare la formazione di cicli interni, riflette la natura direzionale del saving definito nell'Equazione~\eqref{eq:saving-completo}: la fusione collega sempre coda-con-testa, mai testa-con-testa o coda-con-coda;
+
+    \item \textbf{Vincolo di capacità}: la somma dei carichi delle due rotte non deve superare la capacità del veicolo:
+    \[
+    Q(r_i) + Q(r_j) \leq C_r
+    \]
+
+    \item \textbf{Vincolo di tempo}: la durata complessiva della rotta risultante dalla fusione, comprensiva dei tempi di viaggio e di servizio (e del nuovo arco diretto $i \rightarrow j$ che sostituisce i due rientri al deposito), deve rispettare il limite del turno:
+    \[
+    T(r_i) + T(r_j) - \tau_{i,0} - \tau_{0,j} + \tau_{i,j} \leq L
+    \]
+\end{itemize}
+
+Se tutte le condizioni risultano soddisfatte, le due rotte vengono fuse in un unico percorso $r_i \oplus r_j$, aggiornando l'insieme delle rotte attive e riducendo di un'unità il numero di veicoli impiegati. In caso contrario, la coppia viene scartata (senza essere più rivalutata) e si procede alla coppia successiva nell'ordine di saving.
+
+Dal punto di vista implementativo, il rispetto della regola degli estremi funge da meccanismo di \emph{lazy deletion}: quando un nodo passa da estremo a nodo interno di una rotta a seguito di una fusione precedente, la coppia che lo coinvolge viene automaticamente scartata al successivo controllo, senza necessità di rimuoverla esplicitamente dalla lista ordinata dei savings. Il controllo di appartenenza a rotte diverse, di posizione agli estremi, di carico e di tempo residuo è realizzato tramite strutture dizionario che permettono una verifica in tempo costante $O(1)$ per ciascuna coppia candidata, rendendo l'intero ciclo di fusione efficiente anche per un numero elevato di utenti.
+
+Il processo di fusione viene ripetuto per tutte le coppie della lista ordinata dei savings positivi, e termina quando l'intera lista è stata esaminata: a quel punto non sono più possibili ulteriori fusioni ammissibili.
+
+\subsection{Valutazione iterativa dei vincoli}
+
+Durante la fase di fusione delle rotte, ogni soluzione candidata viene sottoposta a un controllo rigoroso di ammissibilità rispetto ai vincoli operativi del modello, riassunti di seguito.
+
+\paragraph{Vincolo di capacità}
+
+La somma dei carichi dei nodi appartenenti a una rotta non può superare la capacità massima del veicolo assegnato:
+
+\[
+\sum_{u \in P_v} Q_{ru}(X_r) \leq C_r \quad \forall v \in V_r, \; r \in R
+\]
+
+\paragraph{Vincolo di durata del turno}
+
+Il tempo totale associato alla rotta, dato dalla somma dei tempi di percorrenza e dei tempi di servizio, deve rispettare il limite massimo del turno lavorativo:
+
+\[
+T_v \leq L, \qquad T_v = \sum_{(a,b) \in P_v} \tau_{ab} + \sum_{u \in P_v} s_{r t_u} \cdot Q_{ru}(X_r)
+\]
+
+\paragraph{Vincolo di connettività (regola degli estremi)}
+
+La fusione tra due rotte è consentita solo se il primo nodo si trova in coda alla propria rotta e il secondo si trova in testa alla propria. Tale condizione, oltre a evitare la formazione di cicli interni, è coerente con la natura direzionale della matrice dei savings descritta nella sezione precedente.
+
+\medskip
+
+Solo le fusioni che soddisfano simultaneamente tutti i vincoli sopra descritti vengono accettate e integrate nella soluzione corrente. In caso contrario, la coppia viene scartata e si procede alla valutazione del successivo valore di saving nella lista ordinata.
+
+\subsection{Effetto sulla componente logistica della funzione obiettivo}
+
+L'euristica Clarke-Wright non si limita a ridurre la distanza percorsa, ma modifica strutturalmente la configurazione della flotta. Il suo effetto principale è la riduzione del numero di veicoli attivi $V_r$, ottenuta aggregando progressivamente i percorsi individuali in rotte condivise.
+
+Di conseguenza, l'algoritmo incide sulle tre componenti "logistiche" della funzione obiettivo (mentre la componente di insoddisfazione, dipendendo solo da $X_r$ e non dalla struttura delle rotte, non viene modificata dalla scelta dell'euristica di routing):
+
+\[
+F = F_{\text{insoddis}} + \underbrace{F_{\text{fisso}} + F_{\text{viaggio}} + F_{\text{lavoro}}}_{F_{\text{logistica}}}
+\]
+
+In particolare, si osserva tipicamente una riduzione dei costi legati a:
+\begin{itemize}
+    \item attivazione dei veicoli ($F_{\text{fisso}} = c_r \cdot V_r \cdot X_r$), grazie alla diminuzione di $V_r$;
+    \item percorrenza totale ($F_{\text{viaggio}} = X_r \cdot cd \sum d_{ab}$), grazie all'eliminazione di rientri al deposito ridondanti;
+    \item tempo complessivo di servizio ($F_{\text{lavoro}} = X_r \cdot cm \sum T_v$).
+\end{itemize}
+
+Questo rende Clarke-Wright, quando applicabile, un'alternativa potenzialmente più efficiente di Greedy sul piano dei costi logistici, a fronte di un maggiore costo computazionale nella fase di calcolo e ordinamento della matrice dei savings.
+
+\subsection{Schema algoritmico}
+
+Per chiarezza espositiva, l'algoritmo di Clarke-Wright viene riassunto nel seguente schema procedurale.
+
+\begin{algorithm}[H]
+\caption{Euristica Clarke-Wright Savings}
+\KwIn{insieme utenti $U_G$, deposito $0$, distanze $d_{ij}$, tempi $\tau_{ij}$, capacità $C_r$, tempo massimo $L$, $cd$, $cm$, $c_r$, frequenza $X_r$}
+\KwOut{insieme di rotte $P_v$}
+
+\BlankLine
+\textbf{Inizializzazione delle rotte}\\
+Escludi e segnala gli utenti il cui percorso elementare violi $C_r$ o $L$ da solo\;
+\ForEach{$u \in U_{\text{feas}}$}{
+    $P_u \leftarrow \{0, u, 0\}$\;
+}
+
+\BlankLine
+\textbf{Calcolo della matrice dei savings (vettorizzato)}\\
+\ForEach{$i \in U_{\text{feas}}$}{
+    \ForEach{$j \in U_{\text{feas}}, j \neq i$}{
+        $S_{ij} \leftarrow c_r + cd\,(d_{0i}+d_{0j}-d_{ij}) + cm\,(\tau_{0i}+\tau_{0j}-\tau_{ij})$\;
+    }
+}
+Ordina tutte le coppie $(i,j)$ in ordine decrescente di $S_{ij}$, scarta $S_{ij}\leq 0$\;
+
+\BlankLine
+\textbf{Fase di merging}\\
+\ForEach{coppia $(i,j)$ ordinata per saving decrescente}{
+    $r_i \leftarrow$ rotta corrente contenente $i$\;
+    $r_j \leftarrow$ rotta corrente contenente $j$\;
+    \If{$r_i \neq r_j$ \textbf{e} $i$ è in coda a $r_i$ \textbf{e} $j$ è in testa a $r_j$}{
+        \If{capacità e tempo della rotta fusa rispettati}{
+            Fondi $r_i$ e $r_j$ in un'unica rotta, aggiorna carico, tempo, testa e coda\;
+        }
+    }
+}
+
+\BlankLine
+\Return $P_v$\;
+\end{algorithm}
+
+L'algoritmo termina quando tutte le coppie della lista ordinata dei savings sono state esaminate. La soluzione finale è costituita dall'insieme delle rotte $P_v$ ottenute, che soddisfano i vincoli del sistema e presentano un costo logistico ridotto rispetto alla soluzione iniziale frammentata.
+
+\section{Esplorazione della frequenza di servizio mediante Grid Search}\label{se:grid-search}
+
+\subsection{Motivazioni e obiettivo}
+
+Le due euristiche di routing descritte nelle sezioni precedenti operano esclusivamente sulla costruzione delle rotte per un valore \emph{fissato} della frequenza $X_r$. Resta quindi da affrontare un livello decisionale superiore: la scelta della frequenza di raccolta $X_r$ stessa, ossia il numero di ritiri settimanali per ciascuna tipologia di rifiuto $r \in R$, che governa il compromesso tra la componente sociale e quella economica della funzione obiettivo.
+
+La variazione di $X_r$ influenza infatti simultaneamente:
+\begin{itemize}
+    \item la quantità di rifiuti accumulata per singolo passaggio $Q_{ru}(X_r)=W_{r t_u}/X_r$, e quindi la saturazione dei veicoli;
+    \item la frequenza dei servizi, che impatta direttamente sulla soddisfazione degli utenti attraverso $I_{ru}$;
+    \item il numero di attivazioni della flotta e i costi operativi complessivi, poiché ogni componente di $F$ dipendente dal routing viene moltiplicata per $X_r$.
+\end{itemize}
+
+A differenza di quanto potrebbe suggerire un approccio di ricerca locale (perturbazione incrementale di una soluzione corrente), nel presente lavoro la scelta di $X_r$ è affrontata mediante \textbf{Grid Search}: un insieme discreto e predefinito di valori candidati viene esplorato in maniera esaustiva e indipendente, ricostruendo per ciascuno di essi le rotte da zero e ricalcolando integralmente la funzione obiettivo. Non esiste quindi uno stato "corrente" della soluzione che viene modificato incrementalmente, né un criterio di accettazione basato sul confronto tra soluzioni successive: ogni valore candidato è valutato autonomamente, e la selezione finale avviene per confronto diretto tra tutti i risultati ottenuti.
+
+\subsection{Griglia dei valori candidati}
+
+L'insieme dei valori candidati per $X_r$ è definito a priori come una progressione aritmetica di passo $0.5$:
+
+\[
+\mathcal{X} = \{0.5,\ 1.0,\ 1.5,\ \dots,\ 6.0\}, \qquad |\mathcal{X}| = 12
+\]
+
+La stessa griglia $\mathcal{X}$ viene utilizzata per tutte le tipologie di rifiuto $r \in R$ e per entrambe le euristiche di routing, in modo da garantire la piena comparabilità dei risultati nella fase di confronto (Sezione~\ref{se:algoritmo-complessivo}).
+
+\subsection{Valutazione dei candidati}
+
+Per ciascun valore $X_r \in \mathcal{X}$ viene eseguita, in maniera indipendente dagli altri candidati, la seguente procedura:
+
+\begin{enumerate}
+    \item costruzione delle rotte $P_v$ mediante l'euristica di routing selezionata (Greedy o Clarke-Wright), a partire dai dati del problema e dal valore $X_r$ corrente;
+    \item se nessun utente risulta fattibile per il valore $X_r$ dato (caso limite), il candidato viene scartato;
+    \item calcolo integrale della funzione obiettivo:
+    \[
+    F(X_r) = F_{\text{insoddis}}(X_r) + F_{\text{fisso}}(X_r) + F_{\text{viaggio}}(X_r) + F_{\text{lavoro}}(X_r)
+    \]
+\end{enumerate}
+
+Il ricalcolo di $F$ viene effettuato integralmente per ogni candidato, poiché la variazione di $X_r$ influenza simultaneamente sia la domanda di servizio (attraverso $I_{ru}$), sia il carico operativo dei veicoli (attraverso $Q_{ru}(X_r)$, $T_v$ e i vincoli di capacità), rendendo necessaria una ricostruzione completa delle rotte piuttosto che un aggiornamento incrementale.
+
+\subsection{Criterio di selezione}
+
+Al termine della valutazione di tutti i candidati in $\mathcal{X}$, la configurazione restituita è quella a valore minimo della funzione obiettivo:
+
+\begin{equation}
+X_r^{*} = \arg\min_{X_r \in \mathcal{X}} F(X_r)
+\end{equation}
+
+Il criterio di selezione è quindi un semplice confronto $\arg\min$ su un insieme finito di alternative, e non una regola di accettazione incrementale del tipo "accetta se $F' < F$": non essendoci una soluzione corrente da perturbare, ogni candidato compete direttamente con tutti gli altri. La procedura termina naturalmente quando l'intera griglia $\mathcal{X}$ è stata esplorata, senza necessità di criteri di arresto aggiuntivi basati su soglie di convergenza o numero massimo di iterazioni.
+
+\subsection{Parallelizzazione della ricerca}
+
+Poiché i candidati in $\mathcal{X}$ sono valutati in maniera del tutto indipendente l'uno dall'altro, la Grid Search si presta naturalmente a un'esecuzione parallela. Quando il numero di valori candidati supera una soglia minima, le valutazioni vengono distribuite su più processi mediante un pool di worker, con un numero di processi calcolato dinamicamente in funzione delle risorse hardware disponibili (numero di core fisici e memoria RAM libera), in modo da massimizzare lo sfruttamento del sistema senza saturarne le risorse. Per griglie di dimensione ridotta, al di sotto della soglia, la valutazione avviene invece in sequenza, poiché l'overhead di creazione dei processi supererebbe il beneficio della parallelizzazione.
+
+\section{Algoritmo complessivo proposto}\label{se:algoritmo-complessivo}
+
+L'algoritmo complessivo proposto non integra Greedy, Clarke-Wright e la Grid Search in un'unica pipeline sequenziale in cui un'euristica raffina l'output dell'altra. Si tratta piuttosto di \textbf{due procedure risolutive indipendenti e alternative}, entrambe basate sullo stesso schema di Grid Search descritto nella Sezione~\ref{se:grid-search}, ma con la costruzione delle rotte affidata rispettivamente a Greedy e a Clarke-Wright:
+
+\begin{equation}
+\text{Pipeline Greedy:} \quad \{X_r \in \mathcal{X}\} \xrightarrow{\text{Greedy}} \{F(X_r)\} \xrightarrow{\arg\min} (X_r^{*,G},\,P_v^{*,G},\,F^{*,G})
+\end{equation}
+
+\begin{equation}
+\text{Pipeline Clarke-Wright:} \quad \{X_r \in \mathcal{X}\} \xrightarrow{\text{Clarke-Wright}} \{F(X_r)\} \xrightarrow{\arg\min} (X_r^{*,CW},\,P_v^{*,CW},\,F^{*,CW})
+\end{equation}
+
+Le due pipeline vengono eseguite separatamente, sulla stessa istanza del problema (stessi utenti, stessa rete, stessa tipologia di rifiuto), e i risultati -- valore di $F$, numero di veicoli attivati e tempo di calcolo -- vengono infine confrontati:
+
+\begin{equation}
+\text{Confronto:} \quad (X_r^{*,G},\,F^{*,G},\,t^{G}) \;\; \text{vs} \;\; (X_r^{*,CW},\,F^{*,CW},\,t^{CW})
+\end{equation}
+
+Questa struttura configura un vero e proprio \textbf{benchmarking} tra le due euristiche di routing, piuttosto che una loro composizione. La scelta di quale euristica utilizzare per una data applicazione operativa può quindi essere effettuata a valle del confronto, sulla base del compromesso preferito tra qualità della soluzione (valore di $F$) e tempo di calcolo.
+
+\subsection*{Struttura generale del procedimento}
+
+Il processo si articola nelle seguenti fasi principali, ripetute per ciascuna euristica di routing:
+
+\begin{enumerate}
+    \item \textbf{Inizializzazione del sistema:} definizione dei dati di input (domanda, utenti, distanze, parametri economici e vincoli operativi) e della griglia $\mathcal{X}$ dei valori candidati per $X_r$.
+
+    \item \textbf{Costruzione delle rotte:} per ciascun $X_r \in \mathcal{X}$, costruzione di una soluzione ammissibile mediante l'euristica selezionata (Greedy o Clarke-Wright).
+
+    \item \textbf{Valutazione:} calcolo della funzione obiettivo $F(X_r)$ per ciascun candidato.
+
+    \item \textbf{Selezione:} individuazione della configurazione $X_r^{*}$ che minimizza $F$ nell'ambito della griglia esplorata.
+
+    \item \textbf{Confronto tra euristiche:} ripetizione dell'intero procedimento con l'altra euristica di routing e confronto dei risultati ottenuti.
+\end{enumerate}
+
+\subsection*{Osservazione metodologica}
+
+La struttura del procedimento consente di separare chiaramente due aspetti distinti del problema: la costruzione di rotte ammissibili ed economicamente efficienti a parità di frequenza (compito delle euristiche Greedy e Clarke-Wright), e la scelta della frequenza di servizio più conveniente (compito della Grid Search). In particolare:
+
+\begin{itemize}
+    \item Greedy garantisce fattibilità e rapidità di calcolo, risultando particolarmente adatto quando la griglia $\mathcal{X}$ è ampia o l'istanza è di grandi dimensioni;
+    \item Clarke-Wright, calcolando in un'unica soluzione la matrice completa dei risparmi, tende a produrre configurazioni di flotta più compatte, a fronte di un costo computazionale maggiore legato al calcolo e all'ordinamento della matrice dei savings;
+    \item la Grid Search introduce la dimensione bi-obiettivo del problema, esplorando il compromesso tra insoddisfazione e costi logistici al variare della frequenza del servizio, in modo indipendente dall'euristica di routing utilizzata.
+\end{itemize}
+
+Questa decomposizione consente di affrontare un problema NP-difficile scomponendolo in sotto-problemi più trattabili, mantenendo un buon compromesso tra qualità della soluzione e tempi computazionali, e fornendo al contempo un confronto diretto e riproducibile tra le due strategie di routing implementate.
+
+\section{Considerazioni finali}
+
+Il presente capitolo ha introdotto l'insieme delle metodologie euristiche adottate per la risoluzione del problema di ottimizzazione bi-obiettivo relativo alla pianificazione della raccolta dei rifiuti urbani.
+
+L'approccio proposto si basa su due euristiche di routing alternative -- Greedy e Clarke-Wright -- entrambe impiegate come subroutine di costruzione delle rotte all'interno di una procedura di Grid Search sulla frequenza di raccolta $X_r$. La procedura Greedy costruisce le rotte mediante inserimenti a costo marginale minimo, valutando simultaneamente più veicoli attivi; l'euristica Clarke-Wright parte invece da una soluzione iniziale frammentata e la migliora tramite fusioni successive guidate da una matrice di risparmi che tiene conto, oltre che della distanza, anche del costo fisso di attivazione dei veicoli e del tempo di manodopera risparmiato.
+
+Le due euristiche non sono composte in un'unica pipeline sequenziale, ma applicate in maniera indipendente sulla stessa griglia di valori candidati per $X_r$, generando due configurazioni ottime distinte che vengono infine confrontate in termini di funzione obiettivo, numero di veicoli attivati e tempo di calcolo. Questo confronto sistematico costituisce lo strumento principale con cui, nei capitoli successivi, verranno analizzate le prestazioni relative dei due metodi al variare della dimensione dell'istanza, della distribuzione spaziale degli utenti e della composizione tipologica dell'utenza.
+
+In sintesi, l'approccio adottato rappresenta una pipeline euristica in cui la costruzione della soluzione (routing) e l'esplorazione della frequenza di servizio sono trattate come due livelli decisionali distinti ma comunicanti, risultando particolarmente adatta a contesti reali caratterizzati da vincoli stringenti e obiettivi contrastanti.

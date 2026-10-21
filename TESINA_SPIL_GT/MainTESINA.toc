@@ -1,0 +1,140 @@
+\babel@toc {italian}{}\relax 
+\babel@toc {italian}{}\relax 
+\contentsline {chapter}{Introduzione}{ii}{chapter*.2}%
+\contentsline {chapter}{Indice}{iii}{chapter*.3}%
+\contentsline {chapter}{Elenco delle figure}{vii}{chapter*.4}%
+\contentsline {chapter}{\chapternumberline {1}Formulazione del problema}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Contesto applicativo}{1}{section.1.1}%
+\contentsline {subsection}{\numberline {1.1.1}La raccolta differenziata urbana}{1}{subsection.1.1.1}%
+\contentsline {subsection}{\numberline {1.1.2}Problematiche operative e decisionali}{2}{subsection.1.1.2}%
+\contentsline {section}{\numberline {1.2}Definizione del problema}{3}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Legenda e Notazione Matematica}{5}{section.1.3}%
+\contentsline {subsection}{\numberline {1.3.1}Indici e Insiemi}{5}{subsection.1.3.1}%
+\contentsline {subsection}{\numberline {1.3.2}Parametri}{5}{subsection.1.3.2}%
+\contentsline {subsection}{\numberline {1.3.3}Variabili Decisionali}{6}{subsection.1.3.3}%
+\contentsline {section}{\numberline {1.4}Funzione Obiettivo}{6}{section.1.4}%
+\contentsline {subsection}{\numberline {1.4.1}Funzione di Insoddisfazione}{7}{subsection.1.4.1}%
+\contentsline {subsection}{\numberline {1.4.2}Tempo Totale di Attività per Veicolo}{7}{subsection.1.4.2}%
+\contentsline {section}{\numberline {1.5}Vincoli di Sistema}{8}{section.1.5}%
+\contentsline {subsection}{\numberline {1.5.1}Vincolo di Capacità dei Veicoli}{8}{subsection.1.5.1}%
+\contentsline {subsection}{\numberline {1.5.2}Vincolo Temporale del Turno Lavorativo}{8}{subsection.1.5.2}%
+\contentsline {chapter}{\chapternumberline {2}Algoritmi Euristici per il Problema}{9}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Introduzione all'approccio euristico}{9}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Architettura generale del metodo risolutivo}{10}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Euristica Greedy}{14}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Principio di funzionamento}{14}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Costruzione delle rotte}{15}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}Verifica dei vincoli}{17}{subsection.2.3.3}%
+\contentsline {section}{\numberline {2.4}Euristica Clarke-Wright}{18}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}Soluzione iniziale}{19}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}Definizione del risparmio}{20}{subsection.2.4.2}%
+\contentsline {subsection}{\numberline {2.4.3}Fusione delle rotte}{21}{subsection.2.4.3}%
+\contentsline {subsection}{\numberline {2.4.4}Valutazione iterativa dei vincoli}{22}{subsection.2.4.4}%
+\contentsline {paragraph}{Vincolo di capacità}{22}{section*.5}%
+\contentsline {paragraph}{Vincolo di durata del turno}{22}{section*.6}%
+\contentsline {paragraph}{Vincolo di connettività (regola degli estremi)}{22}{section*.7}%
+\contentsline {subsection}{\numberline {2.4.5}Effetto sulla componente logistica della funzione obiettivo}{23}{subsection.2.4.5}%
+\contentsline {subsection}{\numberline {2.4.6}Schema algoritmico}{23}{subsection.2.4.6}%
+\contentsline {section}{\numberline {2.5}Esplorazione della frequenza di servizio mediante Grid Search}{25}{section.2.5}%
+\contentsline {subsection}{\numberline {2.5.1}Motivazioni e obiettivo}{25}{subsection.2.5.1}%
+\contentsline {subsection}{\numberline {2.5.2}Griglia dei valori candidati}{26}{subsection.2.5.2}%
+\contentsline {subsection}{\numberline {2.5.3}Valutazione dei candidati}{26}{subsection.2.5.3}%
+\contentsline {subsection}{\numberline {2.5.4}Criterio di selezione}{26}{subsection.2.5.4}%
+\contentsline {subsection}{\numberline {2.5.5}Parallelizzazione della ricerca}{27}{subsection.2.5.5}%
+\contentsline {section}{\numberline {2.6}Algoritmo complessivo proposto}{27}{section.2.6}%
+\contentsline {section}{\numberline {2.7}Considerazioni finali}{29}{section.2.7}%
+\contentsline {chapter}{\chapternumberline {3}Analisi sulle Istanze del Problema}{31}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Obiettivi della sperimentazione}{31}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Configurazione Sperimentale}{32}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Ambiente di Sviluppo}{32}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}Parametri Utilizzati}{33}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}Indicatori di prestazione}{35}{subsection.3.2.3}%
+\contentsline {subsubsection}{\numberline {3.2.3.1}Funzione obiettivo}{35}{subsubsection.3.2.3.1}%
+\contentsline {subsubsection}{\numberline {3.2.3.2}Insoddisfazione degli utenti}{36}{subsubsection.3.2.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.3.3}Costi logistici}{36}{subsubsection.3.2.3.3}%
+\contentsline {subsubsection}{\numberline {3.2.3.4}Saturazione fisica}{36}{subsubsection.3.2.3.4}%
+\contentsline {subsubsection}{\numberline {3.2.3.5}Saturazione temporale}{37}{subsubsection.3.2.3.5}%
+\contentsline {subsubsection}{\numberline {3.2.3.6}Numero di veicoli}{37}{subsubsection.3.2.3.6}%
+\contentsline {subsubsection}{\numberline {3.2.3.7}Tempo computazionale}{37}{subsubsection.3.2.3.7}%
+\contentsline {subsubsection}{\numberline {3.2.3.8}Soluzione selezionata}{37}{subsubsection.3.2.3.8}%
+\contentsline {subsection}{\numberline {3.2.4}Metodo di analisi dei risultati}{38}{subsection.3.2.4}%
+\contentsline {paragraph}{Ruolo di $\gamma $.}{38}{section*.10}%
+\contentsline {paragraph}{Grandezze fisiche.}{38}{section*.11}%
+\contentsline {paragraph}{Gap tra Greedy e Clarke-Wright.}{39}{section*.12}%
+\contentsline {paragraph}{Replicazione.}{39}{section*.13}%
+\contentsline {section}{\numberline {3.3}Benchmark 1 - Analisi della Variazione del Numero di Utenti}{40}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Descrizione dello scenario}{40}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Discussione dei risultati}{40}{subsection.3.3.2}%
+\contentsline {paragraph}{Andamento del gap rispetto a $N$.}{40}{section*.14}%
+\contentsline {paragraph}{Effetto di $\gamma $ sul gap.}{42}{section*.15}%
+\contentsline {paragraph}{Il paradosso dei camion.}{43}{section*.16}%
+\contentsline {paragraph}{Costo marginale e scelta di $\gamma $.}{44}{section*.17}%
+\contentsline {paragraph}{Clarke-Wright sotto capacità.}{44}{section*.18}%
+\contentsline {paragraph}{Tempi di calcolo.}{45}{section*.19}%
+\contentsline {paragraph}{Sintesi.}{46}{section*.20}%
+\contentsline {section}{\numberline {3.4}Benchmark 2 - Analisi delle tipologie urbanistiche}{46}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Descrizione degli scenari}{46}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}Discussione dei risultati}{47}{subsection.3.4.2}%
+\contentsline {paragraph}{La tipologia cambia la soluzione fisica più del gap.}{48}{section*.21}%
+\contentsline {paragraph}{Il paradosso dei camion dipende dal carico per fermata.}{49}{section*.22}%
+\contentsline {paragraph}{Resilienza e disservizio residuo.}{49}{section*.23}%
+\contentsline {paragraph}{Gap nei grandi condomini a $\gamma =0.1$ e $0.9$.}{50}{section*.24}%
+\contentsline {paragraph}{Origine del vantaggio logistico per scenario.}{50}{section*.25}%
+\contentsline {paragraph}{Sintesi.}{50}{section*.26}%
+\contentsline {section}{\numberline {3.5}Benchmark 3 - Analisi della distribuzione geografica degli utenti}{51}{section.3.5}%
+\contentsline {subsection}{\numberline {3.5.1}Descrizione degli scenari}{51}{subsection.3.5.1}%
+\contentsline {subsection}{\numberline {3.5.2}Discussione dei risultati}{51}{subsection.3.5.2}%
+\contentsline {paragraph}{Cosa cambia con la concentrazione degli utenti.}{52}{section*.27}%
+\contentsline {paragraph}{Gap: la concentrazione riduce il vantaggio di CW a $\gamma \ge 0.5$.}{52}{section*.28}%
+\contentsline {paragraph}{Profilo del gap a frequenza fissata.}{52}{section*.29}%
+\contentsline {paragraph}{Contabilità del gap a pari politica.}{53}{section*.30}%
+\contentsline {paragraph}{Sintesi.}{54}{section*.31}%
+\contentsline {section}{\numberline {3.6}Benchmark 4 - Analisi sulla Mappa Reale di Fabriano}{54}{section.3.6}%
+\contentsline {subsection}{\numberline {3.6.1}Istanza reale e lettura dei risultati}{54}{subsection.3.6.1}%
+\contentsline {subsection}{\numberline {3.6.2}Soluzione fisica al variare di $\gamma $}{55}{subsection.3.6.2}%
+\contentsline {paragraph}{Cosa cambia passando da una politica all'altra.}{55}{section*.32}%
+\contentsline {paragraph}{Il paradosso dei camion a $\gamma =0.10$.}{56}{section*.33}%
+\contentsline {paragraph}{Il vincolo attivo per $\gamma \ge 0.5$.}{56}{section*.34}%
+\contentsline {paragraph}{Resilienza e scelta di $\gamma $.}{57}{section*.35}%
+\contentsline {subsection}{\numberline {3.6.3}Confronto tra reti sintetiche e rete reale}{58}{subsection.3.6.3}%
+\contentsline {paragraph}{Topologia e chilometri.}{59}{section*.36}%
+\contentsline {paragraph}{Peso economico del viaggio.}{60}{section*.37}%
+\contentsline {paragraph}{Area e densità.}{60}{section*.38}%
+\contentsline {subsection}{\numberline {3.6.4}Confronto tra Greedy e Clarke-Wright e discussione}{62}{subsection.3.6.4}%
+\contentsline {paragraph}{Regimi di capacità e di tempo.}{62}{section*.39}%
+\contentsline {paragraph}{$\gamma =0.90$: routing puro e diluizione.}{62}{section*.40}%
+\contentsline {paragraph}{$\gamma =0.50$ e $\gamma =0.10$: lo spostamento di frequenza.}{63}{section*.41}%
+\contentsline {paragraph}{Perché il gap è massimo a $\gamma =0.5$.}{63}{section*.42}%
+\contentsline {paragraph}{Conclusioni per il decisore.}{63}{section*.43}%
+\contentsline {section}{\numberline {3.7}Benchmark 5 - Analisi sul Grafo Standard}{64}{section.3.7}%
+\contentsline {subsection}{\numberline {3.7.1}Descrizione dello scenario}{64}{subsection.3.7.1}%
+\contentsline {subsection}{\numberline {3.7.2}Discussione dei risultati}{64}{subsection.3.7.2}%
+\contentsline {paragraph}{Soluzione fisica per politica.}{64}{section*.44}%
+\contentsline {paragraph}{Paradosso dei camion e resilienza.}{65}{section*.45}%
+\contentsline {paragraph}{Gap e variabilità tra istanze.}{66}{section*.46}%
+\contentsline {paragraph}{Trade-off tra le due componenti.}{66}{section*.47}%
+\contentsline {paragraph}{Sintesi.}{67}{section*.48}%
+\contentsline {section}{\numberline {3.8}Benchmark Trasversale 1 - Analisi dell'Effetto $\gamma $ (Politica di Compromesso)}{67}{section.3.8}%
+\contentsline {subsection}{\numberline {3.8.1}Obiettivi e configurazione dell'analisi trasversale}{67}{subsection.3.8.1}%
+\contentsline {subsection}{\numberline {3.8.2}Frontiera di Pareto empirica: trade-off tra insoddisfazione e costi}{68}{subsection.3.8.2}%
+\contentsline {subsection}{\numberline {3.8.3}Dinamica delle componenti della funzione obiettivo}{70}{subsection.3.8.3}%
+\contentsline {subsection}{\numberline {3.8.4}Analisi delle frequenze ottime di raccolta per tipologia di rifiuto}{72}{subsection.3.8.4}%
+\contentsline {subsection}{\numberline {3.8.5}Valutazione aggregata della saturazione fisica e temporale}{73}{subsection.3.8.5}%
+\contentsline {subsection}{\numberline {3.8.6}Discussione complessiva dei risultati}{75}{subsection.3.8.6}%
+\contentsline {section}{\numberline {3.9}Benchmark Trasversale 2 - Analisi di Sensibilità e Profilo della Funzione Obiettivo}{76}{section.3.9}%
+\contentsline {subsection}{\numberline {3.9.1}Obiettivi e configurazione dell'analisi di sensibilità}{76}{subsection.3.9.1}%
+\contentsline {subsection}{\numberline {3.9.2}Andamento aggregato della funzione obiettivo}{76}{subsection.3.9.2}%
+\contentsline {subsection}{\numberline {3.9.3}Scomposizione dei costi: il trade-off logistico-sociale}{78}{subsection.3.9.3}%
+\contentsline {subsection}{\numberline {3.9.4}Profilo di ottimizzazione per tipologia di rifiuto}{80}{subsection.3.9.4}%
+\contentsline {subsection}{\numberline {3.9.5}Relazione meccanica tra frequenza e dimensionamento della flotta}{81}{subsection.3.9.5}%
+\contentsline {section}{\numberline {3.10}Discussione complessiva}{83}{section.3.10}%
+\contentsline {subsection}{\numberline {3.10.1}Impatto del parametro $\gamma $}{84}{subsection.3.10.1}%
+\contentsline {subsection}{\numberline {3.10.2}Efficienza logistica delle euristiche}{84}{subsection.3.10.2}%
+\contentsline {subsection}{\numberline {3.10.3}Qualità delle soluzioni ottenute}{85}{subsection.3.10.3}%
+\contentsline {subsection}{\numberline {3.10.4}Considerazioni operative}{85}{subsection.3.10.4}%
+\contentsline {chapter}{Conclusioni e sviluppi futuri}{87}{chapter*.50}%
+\contentsline {section}{Limiti del modello}{88}{section*.51}%
+\contentsline {section}{Possibili sviluppi futuri}{90}{section*.52}%
+\contentsline {subsection}{Metaeuristiche avanzate}{90}{section*.53}%
+\contentsline {subsection}{Dati dinamici e traffico reale}{90}{section*.54}%
+\contentsline {subsection}{Integrazione con sistemi intelligenti}{91}{section*.55}%

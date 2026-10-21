@@ -1,0 +1,156 @@
+\section{Contesto applicativo}
+
+
+\subsection{La raccolta differenziata urbana}
+
+La gestione dei rifiuti urbani rappresenta un'attività essenziale per il funzionamento e la sostenibilità dei centri abitati. In particolare, la raccolta differenziata consiste nella separazione dei rifiuti in diverse frazioni merceologiche, al fine di favorirne il successivo recupero, riciclo o trattamento. Tra le principali tipologie di rifiuto raccolte separatamente rientrano la frazione organica, la carta, la plastica, il vetro e la frazione indifferenziata.
+
+Nel sistema di raccolta porta a porta, il servizio viene effettuato direttamente presso le utenze, che espongono i contenitori o i mastelli secondo un calendario prestabilito. La frequenza di raccolta può variare in funzione della tipologia di rifiuto e delle caratteristiche dell'utenza servita. Tale organizzazione consente di ottenere una maggiore qualità dei materiali raccolti e di aumentare il livello di differenziazione dei rifiuti, ma richiede una pianificazione accurata delle attività operative.
+
+Dal punto di vista logistico, la raccolta porta a porta può essere interpretata come un problema di pianificazione di percorsi su una rete stradale. I veicoli della flotta devono visitare un insieme di utenze distribuite sul territorio, rispettando vincoli relativi alla capacità di carico dei mezzi e alla durata dei turni di lavoro. Inoltre, il numero di ritiri effettuati durante la settimana influenza sia la quantità di rifiuto raccolta a ogni singolo passaggio sia il costo complessivo del servizio.
+
+La frequenza di raccolta costituisce pertanto una delle principali variabili decisionali del problema. Un aumento del numero di ritiri può migliorare il livello di servizio percepito dagli utenti e ridurre la quantità di rifiuto accumulata tra due raccolte consecutive. D'altra parte, una maggiore frequenza comporta un incremento dei costi operativi, poiché richiede una maggiore attivazione dei veicoli e un aumento dei chilometri percorsi e delle ore di lavoro del personale.
+
+Il problema della raccolta differenziata urbana presenta quindi una natura intrinsecamente complessa, poiché coinvolge contemporaneamente aspetti sociali, ambientali, economici e logistici. La definizione di una pianificazione efficace richiede di considerare tali aspetti in modo integrato, evitando di concentrare l'ottimizzazione esclusivamente sulla minimizzazione dei costi di trasporto.
+
+
+\subsection{Problematiche operative e decisionali}
+
+La pianificazione di un servizio di raccolta differenziata porta a porta richiede l'assunzione di numerose decisioni operative. Tra queste rientrano la determinazione della frequenza di raccolta per ciascuna tipologia di rifiuto, l'assegnazione delle utenze ai veicoli e la costruzione dei percorsi che i mezzi devono effettuare durante il servizio.
+
+Una prima difficoltà è legata alla distribuzione spaziale delle utenze. I nodi da servire possono infatti essere distribuiti in modo non uniforme sul territorio, con aree caratterizzate da una maggiore concentrazione di abitazioni e altre più periferiche e distanti tra loro. Tale distribuzione influenza direttamente la distanza percorsa dai veicoli e, di conseguenza, i costi di viaggio e i tempi necessari per completare il servizio.
+
+Un secondo elemento di complessità è rappresentato dalla quantità di rifiuto prodotta dalle diverse utenze. Il volume raccolto durante ogni singolo passaggio dipende dalla produzione complessiva stimata e dalla frequenza del servizio. In particolare, aumentando il numero di raccolte settimanali, la quantità di rifiuto raccolta a ogni singolo passaggio tende a diminuire. Tuttavia, ciò comporta un aumento del numero complessivo di viaggi effettuati dai veicoli.
+
+I percorsi devono inoltre rispettare vincoli di natura operativa. La quantità complessiva di rifiuto raccolta lungo una rotta non può superare la capacità del veicolo utilizzato, mentre il tempo necessario per completare il percorso deve rimanere entro il limite massimo previsto per il turno di lavoro. La pianificazione deve quindi individuare soluzioni che siano contemporaneamente economicamente convenienti e fisicamente ammissibili.
+
+A tali problematiche si aggiunge la necessità di considerare il livello di servizio offerto agli utenti. La frequenza di raccolta effettivamente programmata può infatti differire dalla frequenza ideale associata a una determinata utenza. Un numero insufficiente di ritiri può generare un disservizio e un accumulo eccessivo di rifiuti, mentre un numero eccessivo di ritiri comporta un utilizzo non necessario delle risorse logistiche.
+
+Ne deriva un conflitto tra obiettivi differenti. Da un lato, l'azienda di gestione del servizio ha interesse a ridurre i costi associati all'attivazione dei veicoli, ai percorsi effettuati e al lavoro degli operatori. Dall'altro, è necessario garantire un livello di servizio adeguato agli utenti, limitando lo scostamento tra la frequenza effettivamente programmata e quella ideale.
+
+La pianificazione della raccolta differenziata non può quindi essere ricondotta alla sola ricerca del percorso più breve. È necessario considerare simultaneamente la componente logistica e quella relativa alla qualità del servizio, tenendo conto dei vincoli fisici e operativi che caratterizzano il sistema.
+
+
+\section{Definizione del problema}
+
+Il presente lavoro affronta il problema della pianificazione della raccolta differenziata con modalità porta a porta, considerando contemporaneamente la qualità del servizio offerto agli utenti e l'efficienza operativa del sistema logistico.
+
+L'obiettivo è determinare una configurazione del servizio che consenta di individuare un compromesso tra due esigenze potenzialmente contrastanti. La prima consiste nel ridurre l'insoddisfazione degli utenti, minimizzando la differenza tra la frequenza di raccolta effettivamente programmata e la frequenza ideale associata a ciascuna utenza. La seconda consiste nel contenere i costi operativi sostenuti dal gestore del servizio, legati all'attivazione dei veicoli, alle distanze percorse e al tempo di lavoro degli operatori.
+
+Il problema viene formulato come un problema di ottimizzazione bi-obiettivo. La frequenza di raccolta settimanale rappresenta una delle principali variabili decisionali del modello e determina sia il livello di servizio percepito dagli utenti sia la quantità di rifiuto raccolta durante ogni singolo passaggio. In particolare, una maggiore frequenza di raccolta tende a ridurre la quantità di rifiuto presente presso ciascuna utenza al momento del ritiro, ma comporta un aumento del numero di servizi da effettuare e, conseguentemente, dei costi logistici complessivi.
+
+Per ogni tipologia di rifiuto e per ogni utenza, il modello considera quindi la frequenza ideale di raccolta e la confronta con la frequenza effettivamente pianificata. Lo scostamento tra i due valori viene trasformato in una penalità di insoddisfazione, distinguendo tra il caso di un servizio insufficiente e quello di un servizio più frequente rispetto alle necessità dell'utenza. In questo modo, il modello permette di rappresentare il diverso impatto associato alle due situazioni.
+
+La componente logistica comprende invece i costi relativi all'attivazione dei veicoli, alla distanza percorsa lungo le rotte e al tempo di lavoro necessario per completare il servizio. I percorsi devono essere costruiti in modo da rispettare i vincoli relativi alla capacità dei mezzi e alla durata massima dei turni di lavoro.
+
+Il problema può quindi essere interpretato come la ricerca di una configurazione di servizio e di una pianificazione delle rotte che minimizzino una funzione obiettivo complessiva composta da una componente di insoddisfazione e da una componente di costo logistico. Il peso relativo attribuito alle due componenti viene controllato mediante il parametro $\gamma$, che consente di analizzare differenti politiche di gestione del servizio.
+
+In particolare, valori differenti del parametro permettono di rappresentare scenari caratterizzati da una diversa priorità attribuita agli obiettivi considerati. È quindi possibile analizzare il comportamento del sistema in condizioni maggiormente orientate alla riduzione dei costi aziendali, in condizioni di equilibrio tra le due componenti oppure in condizioni maggiormente orientate alla qualità del servizio offerto ai cittadini.
+
+La complessità del problema deriva dalla necessità di combinare la scelta della frequenza di raccolta con la costruzione dei percorsi dei veicoli. La soluzione ottima richiederebbe infatti la valutazione simultanea di un elevato numero di possibili configurazioni. Per questo motivo, il progetto utilizza metodi euristici, descritti nel Capitolo 2, per costruire in tempi ragionevoli soluzioni ammissibili e valutare differenti configurazioni del servizio.
+
+L'efficacia dell'approccio proposto viene successivamente analizzata attraverso una serie di istanze sperimentali, ottenute considerando differenti dimensioni e configurazioni del problema. Le analisi permettono di valutare l'influenza del numero di utenze, della distribuzione spaziale dei nodi, della tipologia di utenza e del contesto geografico sulla qualità delle soluzioni ottenute e sulle prestazioni operative del sistema.
+
+\section{Legenda e Notazione Matematica}
+
+\subsection{Indici e Insiemi}
+
+\begin{tabular}{ll}
+$r \in R$   & : Tipologia di rifiuto: organico, carta, plastica, vetro, indifferenziata. \\
+$u \in U_G$   & : Utente (nodo) del grafo cittadino $G$. \\
+$v \in V_r$ & : Veicolo della flotta attiva. \\
+$t_u \in T$ & : Tipologia dell'utente $u$: single, famiglia, palazzina piccola, palazzina grande. \\
+$ab \in E_G$ & : arco del grafo cittadino $G$ che collega i nodi $a$ e $b$.
+\end{tabular}
+
+\subsection{Parametri}
+
+\begin{longtable}[l]{@{}ll>{\raggedright\arraybackslash}p{11cm}}
+$x^*_{r t_u}$ & : & Frequenza ideale di ritiro settimanale per il rifiuto $r$ e la tipologia di utente $t_u$. \\
+$W_{r t_u}$ & : & Quantità totale settimanale stimata di rifiuto (\textit{waste}) per la tipologia di utente $t_u$ e il rifiuto $r$. \\
+$Q_{ru}(X_r)$ & : & Quantità stimata di volume di rifiuto $r$ che ci si aspetta ad ogni passaggio del camion prodotta dall'utente $u$ $\rightarrow$ dipende dal numero di passaggi settimanali $X_r$. \\
+$C_r$ & : & Capacità massima di carico del veicolo che raccoglie $r$. \\
+$d_{ab}$ & : & Distanza di viaggio dal nodo $a$ al nodo $b$. \\
+$\tau_{ab}$ & : & Tempo di viaggio dal nodo $a$ al nodo $b$. \\
+$s_{r t_u}$ & : & Tempo di carico per unità (svuotamento mastelli) presso l'utente $u$ (di tipologia $t_u$) per il rifiuto $r$. \\
+$\alpha$ & : & Peso di penalità applicato in caso di sotto-servizio (mancato ritiro). \\
+$\beta$ & : & Peso di penalità applicato in caso di sovra-servizio (ritiri in eccesso). \\
+$c_r$ & : & Costo fisso di attivazione del veicolo adibito alla raccolta del rifiuto di tipo $r$. \\
+$cd, cm$ & : & Costo unitario per distanza percorsa ($cd$) e costo orario della manodopera ($cm$). \\
+$L$ & : & Durata massima del turno di lavoro. \\
+\end{longtable}
+
+\subsection{Variabili Decisionali}
+
+\begin{longtable}[l]{@{}ll>{\raggedright\arraybackslash}p{10.5cm}}
+$X_r \in \mathbb{R}$ & : & Frequenza programmata: variabile $\ge 0$ che indica il numero di ritiri totali programmati per il rifiuto $r$ (ritiri settimanali). \\
+$V_r \in \mathbb{N}$ & : & Flotta attiva: variabile intera $\ge 0$ che indica il numero totale di camion attivati per il rifiuto $r$. \\
+$P_v$ & : & Routing: un vettore ordinato di nodi (lista) che rappresenta la sequenza di nodi del percorso effettuato dal veicolo $v$. \\
+\end{longtable}
+
+
+\section{Funzione Obiettivo}
+
+Il modello persegue simultaneamente due obiettivi contrapposti: la minimizzazione dell'insoddisfazione percepita dagli utenti (componente sociale) e la minimizzazione dei costi operativi sostenuti dall'azienda (componente logistica, a sua volta articolata in costo fisso di attivazione della flotta, costo di percorrenza e costo di manodopera). La funzione obiettivo aggrega questi quattro contributi in un'unica formulazione bi-obiettivo, i cui termini vengono indicati rispettivamente con $F_{\text{insoddis}}$, $F_{\text{fisso}}$, $F_{\text{viaggio}}$ e $F_{\text{lavoro}}$:
+
+\begin{equation}
+\begin{split}
+F = \min \Biggl\{ & \underbrace{\sum_{r \in R} \sum_{u \in U_G} I_{ru}}_{F_{\text{insoddis}}} + \underbrace{\sum_{r \in R} (c_r \cdot V_{r} \cdot X_{r})}_{F_{\text{fisso}}} \\
+& + \underbrace{\sum_{r \in R} \left( X_{r} \cdot \sum_{v \in V_{r}} \sum_{(a,b) \in P_{v}} (cd \cdot d_{ab}) \right)}_{F_{\text{viaggio}}} \\
+& + \underbrace{\sum_{r \in R} \left( X_{r} \cdot \sum_{v \in V_{r}} cm \cdot T_{v} \right)}_{F_{\text{lavoro}}} \Biggr\}
+\end{split}
+\label{eq:obiettivo-completo}
+\end{equation}
+
+\noindent
+Le funzioni ausiliarie $I_{ru}$ (funzione di insoddisfazione), $Q_{ru}(X_r)$ (quantità di rifiuto raccolta) e $T_v$ (tempo totale di servizio del veicolo) vengono definite nelle sezioni seguenti.
+
+\subsection{Funzione di Insoddisfazione}
+
+Si penalizza lo scostamento tra i ritiri programmati $X_r$ e quelli desiderati $x^*_{r t_u}$. La funzione di disservizio $I_{ru}$ punisce più severamente il sotto-servizio rispetto al sovra-servizio, con $\alpha > \beta$.
+
+\begin{equation}
+I_{ru} =
+\begin{cases}
+\alpha \cdot \left(x^*_{r t_u} - X_r\right), & \text{se } X_r < x^*_{r t_u}, \\
+0, & \text{se } X_r = x^*_{r t_u}, \\
+\beta \cdot \left(X_r - x^*_{r t_u}\right), & \text{se } X_r > x^*_{r t_u}.
+\end{cases}
+\end{equation}
+
+
+\subsection{Tempo Totale di Attività per Veicolo}
+
+Il tempo totale di attività del veicolo $v$ è dato dalla somma tra il tempo di viaggio lungo tutti gli archi del percorso $P_v$ e il tempo di carico presso gli utenti serviti dallo stesso percorso.
+
+\begin{equation}
+T_v = \sum_{(a,b) \in P_v} \tau_{ab}
++ \sum_{u \in P_v} \left( s_{r t_u} \cdot Q_{ru}(X_r) \right)
+\end{equation}
+
+\noindent
+La quantità stimata di rifiuto $r$ raccolta presso l'utente $u$ a ogni passaggio è definita come:
+\begin{equation}
+Q_{ru}(X_r) = \frac{W_{r t_u}}{X_r}.
+\end{equation}
+Essa dipende dalla quantità settimanale stimata $W_{r t_u}$ ed è inversamente proporzionale al numero di passaggi settimanali $X_r$.
+
+\section{Vincoli di Sistema}
+
+\subsection{Vincolo di Capacità dei Veicoli}
+
+Per ogni percorso, la somma delle quantità stimate di rifiuto raccolte presso i nodi visitati non deve superare la capacità massima del veicolo.
+
+\begin{equation}
+\sum_{u \in P_v} Q_{ru}(X_r) \le C_r,
+\qquad \forall v \in V_r,\; \forall r \in R.
+\end{equation}
+
+\subsection{Vincolo Temporale del Turno Lavorativo}
+
+La somma dei tempi di viaggio lungo gli archi del percorso e dei tempi di sosta per il carico presso i nodi non deve eccedere la durata massima $L$ del turno lavorativo.
+
+\begin{equation}
+T_v \le L,
+\qquad \forall v \in V.
+\end{equation}
