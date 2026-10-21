@@ -19,15 +19,15 @@ Questi non variano mai — sono la "rete stradale" del progetto:
 
 **Una sola esecuzione**, che itera internamente su tutti gli N.
 
-|Parametro|Valore|
-|---|---|
-|`n_max`|500|
-|`seed`|42|
-|`r_factor`|1.2|
-|`N attivi`|`50, 100, 200, 350, 500`|
-|Scenario tipologia|fisso: `residenziale`|
-|Distribuzione|fisso: `uniforme`|
-|Algoritmi|entrambi|
+| Parametro          | Valore                     |
+| ------------------ | -------------------------- |
+| `n_max`            | 1000                       |
+| `seed`             | 42                         |
+| `r_factor`         | 1.2                        |
+| `N attivi`         | `100, 250, 500, 750, 1000` |
+| Scenario tipologia | fisso: `residenziale`      |
+| Distribuzione      | fisso: `uniforme`          |
+| Algoritmi          | entrambi                   |
 
 CSV prodotti: 5 N × 3 gamma = **15 CSV** Nomi: `risultati_50u_varN_Nmax500_Nact50_seed42_gamma0.10.csv` … fino a `_Nact500_…gamma0.90.csv`
 
@@ -37,15 +37,15 @@ CSV prodotti: 5 N × 3 gamma = **15 CSV** Nomi: `risultati_50u_varN_Nmax500_Nact
 
 **Una sola esecuzione**, che itera su tutti gli scenari.
 
-|Parametro|Valore|
-|---|---|
-|`n_users`|200|
-|`n_max`|500|
-|`seed`|42|
-|`r_factor`|1.2|
-|Scenari|`residenziale, suburbano, grandi_condomini, villette, misto_periferia` (tutti, premi Invio)|
-|Distribuzione|fisso: `uniforme`|
-|Algoritmi|entrambi|
+| Parametro     | Valore                                                                                      |
+| ------------- | ------------------------------------------------------------------------------------------- |
+| `n_users`     | 400                                                                                         |
+| `n_max`       | 1000                                                                                        |
+| `seed`        | 42                                                                                          |
+| `r_factor`    | 1.2                                                                                         |
+| Scenari       | `residenziale, suburbano, grandi_condomini, villette, misto_periferia` (tutti, premi Invio) |
+| Distribuzione | fisso: `uniforme`                                                                           |
+| Algoritmi     | entrambi                                                                                    |
 
 CSV prodotti: 5 scenari × 3 gamma = **15 CSV** Nomi: `risultati_200u_tipo_residenziale_gamma0.10.csv` … `tipo_villette_gamma0.90.csv`
 
@@ -55,15 +55,15 @@ CSV prodotti: 5 scenari × 3 gamma = **15 CSV** Nomi: `risultati_200u_tipo_resid
 
 **Una sola esecuzione**, che confronta uniforme vs cluster.
 
-|Parametro|Valore|
-|---|---|
-|`n_users`|200|
-|`n_max`|500|
-|`seed`|42|
-|`r_factor`|1.2|
-|Modalità|`3` (entrambe)|
-|Scenario tipologia|fisso: `residenziale`|
-|Algoritmi|entrambi|
+| Parametro          | Valore                |
+| ------------------ | --------------------- |
+| `n_users`          | 400                   |
+| `n_max`            | 1000                  |
+| `seed`             | 42                    |
+| `r_factor`         | 1.2                   |
+| Modalità           | `3` (entrambe)        |
+| Scenario tipologia | fisso: `residenziale` |
+| Algoritmi          | entrambi              |
 
 CSV prodotti: 2 modalità × 3 gamma = **6 CSV** Nomi: `risultati_200u_distrib_uniform_gamma0.10.csv` … `distrib_cluster_gamma0.90.csv`
 
@@ -90,13 +90,13 @@ CSV prodotti: 3 gamma = **3 CSV** Nomi: `risultati_3932u_mappa_reale_gamma0.10.c
 
 **Tre esecuzioni separate**, una per seed, per la robustezza statistica che T1/T2 possono poi aggregare per media.
 
-|Parametro|Run A|Run B|Run C|
-|---|---|---|---|
-|`n_users`|200|200|200|
-|`seed`|42|123|7|
-|`r_factor`|1.2|1.2|1.2|
-|Scenario|`residenziale`|`residenziale`|`residenziale`|
-|Algoritmi|entrambi|entrambi|entrambi|
+| Parametro  | Run A          | Run B          | Run C          |
+| ---------- | -------------- | -------------- | -------------- |
+| `n_users`  | 200            | 200            | 200            |
+| `seed`     | 42             | 123            | 7              |
+| `r_factor` | 1.2            | 1.2            | 1.2            |
+| Scenario   | `residenziale` | `residenziale` | `residenziale` |
+| Algoritmi  | entrambi       | entrambi       | entrambi       |
 
 CSV prodotti: 3 seed × 3 gamma = **9 CSV** Nomi: `risultati_200u_std_seed42_gamma0.10.csv` … `std_seed7_gamma0.90.csv`
 

@@ -1,13 +1,15 @@
 % =========================================================================
-% BENCH 5: Analisi Standard (Grafo generato da zero)
+% BENCH 4: Analisi Mappa Reale (Fabriano)
 % =========================================================================
 clear; clc; close all;
 
-dataDir = 'risultati_csv';
-files = dir(fullfile(dataDir, '*_std_*_gamma*.csv'));
+scriptDir = fileparts(mfilename('fullpath'));
+rootDir  = fileparts(scriptDir);
+dataDir  = fullfile(rootDir, 'risultati_csv');
+files = dir(fullfile(dataDir, '*_mappa_reale_gamma*.csv'));
 
 if isempty(files)
-    error('Nessun file trovato per l''analisi standard. Controlla la cartella.');
+    error('Nessun file trovato per l''analisi mappa reale. Controlla la cartella.');
 end
 
 colorGreedy = [0.13, 0.47, 0.71];
@@ -32,25 +34,27 @@ fprintf('  [INFO] Le figure verranno salvate in: %s\n', outDir);
 % =========================================================================
 % 1. PARSING E LETTURA DATI
 % =========================================================================
-VarTypes = {'double','double','string','double','double','double','double','double','double','double'};
-VarNames = {'Gamma','Seed','Algoritmo','F_insoddis','F_logistica','F_tot','Sat_Fisica','Sat_Tempo','Vehicles','N_Serviti'};
+VarTypes = {'double','string','double','double','double','double','double','double','double'};
+VarNames = {'Gamma','Algoritmo','F_insoddis','F_logistica','F_tot','Sat_Fisica','Sat_Tempo','Vehicles','N_Serviti'};
 ResTable = table('Size', [0, length(VarNames)], 'VariableTypes', VarTypes, 'VariableNames', VarNames);
+
+n_users_reale = NaN;
 
 for i = 1:length(files)
     filename = files(i).name;
 
     gamma_str = regexp(filename, 'gamma(\d+\.\d+)', 'tokens');
-    seed_str  = regexp(filename, 'seed(\d+)',        'tokens');
-
     if isempty(gamma_str), continue; end
 
     gamma_val = str2double(gamma_str{1}{1});
-    seed_val  = 0;
-    if ~isempty(seed_str), seed_val = str2double(seed_str{1}{1}); end
 
     filepath = fullfile(dataDir, filename);
     T        = readtable(filepath, detectImportOptions(filepath));
     T_best   = T(T.is_best == 1, :);
+
+    if ismember('n_users', T.Properties.VariableNames)
+        n_users_reale = T.n_users(1);
+    end
 
     algos = {'greedy', 'clarke_wright'};
     for a = 1:length(algos)
@@ -65,7 +69,7 @@ for i = 1:length(files)
         v_tot  = sum(T_algo.n_vehicles);
         n_serv = sum(T_algo.n_utenti_serviti);
 
-        ResTable = [ResTable; {gamma_val, seed_val, algos{a}, f_ins, f_log, f_tot, s_fis, s_tem, v_tot, n_serv}];
+        ResTable = [ResTable; {gamma_val, algos{a}, f_ins, f_log, f_tot, s_fis, s_tem, v_tot, n_serv}];
     end
 end
 
@@ -73,13 +77,8 @@ if height(ResTable) == 0
     error('Nessun dato valido estratto. Controlla i nomi file e le colonne CSV.');
 end
 
-% Aggrega per media sui seed
-ResAgg = groupsummary(ResTable, {'Gamma', 'Algoritmo'}, 'mean', ...
-    {'F_insoddis','F_logistica','F_tot','Sat_Fisica','Sat_Tempo','Vehicles','N_Serviti'});
-ResAgg.Properties.VariableNames = strrep(ResAgg.Properties.VariableNames, 'mean_', '');
-ResAgg = sortrows(ResAgg, {'Gamma', 'Algoritmo'});
-
-g_unique = unique(ResAgg.Gamma);
+ResTable = sortrows(ResTable, {'Gamma', 'Algoritmo'});
+g_unique = unique(ResTable.Gamma);
 n_g      = length(g_unique);
 g_cat    = categorical(g_unique);
 
@@ -93,14 +92,14 @@ for g = 1:n_g
     else, g_labels{g} = sprintf('\\gamma=%.2f', gv); end
 end
 
-subG_all = sortrows(ResAgg(strcmp(ResAgg.Algoritmo, 'greedy'),        :), 'Gamma');
-subC_all = sortrows(ResAgg(strcmp(ResAgg.Algoritmo, 'clarke_wright'), :), 'Gamma');
+subG_all = sortrows(ResTable(strcmp(ResTable.Algoritmo, 'greedy'),        :), 'Gamma');
+subC_all = sortrows(ResTable(strcmp(ResTable.Algoritmo, 'clarke_wright'), :), 'Gamma');
 
 % =========================================================================
 % GRAFICO 1: Scomposizione F_tot per politica
 % =========================================================================
-fig1 = figure('Name', 'Transizione Politiche (Standard)', 'Position', [50, 50, 950, 520]);
-sgtitle('B5 — Grafo Standard: Scomposizione F_{tot} per Politica', ...
+fig1 = figure('Name', 'Transizione Politiche (Reale)', 'Position', [50, 50, 950, 520]);
+sgtitle('B4 — Fabriano: Scomposizione F_{tot} per Politica', ...
         'FontWeight', 'bold', 'FontSize', 11);
 
 algo_tables = {subG_all, subC_all};
@@ -121,13 +120,13 @@ for a = 1:2
     grid on; box on;
 end
 
-exportgraphics(fig1, fullfile(outDir, 'b5 Scomposizione Ftot per Politica.png'), 'Resolution', 300);
+exportgraphics(fig1, fullfile(outDir, 'B4 Scomposizione Ftot per Politica.png'), 'Resolution', 300);
 
 % =========================================================================
 % GRAFICO 2: Saturazione Fisica e Temporale vs Politica
 % =========================================================================
-fig2 = figure('Name', 'Saturazioni (Standard)', 'Position', [100, 100, 950, 460]);
-sgtitle('B5 — Grafo Standard: Saturazione dei Veicoli per Politica', ...
+fig2 = figure('Name', 'Saturazioni (Reale)', 'Position', [100, 100, 950, 460]);
+sgtitle('B4 — Fabriano: Saturazione dei Veicoli per Politica', ...
         'FontWeight', 'bold', 'FontSize', 11);
 
 subplot(1, 2, 1);
@@ -148,16 +147,16 @@ ylabel('Turno sfruttato (%)'); ylim([0 100]);
 set(gca, 'XTickLabel', g_labels); xtickangle(20);
 grid on; box on;
 
-exportgraphics(fig2, fullfile(outDir, 'b5 Saturazione Veicoli per Politica.png'), 'Resolution', 300);
+exportgraphics(fig2, fullfile(outDir, 'B4 Saturazione Veicoli per Politica.png'), 'Resolution', 300);
 
 % =========================================================================
 % GRAFICO 3: Flotta e Utenti Serviti vs Politica
 % =========================================================================
-fig3 = figure('Name', 'Flotta e Servizio (Standard)', 'Position', [150, 150, 950, 460]);
-sgtitle('B5 — Grafo Standard: Flotta e Copertura Utenti per Politica', ...
+fig3 = figure('Name', 'Flotta e Servizio (Reale)', 'Position', [150, 150, 950, 460]);
+sgtitle('B4 — Fabriano: Flotta e Copertura Utenti per Politica', ...
         'FontWeight', 'bold', 'FontSize', 11);
 
-subplot(1, 2, 1);
+subplot(1, 2, 1); hold on;
 yVeh = [subG_all.Vehicles, subC_all.Vehicles];
 b = bar(g_cat, yVeh, 'grouped');
 b(1).FaceColor = colorGreedy; b(2).FaceColor = colorCW;
@@ -167,10 +166,13 @@ set(gca, 'XTickLabel', g_labels); xtickangle(20);
 legend('Greedy', 'CW', 'Location', 'northeast'); grid on; box on;
 
 subplot(1, 2, 2); hold on;
-% F_tot / N_utenti — costo per utente, metrica normalizzata
-n_users_std = 200;  % utenti attivi usati nelle run B5 (aggiorna se diverso)
-ftot_per_u_G = subG_all.F_tot / n_users_std;
-ftot_per_u_C = subC_all.F_tot / n_users_std;
+if ~isnan(n_users_reale) && n_users_reale > 0
+    ftot_per_u_G = subG_all.F_tot / n_users_reale;
+    ftot_per_u_C = subC_all.F_tot / n_users_reale;
+else
+    ftot_per_u_G = subG_all.F_tot;
+    ftot_per_u_C = subC_all.F_tot;
+end
 plot(g_cat, ftot_per_u_G, '-o', 'Color', colorGreedy, 'LineWidth', 2, ...
      'MarkerFaceColor', colorGreedy, 'MarkerSize', 8, 'DisplayName', 'Greedy');
 plot(g_cat, ftot_per_u_C, '-s', 'Color', colorCW, 'LineWidth', 2, ...
@@ -180,19 +182,19 @@ ylabel('F_{tot} / N_{utenti}');
 set(gca, 'XTickLabel', g_labels); xtickangle(20);
 legend('Location', 'northeast'); grid on; box on;
 
-exportgraphics(fig3, fullfile(outDir, 'b5 Flotta e Copertura Utenti per Politica.png'), 'Resolution', 300);
+exportgraphics(fig3, fullfile(outDir, 'B4 Flotta e Copertura Utenti per Politica.png'), 'Resolution', 300);
 
 % =========================================================================
 % GRAFICO 4: Gap relativo Greedy–CW vs Politica (barre con annotazioni)
 % =========================================================================
-fig4 = figure('Name', 'Gap Greedy vs CW (Standard)', 'Position', [200, 200, 650, 460]);
-sgtitle('B5 — Gap Relativo F_{tot}: Greedy vs CW  (Grafo Standard)', ...
+fig4 = figure('Name', 'Gap Greedy vs CW (Reale)', 'Position', [200, 200, 650, 460]);
+sgtitle('B4 — Gap Relativo F_{tot}: Greedy vs CW  (Fabriano)', ...
         'FontWeight', 'bold', 'FontSize', 11);
 hold on;
 
 if height(subG_all) == height(subC_all) && height(subG_all) > 0
     gap_pct = (subG_all.F_tot - subC_all.F_tot) ./ min(subG_all.F_tot, subC_all.F_tot) * 100;
-    bar(g_cat, gap_pct, 'FaceColor', [0.20, 0.40, 0.75], 'EdgeColor', [0.10, 0.20, 0.50], 'LineWidth', 1.2);
+    b = bar(g_cat, gap_pct, 'FaceColor', [0.20, 0.40, 0.75], 'EdgeColor', [0.10, 0.20, 0.50], 'LineWidth', 1.2);
     y_range = max(gap_pct) - min([gap_pct; 0]);
     ylim([0, max(gap_pct) + y_range * 0.20]);
     for g = 1:n_g
@@ -206,4 +208,4 @@ set(gca, 'XTickLabel', g_labels); xtickangle(20);
 ylabel('Gap %  =  (F_{Greedy} - F_{CW}) / min \times 100');
 grid on; box on;
 
-exportgraphics(fig4, fullfile(outDir, 'b5 Gap Prestazionale tra Greedy e CW.png'), 'Resolution', 300);
+exportgraphics(fig4, fullfile(outDir, 'B4 Gap Prestazionale tra Greedy e CW.png'), 'Resolution', 300);

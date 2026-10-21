@@ -3,7 +3,9 @@
 % =========================================================================
 clear; clc; close all;
 
-dataDir = 'risultati_csv';
+scriptDir = fileparts(mfilename('fullpath'));
+rootDir  = fileparts(scriptDir);
+dataDir  = fullfile(rootDir, 'risultati_csv');
 files = dir(fullfile(dataDir, '*_distrib_*_gamma*.csv'));
 
 if isempty(files)

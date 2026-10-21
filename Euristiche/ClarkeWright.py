@@ -95,16 +95,11 @@ def build_routes(data: dict, r: str, X_r: float, gamma: float = 0.5, k_scala: fl
     S = (c_fixed_r
          + cd * (d_i0 + d_0j - d_ij)
          + cm * (tv_i0 + tv_0j - tv_ij))
-
-    # Moltiplichiamo per (1 - gamma) per coerenza formale con lo scenario 
-    S *= (1 - gamma)
-
-    np.fill_diagonal(S, -np.inf)
-
-    # ── Fase 3: ordinamento flat decrescente ─────────────
+ 
+    np.fill_diagonal(S, -np.inf)                    # nessuna scalatura per (1-gamma)
     flat   = S.ravel()
-    order  = np.argsort(flat)[::-1]
-    cutoff = int(np.searchsorted(-flat[order], 0))
+    order  = np.argsort(-flat, kind="stable")       # a parità di saving: ordine di indice
+    cutoff = int(np.searchsorted(-flat[order], 0.0))
     order  = order[:cutoff]
 
     rows = (order // F).tolist()
