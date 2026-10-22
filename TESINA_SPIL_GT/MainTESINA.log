@@ -1,4 +1,4 @@
-This is LuaHBTeX, Version 1.24.0 (TeX Live 2026)  (format=lualatex 2026.9.12)  21 OCT 2026 21:36
+This is LuaHBTeX, Version 1.24.0 (TeX Live 2026)  (format=lualatex 2026.9.12)  23 OCT 2026 00:20
  restricted system commands enabled.
 **MainTESINA.tex
 (./MainTESINA.tex
@@ -1419,32 +1419,32 @@ r/m/n/10.95 ) \OMS/cmsy/m/n/10.95 ^^@ \OML/cmm/m/it/10.95 F[]\OT1/cmr/m/n/10.95
  []
 
 [39] [40] [41]
-<immagini/fig_gap_vs_N_B1.png, id=858, 520.344pt x 317.988pt>
+<immagini/fig_gap_vs_N_B1.png, id=852, 520.344pt x 317.988pt>
 File: immagini/fig_gap_vs_N_B1.png Graphic file (type png)
 <use immagini/fig_gap_vs_N_B1.png>
 Package luatex.def Info: immagini/fig_gap_vs_N_B1.png  used on input line 336.
 (luatex.def)             Requested size: 350.68274pt x 214.31725pt.
  [42<./immagini/fig_gap_vs_N_B1.png>]
-<immagini/fig_gap_profilo_B1.png, id=865, 448.074pt x 317.988pt>
+<immagini/fig_gap_profilo_B1.png, id=859, 448.074pt x 317.988pt>
 File: immagini/fig_gap_profilo_B1.png Graphic file (type png)
 <use immagini/fig_gap_profilo_B1.png>
 Package luatex.def Info: immagini/fig_gap_profilo_B1.png  used on input line 34
 7.
 (luatex.def)             Requested size: 288.79422pt x 204.95268pt.
  [43<./immagini/fig_gap_profilo_B1.png>]
-<immagini/fig_fisica_B1.png, id=875, 1156.32pt x 578.16pt>
+<immagini/fig_fisica_B1.png, id=869, 1156.32pt x 578.16pt>
 File: immagini/fig_fisica_B1.png Graphic file (type png)
 <use immagini/fig_fisica_B1.png>
 Package luatex.def Info: immagini/fig_fisica_B1.png  used on input line 359.
 (luatex.def)             Requested size: 412.56497pt x 206.276pt.
  [44<./immagini/fig_fisica_B1.png>] [45] [46] [47]
-<immagini/fig_gap_B2.png, id=905, 591.8913pt x 317.988pt>
+<immagini/fig_gap_B2.png, id=899, 591.8913pt x 317.988pt>
 File: immagini/fig_gap_B2.png Graphic file (type png)
 <use immagini/fig_gap_B2.png>
 Package luatex.def Info: immagini/fig_gap_B2.png  used on input line 458.
 (luatex.def)             Requested size: 371.30595pt x 199.48438pt.
  [48<./immagini/fig_gap_B2.png>]
-<immagini/fig_V_vs_X.png, id=916, 1084.05pt x 317.988pt>
+<immagini/fig_V_vs_X.png, id=910, 1084.05pt x 317.988pt>
 File: immagini/fig_V_vs_X.png Graphic file (type png)
 <use immagini/fig_V_vs_X.png>
 Package luatex.def Info: immagini/fig_V_vs_X.png  used on input line 490.
@@ -1455,132 +1455,106 @@ Overfull \hbox (25.47192pt too wide) in paragraph at lines 530--540
  []
 
 [51] [52]
-<immagini/fig_gap_profilo_B3.png, id=950, 448.074pt x 317.988pt>
+<immagini/fig_gap_profilo_B3.png, id=944, 448.074pt x 317.988pt>
 File: immagini/fig_gap_profilo_B3.png Graphic file (type png)
 <use immagini/fig_gap_profilo_B3.png>
 Package luatex.def Info: immagini/fig_gap_profilo_B3.png  used on input line 56
 9.
 (luatex.def)             Requested size: 288.79422pt x 204.95268pt.
- [53<./immagini/fig_gap_profilo_B3.png>]
-Overfull \hbox (22.4829pt too wide) detected at line 594
+ [53<./immagini/fig_gap_profilo_B3.png>] [54]
+Overfull \hbox (22.4829pt too wide) detected at line 596
 []
  []
 
-[54]
-Overfull \hbox (25.40248pt too wide) in paragraph at lines 608--620
+
+Overfull \hbox (25.40248pt too wide) in paragraph at lines 610--622
  [][] 
  []
 
 [55] [56]
-<immagini/fig_intervalli_B4.png, id=989, 650.43pt x 433.62pt>
+<immagini/fig_intervalli_B4.png, id=984, 650.43pt x 433.62pt>
 File: immagini/fig_intervalli_B4.png Graphic file (type png)
 <use immagini/fig_intervalli_B4.png>
-Package luatex.def Info: immagini/fig_intervalli_B4.png  used on input line 654
+Package luatex.def Info: immagini/fig_intervalli_B4.png  used on input line 656
 .
 (luatex.def)             Requested size: 330.05322pt x 220.03831pt.
-<immagini/fig_fisica_B4.png, id=990, 1156.32pt x 578.16pt>
+ [57]
+<immagini/fig_fisica_B4.png, id=992, 1156.32pt x 578.16pt>
 File: immagini/fig_fisica_B4.png Graphic file (type png)
 <use immagini/fig_fisica_B4.png>
-Package luatex.def Info: immagini/fig_fisica_B4.png  used on input line 661.
+Package luatex.def Info: immagini/fig_fisica_B4.png  used on input line 663.
 (luatex.def)             Requested size: 412.56497pt x 206.276pt.
- [57<./immagini/fig_intervalli_B4.png>] [58<./immagini/fig_fisica_B4.png>]
+ [58<./immagini/fig_intervalli_B4.png><./immagini/fig_fisica_B4.png>] [59]
 <immagini/fig_gap_profilo_B4.png, id=1003, 448.074pt x 317.988pt>
 File: immagini/fig_gap_profilo_B4.png Graphic file (type png)
 <use immagini/fig_gap_profilo_B4.png>
 Package luatex.def Info: immagini/fig_gap_profilo_B4.png  used on input line 67
-3.
+5.
 (luatex.def)             Requested size: 288.79422pt x 204.95268pt.
- [59<./immagini/fig_gap_profilo_B4.png>] [60]
-<immagini/fig_gap_vs_N.png, id=1023, 1156.32pt x 331.7193pt>
+ [60<./immagini/fig_gap_profilo_B4.png>] [61] [62]
+<immagini/fig_gap_vs_N.png, id=1027, 1156.32pt x 331.7193pt>
 File: immagini/fig_gap_vs_N.png Graphic file (type png)
 <use immagini/fig_gap_vs_N.png>
-Package luatex.def Info: immagini/fig_gap_vs_N.png  used on input line 731.
+Package luatex.def Info: immagini/fig_gap_vs_N.png  used on input line 745.
 (luatex.def)             Requested size: 412.56497pt x 118.35085pt.
- [61<./immagini/fig_gap_vs_N.png>] [62] [63] [64]
-<immagini/fig_fisica_B5.png, id=1058, 1156.32pt x 578.16pt>
+ [63<./immagini/fig_gap_vs_N.png>] [64] [65] [66] [67] [68]
+<immagini/fig_fisica_B5.png, id=1077, 1156.32pt x 578.16pt>
 File: immagini/fig_fisica_B5.png Graphic file (type png)
 <use immagini/fig_fisica_B5.png>
-Package luatex.def Info: immagini/fig_fisica_B5.png  used on input line 816.
+Package luatex.def Info: immagini/fig_fisica_B5.png  used on input line 836.
 (luatex.def)             Requested size: 350.68274pt x 175.33723pt.
- [65<./immagini/fig_fisica_B5.png>]
-<immagini/fig_gap_scomposizione.png, id=1068, 1156.32pt x 331.7193pt>
+<immagini/fig_gap_scomposizione.png, id=1080, 1156.32pt x 331.7193pt>
 File: immagini/fig_gap_scomposizione.png Graphic file (type png)
 <use immagini/fig_gap_scomposizione.png>
 Package luatex.def Info: immagini/fig_gap_scomposizione.png  used on input line
- 831.
+ 851.
 (luatex.def)             Requested size: 412.56497pt x 118.35085pt.
- [66<./immagini/fig_gap_scomposizione.png>] [67]
-<immagini/t1 Frontiera di Pareto.png, id=1083, 491.1951pt x 419.166pt>
-File: immagini/t1 Frontiera di Pareto.png Graphic file (type png)
-<use immagini/t1 Frontiera di Pareto.png>
-Package luatex.def Info: immagini/t1 Frontiera di Pareto.png  used on input lin
-e 867.
-(luatex.def)             Requested size: 412.56497pt x 352.06506pt.
- [68] [69<./immagini/t1 Frontiera di Pareto.png>]
-<immagini/t1 Funz Obiettivo in base a Gamma.png, id=1094, 598.1547pt x 306.6657
-pt>
-File: immagini/t1 Funz Obiettivo in base a Gamma.png Graphic file (type png)
-<use immagini/t1 Funz Obiettivo in base a Gamma.png>
-Package luatex.def Info: immagini/t1 Funz Obiettivo in base a Gamma.png  used o
-n input line 893.
-(luatex.def)             Requested size: 412.56497pt x 211.52467pt.
+ [69<./immagini/fig_fisica_B5.png>]
+[70<./immagini/fig_gap_scomposizione.png>] [71] [72] [73]
+<immagini/fig_t1_frontiere.png, id=1123, 1084.05pt x 621.522pt>
+File: immagini/fig_t1_frontiere.png Graphic file (type png)
+<use immagini/fig_t1_frontiere.png>
+Package luatex.def Info: immagini/fig_t1_frontiere.png  used on input line 950.
 
-[70] [71<./immagini/t1 Funz Obiettivo in base a Gamma.png>]
-<immagini/t1 Xr_ x Rifiuto in base a Gamma.png, id=1105, 643.203pt x 347.1369pt
->
-File: immagini/t1 Xr_ x Rifiuto in base a Gamma.png Graphic file (type png)
-<use immagini/t1 Xr_ x Rifiuto in base a Gamma.png>
-Package luatex.def Info: immagini/t1 Xr_ x Rifiuto in base a Gamma.png  used on
- input line 920.
-(luatex.def)             Requested size: 412.56497pt x 222.66476pt.
- [72<./immagini/t1 Xr_ x Rifiuto in base a Gamma.png>]
-<immagini/t1 Saturazione Media in base a Gamma.png, id=1112, 590.205pt x 306.66
-57pt>
-File: immagini/t1 Saturazione Media in base a Gamma.png Graphic file (type png)
-
-<use immagini/t1 Saturazione Media in base a Gamma.png>
-Package luatex.def Info: immagini/t1 Saturazione Media in base a Gamma.png  use
-d on input line 948.
-(luatex.def)             Requested size: 412.56497pt x 214.3697pt.
- [73] [74<./immagini/t1 Saturazione Media in base a Gamma.png>] [75] [76]
-<immagini/t2 Ftot rispetto a Xr.png, id=1133, 658.1388pt x 346.4142pt>
+(luatex.def)             Requested size: 412.56497pt x 236.53171pt.
+ [74] [75<./immagini/fig_t1_frontiere.png>] [76] [77]
+<immagini/t2 Ftot rispetto a Xr.png, id=1155, 658.1388pt x 346.4142pt>
 File: immagini/t2 Ftot rispetto a Xr.png Graphic file (type png)
 <use immagini/t2 Ftot rispetto a Xr.png>
 Package luatex.def Info: immagini/t2 Ftot rispetto a Xr.png  used on input line
- 1002.
+ 1016.
 (luatex.def)             Requested size: 412.56497pt x 217.1585pt.
- [77<./immagini/t2 Ftot rispetto a Xr.png>]
-<immagini/t2 Scomposizione Ftot (Organico) rispetto a Xr.png, id=1139, 658.6206
+ [78] [79<./immagini/t2 Ftot rispetto a Xr.png>]
+<immagini/t2 Scomposizione Ftot (Organico) rispetto a Xr.png, id=1166, 658.6206
 pt x 346.4142pt>
 File: immagini/t2 Scomposizione Ftot (Organico) rispetto a Xr.png Graphic file 
 (type png)
 <use immagini/t2 Scomposizione Ftot (Organico) rispetto a Xr.png>
 Package luatex.def Info: immagini/t2 Scomposizione Ftot (Organico) rispetto a X
-r.png  used on input line 1032.
+r.png  used on input line 1046.
 (luatex.def)             Requested size: 412.56497pt x 216.99992pt.
-
-[78] [79<./immagini/t2 Scomposizione Ftot (Organico) rispetto a Xr.png>]
-<immagini/t2 Ftot per Rifiuto rispetto a Xr.png, id=1150, 659.3433pt x 346.1733
+[80<./immagini/t2 Scomposizione Ftot (Organico) rispetto a Xr.png>]
+<immagini/t2 Ftot per Rifiuto rispetto a Xr.png, id=1173, 659.3433pt x 346.1733
 pt>
 File: immagini/t2 Ftot per Rifiuto rispetto a Xr.png Graphic file (type png)
 <use immagini/t2 Ftot per Rifiuto rispetto a Xr.png>
 Package luatex.def Info: immagini/t2 Ftot per Rifiuto rispetto a Xr.png  used o
-n input line 1059.
+n input line 1073.
 (luatex.def)             Requested size: 412.56497pt x 216.6166pt.
-
-[80<./immagini/t2 Ftot per Rifiuto rispetto a Xr.png>] [81]
-<immagini/t2 Veicoli rispetto a Xr.png, id=1162, 647.2983pt x 344.0052pt>
+ [81]
+[82<./immagini/t2 Ftot per Rifiuto rispetto a Xr.png>]
+<immagini/t2 Veicoli rispetto a Xr.png, id=1185, 647.2983pt x 344.0052pt>
 File: immagini/t2 Veicoli rispetto a Xr.png Graphic file (type png)
 <use immagini/t2 Veicoli rispetto a Xr.png>
 Package luatex.def Info: immagini/t2 Veicoli rispetto a Xr.png  used on input l
-ine 1088.
+ine 1102.
 (luatex.def)             Requested size: 412.56497pt x 219.25972pt.
- [82<./immagini/t2 Veicoli rispetto a Xr.png>] [83] [84] [85]) [86] (./conclusi
-oni.tex [87
+ [83] [84<./immagini/t2 Veicoli rispetto a Xr.png>] [85] [86]) [87] (./conclusi
+oni.tex [88
 
 
-]
-[88] [89] [90]) [91]
+] [89]
+[90] [91]) [92]
 \tf@toc=\write6
 
 \openout6 = MainTESINA.toc
@@ -1593,18 +1567,18 @@ LaTeX2e <2025-11-01>
 L3 programming layer <2020/03/25>
  ***********
 Package rerunfilecheck Info: File `MainTESINA.out' has not changed.
-(rerunfilecheck)             Checksum: CBFF8C52F754CCCC88E909DB90C5A3A1;20727.
+(rerunfilecheck)             Checksum: CA59B3639E2B763B58DB2E2573567FA7;19955.
 )
 
 Here is how much of LuaTeX's memory you used:
- 31291 strings out of 476076
+ 31274 strings out of 476076
  125061,1144653 words of node,token memory allocated
  1950 words of node memory still in use:
-   6 hlist, 2 vlist, 2 rule, 2 glue, 4 kern, 1 glyph, 187 attribute, 210 glue_sp
-ec, 94 attribute_list, 3 write, 22 pdf_action nodes
-   avail lists: 1:6,2:1908,3:712,4:59,5:346,6:86,7:7737,8:66,9:720,10:36,11:1264
+   6 hlist, 2 vlist, 2 rule, 2 glue, 4 kern, 1 glyph, 193 attribute, 210 glue_sp
+ec, 97 attribute_list, 3 write, 19 pdf_action nodes
+   avail lists: 1:6,2:1890,3:712,4:61,5:346,6:89,7:9943,8:66,9:720,10:36,11:1260
 
- 52559 multiletter control sequences out of 65536+600000
+ 52548 multiletter control sequences out of 65536+600000
  90 fonts using 5929823 bytes
  99i,24n,101p,1586b,861s stack positions out of 10000i,1000n,20000p,200000b,200000s
 {/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}{/usr/local/tex
@@ -1634,10 +1608,10 @@ e/2026/texmf-dist/fonts/type1/public/lm/lmri10.pfb></usr/local/texlive/2026/texm
 f-dist/fonts/type1/public/lm/lmri8.pfb></usr/local/texlive/2026/texmf-dist/fonts
 /type1/public/lm/lmtt10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/publ
 ic/amsfonts/symbols/msbm10.pfb>
-Output written on MainTESINA.pdf (99 pages, 5019809 bytes).
+Output written on MainTESINA.pdf (100 pages, 5078947 bytes).
 
-PDF statistics: 1308 PDF objects out of 1440 (max. 8388607)
- 1132 compressed objects within 12 object streams
- 315 named destinations out of 1000 (max. 1048576)
+PDF statistics: 1331 PDF objects out of 1440 (max. 8388607)
+ 1156 compressed objects within 12 object streams
+ 318 named destinations out of 1000 (max. 1048576)
  720 words of extra memory for PDF output out of 10000 (max. 100000000)
 

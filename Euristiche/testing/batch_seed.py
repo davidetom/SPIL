@@ -16,6 +16,8 @@ import ClarkeWright as CW
 OUT = ROOT / "risultati_seed"
 N_MAX, R_FACTOR = 1000, 1.2
 B1_N = [100, 250, 500, 750, 1000]
+# serie estesa (rete di base da 4000 nodi): i punti 100-1000 servono da raccordo con la serie B1/B1S
+B1_N_LARGE = [100, 250, 500, 1000, 2000, 3000, 4000]
 FIELDS = ["bench", "seed", "N", "scenario", "modo", "rifiuto", "X_r", "algoritmo",
           "n_vehicles", "n_utenti_serviti", "F_insoddis", "F_costo_fisso",
           "F_viaggio", "F_lavoro", "sat_fisica", "sat_tempo", "k_scala", "algo_time_sec"]
@@ -34,13 +36,13 @@ def get_seeds(n: int, path: Path = None) -> list[int]:
     return seeds
 
 
-def make_base_graph(seed: int, scale: float = 1.0) -> dict:
+def make_base_graph(seed: int, scale: float = 1.0, n_max: int = N_MAX) -> dict:
     rng = np.random.default_rng(seed)
-    coords = rng.uniform(0, 10, size=(N_MAX + 1, 2)) * scale
+    coords = rng.uniform(0, 10, size=(n_max + 1, 2)) * scale
     coords[0] = [5.0 * scale, 5.0 * scale]
     dist, tim, adj, edges = _build_graph(coords, R_FACTOR)
     return {"coords_base": coords, "dist_base": dist, "time_base": tim,
-            "adj_base": adj, "edges_base": edges, "n_max": N_MAX, "seed": seed}
+            "adj_base": adj, "edges_base": edges, "n_max": n_max, "seed": seed}
 
 
 def run_instance(data: dict, bench: str, seed: int, N: int, scenario: str, modo: str) -> None:
@@ -93,12 +95,19 @@ def mix_fabriano() -> np.ndarray:
     return c / c.sum()
 
 
-def run_seed(seed: int, only: set[str], scale: float = 1.0) -> None:
-    bg = make_base_graph(seed, scale) if only & {"B1", "B2", "B3"} else None
+def run_seed(seed: int, only: set[str], scale: float = 1.0,
+             n_max: int = N_MAX, ns: list[int] | None = None) -> None:
+    bg = make_base_graph(seed, scale, n_max) if only & {"B1", "B2", "B3"} else None
     kw = dict(seed=seed, r_factor=R_FACTOR, base_graph_dict=bg)
     if "B1" in only:
-        nome, scen, probs = ("B1", "residenziale", None) if scale == 1.0 else ("B1S", "mix_fabriano", mix_fabriano())
-        for n in B1_N:
+        nome, scen, probs = (("B1", "residenziale", None) if scale == 1.0
+                             else ("B1S", "mix_fabriano", mix_fabriano()))
+        large = n_max != N_MAX
+        if large:
+            nome += "L"                      # B1L / B1SL: serie estesa su rete da n_max nodi
+        for n in (ns or (B1_N_LARGE if large else B1_N)):
+            if n > n_max:
+                raise SystemExit(f"N={n} supera --n-max={n_max}")
             d = generate_mock_data(n_users=n, user_scenario="residenziale",
                                    custom_type_probs=probs, spatial_mode="uniform", **kw)
             run_instance(d, nome, seed, n, scen, "uniform")
@@ -120,14 +129,19 @@ def main() -> None:
     ap.add_argument("--seeds", default="", help="lista esplicita, es. 42,7")
     ap.add_argument("--bench", default="B1,B2,B3,B5")
     ap.add_argument("--scale", type=float, default=1.0)
+    ap.add_argument("--n-max", type=int, default=N_MAX,
+                    help="nodi della rete di base; se diverso da 1000 i risultati vanno in B1L/B1SL")
+    ap.add_argument("--N", default="", help="lista di N per B1, es. 2000,3000,4000")
     a = ap.parse_args()
     seeds = [int(s) for s in a.seeds.split(",")] if a.seeds else get_seeds(a.n_seed)
     only = set(a.bench.split(","))
-    if a.scale != 1.0 and only - {"B1"}: raise SystemExit("con --scale usa solo --bench B1")
+    if (a.scale != 1.0 or a.n_max != N_MAX) and only - {"B1"}:
+        raise SystemExit("con --scale o --n-max usa solo --bench B1")
+    ns = [int(x) for x in a.N.split(",")] if a.N else None
     for i, s in enumerate(seeds, 1):
         t0 = time.perf_counter()
         print(f"[{i}/{len(seeds)}] seed {s}", flush=True)
-        run_seed(s, only, a.scale)
+        run_seed(s, only, a.scale, a.n_max, ns)
         print(f"    completato in {time.perf_counter() - t0:.0f} s", flush=True)
 
 

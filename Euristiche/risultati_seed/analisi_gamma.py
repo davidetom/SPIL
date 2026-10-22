@@ -1,5 +1,9 @@
 # analisi_gamma.py
+#   python analisi_gamma.py                  # analisi completa -> analisi_seed/
+#   python analisi_gamma.py --estese         # solo B1L, B1SL, B4sub (tutte le N presenti) -> analisi_seed_estese/
+#   python analisi_gamma.py --estese --con-b4   # come sopra, piu' l'istanza completa di Fabriano
 from __future__ import annotations
+import argparse
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -8,18 +12,25 @@ from scipy import stats
 IN, OUT = Path("risultati_seed"), Path("analisi_seed")
 B4_CSV = Path("risultati_csv/risultati_3932u_mappa_reale_gamma0.50.csv")
 CD, CM, MIN_PER_KM = 0.35, 0.25, 60 / 25
+# modalita' --estese: solo questi CSV
+BENCH_ESTESE = ["B1L", "B1SL", "B4sub"]
 GAMMAS = np.round(np.arange(0.05, 0.951, 0.05), 2)
 KI = ["bench", "N", "scenario", "modo", "seed"]     # istanza
 KS = ["bench", "N", "scenario", "modo"]             # scenario (si aggrega sui seed)
 
 
-def carica() -> pd.DataFrame:
+def carica(estese: bool = False, con_b4: bool = False) -> pd.DataFrame:
     R = pd.concat([pd.read_csv(f) for f in sorted(IN.glob("*.csv"))], ignore_index=True)
-    u = R[(R.bench == "B2") & (R.scenario == "residenziale")].copy()   # B3 uniform = B2 residenziale
-    u["bench"] = "B3"
-    R = pd.concat([R, u], ignore_index=True)
+    if estese:
+        R = R[R.bench.isin(BENCH_ESTESE)].reset_index(drop=True)
+        if R.empty:
+            raise SystemExit("Nessun CSV di B1L/B1SL/B4sub in risultati_seed/")
+    else:
+        u = R[(R.bench == "B2") & (R.scenario == "residenziale")].copy()   # B3 uniform = B2 residenziale
+        u["bench"] = "B3"
+        R = pd.concat([R, u], ignore_index=True)
     R["F_costi"] = R.F_costo_fisso + R.F_viaggio + R.F_lavoro
-    if B4_CSV.exists():
+    if (not estese or con_b4) and B4_CSV.exists():
         d = pd.read_csv(B4_CSV)
         d["F_costi"] = d.F_costo_fisso + d.F_viaggio + d.F_lavoro
         d["k_scala"] = ((d.F_total - 0.5 * d.F_costi) / (0.5 * d.F_insoddis)).median()
@@ -116,8 +127,17 @@ def riepiloga(df: pd.DataFrame, keys: list[str], cols: list[str]) -> pd.DataFram
 
 
 def main() -> None:
+    global OUT
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--estese", action="store_true",
+                    help="usa solo B1L, B1SL e B4sub (tutte le N presenti); output in analisi_seed_estese/")
+    ap.add_argument("--con-b4", action="store_true",
+                    help="con --estese: aggiunge anche l'istanza completa di Fabriano (CSV principale)")
+    a = ap.parse_args()
+    if a.estese:
+        OUT = Path("analisi_seed_estese")
     OUT.mkdir(exist_ok=True)
-    R = carica()
+    R = carica(a.estese, a.con_b4)
     print("seed distinti per scenario:")
     print(R.groupby(KS).seed.nunique().to_string())
     S = seleziona(R)
@@ -138,13 +158,14 @@ def main() -> None:
     rg.to_csv(OUT / "riepilogo_gap.csv", index=False)
     riepiloga(P, KS, pcols).to_csv(OUT / "riepilogo_plateau.csv", index=False)
 
-    # controllo sul seed 42: attesi B5 -> (3.12, 3.04, 0.07), (8.18, 7.98, 0.20), (2.91, 2.91, 0.00)
-    print("\nCONTROLLO seed 42 (B5):")
-    c = G[(G.seed == 42) & (G.bench == "B5") & G.gamma.isin([0.1, 0.5, 0.9])]
-    print(c[["gamma", "gap_tot", "da_routing", "da_shiftX"]].round(2).to_string(index=False))
-    print("CONTROLLO seed 42 (B1, N=100, gamma=0.5): atteso gap_tot 29.05")
-    c = G[(G.seed == 42) & (G.bench == "B1") & (G.N == 100) & (G.gamma == 0.5)]
-    print(c[["gamma", "gap_tot"]].round(2).to_string(index=False))
+    if not a.estese:
+        # controllo sul seed 42: attesi B5 -> (3.12, 3.04, 0.07), (8.18, 7.98, 0.20), (2.91, 2.91, 0.00)
+        print("\nCONTROLLO seed 42 (B5):")
+        c = G[(G.seed == 42) & (G.bench == "B5") & G.gamma.isin([0.1, 0.5, 0.9])]
+        print(c[["gamma", "gap_tot", "da_routing", "da_shiftX"]].round(2).to_string(index=False))
+        print("CONTROLLO seed 42 (B1, N=100, gamma=0.5): atteso gap_tot 29.05")
+        c = G[(G.seed == 42) & (G.bench == "B1") & (G.N == 100) & (G.gamma == 0.5)]
+        print(c[["gamma", "gap_tot"]].round(2).to_string(index=False))
 
     print("\nRIEPILOGO GAP (media, CI95 sui seed)")
     s = rg[rg.gamma.isin([0.1, 0.5, 0.9])]
