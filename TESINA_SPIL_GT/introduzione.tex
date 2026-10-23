@@ -1,12 +1,25 @@
-introduzione, motivazioni del problema, obiettivo della tesi e struttura del lavoro (da inserire)
-
 \noindent
-Il progetto affronta il problema dell'ottimizzazione della raccolta differenziata in un contesto urbano.
+La raccolta differenziata porta a porta richiede di decidere, per ogni tipologia di rifiuto, quante volte a settimana passare presso le utenze e con quali percorsi. Le due decisioni sono legate: la frequenza di raccolta stabilisce quanto rifiuto si trova presso ciascun utente a ogni passaggio, quindi quanti camion servono e quanto lavoro richiede ogni giro, e allo stesso tempo stabilisce quanto il servizio si avvicina alle esigenze dei cittadini. Una pianificazione basata sulla sola minimizzazione delle distanze tratta la frequenza come un dato e ignora questo legame.
 
-\noindent
-L'approccio non si basa sulla sola minimizzazione delle distanze, ma prende in considerazione anche la qualità del servizio percepita dal cittadino. L'algoritmo decide proattivamente la pianificazione settimanale (frequenze, veicoli attivi e routing), bilanciando due forze contrapposte:
+\medskip\noindent
+Il progetto affronta il problema dell'ottimizzazione della raccolta differenziata in un contesto urbano considerando anche la qualità del servizio percepita dal cittadino. Il modello sceglie la pianificazione settimanale (frequenze di raccolta, veicoli attivi e percorsi) bilanciando due obiettivi contrapposti:
 
 \begin{itemize}
-    \item \textbf{L'impatto sociale:} minimizzare l'insoddisfazione dell'utente, misurata come scostamento dalla frequenza di ritiro ideale (che varia in base alla tipologia di rifiuto).
-    \item \textbf{L'efficienza logistica:} minimizzare i costi operativi aziendali, composti dall'attivazione dei mezzi, dal consumo di carburante lungo i percorsi e dalle ore di lavoro degli operatori.
+	\item \textbf{L'impatto sociale:} minimizzare l'insoddisfazione degli utenti, misurata come scostamento dalla frequenza di ritiro ideale, che dipende dalla tipologia di rifiuto e dalla tipologia di utenza.
+	\item \textbf{L'efficienza logistica:} minimizzare i costi operativi dell'azienda, cioè attivazione dei mezzi, chilometri percorsi e ore di lavoro degli operatori.
 \end{itemize}
+
+\noindent
+I due obiettivi sono combinati in un'unica funzione con un peso $\gamma$, che rappresenta la politica del decisore: da una politica orientata al contenimento dei costi a una orientata alla qualità del servizio. Per ogni tipologia di rifiuto la frequenza è scelta su una griglia di valori tra $0.5$ e $6$ ritiri settimanali, e per ogni frequenza i percorsi sono costruiti da due euristiche alternative: un algoritmo costruttivo di tipo Greedy e l'algoritmo dei risparmi di Clarke-Wright. Il lavoro ha quindi un duplice obiettivo: capire come la scelta del peso $\gamma$ si traduce in frequenze, flotta e costi, e misurare quanto vale, e da che cosa dipende, il vantaggio di un algoritmo di routing sull'altro.
+
+\medskip\noindent
+Le due euristiche sono state confrontate su istanze sintetiche che isolano singoli fattori (numero di utenti, tipologia urbanistica, distribuzione spaziale degli utenti), sulla rete stradale reale di Fabriano con i suoi $3932$ edifici residenziali e su un grafo standard, con 30 repliche per ogni istanza sintetica. Due analisi trasversali verificano su tutte le istanze l'effetto di $\gamma$ e il comportamento della soluzione a frequenza fissata. Ne emergono quattro risultati principali:
+\begin{itemize}
+	\item la scelta di $\gamma$ si riduce alla scelta tra poche soluzioni discrete, ciascuna con un costo esplicito per unità di disservizio evitata;
+	\item a parità di disservizio Clarke-Wright costa in mediana il $9$--$13\%$ in meno di Greedy;
+	\item questo vantaggio dipende dal peso del viaggio nel costo più che dalla rete stradale;
+	\item la ricerca sulle frequenze può essere ridotta del $60\%$ senza cambiare la soluzione.
+\end{itemize}
+
+\medskip\noindent
+Il lavoro è organizzato come segue. Il Capitolo~\ref{cap:capitolo-1} descrive il problema e ne dà la formulazione matematica: notazione, funzione obiettivo e vincoli di capacità e di durata del turno. Il Capitolo~\ref{cap:capitolo-2} presenta l'approccio risolutivo, cioè la ricerca a griglia sulla frequenza e le due euristiche di costruzione dei percorsi. Il Capitolo~\ref{cap:capitolo-3} riporta la configurazione sperimentale, il metodo di analisi dei risultati, i cinque benchmark, i due benchmark trasversali e una discussione complessiva. Le conclusioni riassumono i risultati, dichiarano i limiti del modello e indicano i possibili sviluppi futuri.

@@ -55,37 +55,37 @@ L'efficacia dell'approccio proposto viene successivamente analizzata attraverso 
 
 \subsection{Indici e Insiemi}
 
-\begin{tabular}{ll}
-$r \in R$   & : Tipologia di rifiuto: organico, carta, plastica, vetro, indifferenziata. \\
-$u \in U_G$   & : Utente (nodo) del grafo cittadino $G$. \\
-$v \in V_r$ & : Veicolo della flotta attiva. \\
-$t_u \in T$ & : Tipologia dell'utente $u$: single, famiglia, palazzina piccola, palazzina grande. \\
-$ab \in E_G$ & : arco del grafo cittadino $G$ che collega i nodi $a$ e $b$.
+\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{11cm}}
+	$r \in R$   & : Tipologia di rifiuto: organico, carta, plastica, vetro, indifferenziata. \\
+	$u \in U_G$   & : Utente (nodo) del grafo cittadino $G$. \\
+	$v \in V_r$ & : Veicolo della flotta attiva. \\
+	$t_u \in T$ & : Tipologia dell'utente $u$: single, famiglia, palazzina piccola, palazzina grande. \\
+	$ab \in E_G$ & : arco del grafo cittadino $G$ che collega i nodi $a$ e $b$.
 \end{tabular}
 
 \subsection{Parametri}
 
 \begin{longtable}[l]{@{}ll>{\raggedright\arraybackslash}p{11cm}}
-$x^*_{r t_u}$ & : & Frequenza ideale di ritiro settimanale per il rifiuto $r$ e la tipologia di utente $t_u$. \\
-$W_{r t_u}$ & : & Quantità totale settimanale stimata di rifiuto (\textit{waste}) per la tipologia di utente $t_u$ e il rifiuto $r$. \\
-$Q_{ru}(X_r)$ & : & Quantità stimata di volume di rifiuto $r$ che ci si aspetta ad ogni passaggio del camion prodotta dall'utente $u$ $\rightarrow$ dipende dal numero di passaggi settimanali $X_r$. \\
-$C_r$ & : & Capacità massima di carico del veicolo che raccoglie $r$. \\
-$d_{ab}$ & : & Distanza di viaggio dal nodo $a$ al nodo $b$. \\
-$\tau_{ab}$ & : & Tempo di viaggio dal nodo $a$ al nodo $b$. \\
-$s_{r t_u}$ & : & Tempo di carico per unità (svuotamento mastelli) presso l'utente $u$ (di tipologia $t_u$) per il rifiuto $r$. \\
-$\alpha$ & : & Peso di penalità applicato in caso di sotto-servizio (mancato ritiro). \\
-$\beta$ & : & Peso di penalità applicato in caso di sovra-servizio (ritiri in eccesso). \\
-$c_r$ & : & Costo fisso di attivazione del veicolo adibito alla raccolta del rifiuto di tipo $r$. \\
-$cd, cm$ & : & Costo unitario per distanza percorsa ($cd$) e costo orario della manodopera ($cm$). \\
-$L$ & : & Durata massima del turno di lavoro. \\
+	$x^*_{r t_u}$ & : & Frequenza ideale di ritiro settimanale per il rifiuto $r$ e la tipologia di utente $t_u$. \\
+	$W_{r t_u}$ & : & Quantità totale settimanale stimata di rifiuto (\textit{waste}) per la tipologia di utente $t_u$ e il rifiuto $r$. \\
+	$Q_{ru}(X_r)$ & : & Quantità stimata di volume di rifiuto $r$ che ci si aspetta ad ogni passaggio del camion prodotta dall'utente $u$ $\rightarrow$ dipende dal numero di passaggi settimanali $X_r$. \\
+	$C_r$ & : & Capacità massima di carico del veicolo che raccoglie $r$. \\
+	$d_{ab}$ & : & Distanza di viaggio dal nodo $a$ al nodo $b$. \\
+	$\tau_{ab}$ & : & Tempo di viaggio dal nodo $a$ al nodo $b$. \\
+	$s_{r t_u}$ & : & Tempo di servizio per fermata (svuotamento dei contenitori) presso l'utente $u$ (di tipologia $t_u$) per il rifiuto $r$. \\
+	$\alpha$ & : & Peso di penalità applicato in caso di sotto-servizio (mancato ritiro). \\
+	$\beta$ & : & Peso di penalità applicato in caso di sovra-servizio (ritiri in eccesso). \\
+	$c_r$ & : & Costo fisso di attivazione del veicolo adibito alla raccolta del rifiuto di tipo $r$. \\
+	$cd, cm$ & : & Costo unitario per distanza percorsa ($cd$) e costo della manodopera per unità di tempo ($cm$). \\
+	$L$ & : & Durata massima del turno di lavoro. \\
 \end{longtable}
 
 \subsection{Variabili Decisionali}
 
 \begin{longtable}[l]{@{}ll>{\raggedright\arraybackslash}p{10.5cm}}
-$X_r \in \mathbb{R}$ & : & Frequenza programmata: variabile $\ge 0$ che indica il numero di ritiri totali programmati per il rifiuto $r$ (ritiri settimanali). \\
-$V_r \in \mathbb{N}$ & : & Flotta attiva: variabile intera $\ge 0$ che indica il numero totale di camion attivati per il rifiuto $r$. \\
-$P_v$ & : & Routing: un vettore ordinato di nodi (lista) che rappresenta la sequenza di nodi del percorso effettuato dal veicolo $v$. \\
+	$X_r \in \mathbb{R}$ & : & Frequenza programmata: variabile $\ge 0$ che indica il numero di ritiri totali programmati per il rifiuto $r$ (ritiri settimanali). \\
+	$V_r \in \mathbb{N}$ & : & Flotta attiva: variabile intera $\ge 0$ che indica il numero totale di camion attivati per il rifiuto $r$. \\
+	$P_v$ & : & Routing: un vettore ordinato di nodi (lista) che rappresenta la sequenza di nodi del percorso effettuato dal veicolo $v$. \\
 \end{longtable}
 
 
@@ -94,44 +94,46 @@ $P_v$ & : & Routing: un vettore ordinato di nodi (lista) che rappresenta la sequ
 Il modello persegue simultaneamente due obiettivi contrapposti: la minimizzazione dell'insoddisfazione percepita dagli utenti (componente sociale) e la minimizzazione dei costi operativi sostenuti dall'azienda (componente logistica, a sua volta articolata in costo fisso di attivazione della flotta, costo di percorrenza e costo di manodopera). La funzione obiettivo aggrega questi quattro contributi in un'unica formulazione bi-obiettivo, i cui termini vengono indicati rispettivamente con $F_{\text{insoddis}}$, $F_{\text{fisso}}$, $F_{\text{viaggio}}$ e $F_{\text{lavoro}}$:
 
 \begin{equation}
-\begin{split}
-F = \min \Biggl\{ & \underbrace{\sum_{r \in R} \sum_{u \in U_G} I_{ru}}_{F_{\text{insoddis}}} + \underbrace{\sum_{r \in R} (c_r \cdot V_{r} \cdot X_{r})}_{F_{\text{fisso}}} \\
-& + \underbrace{\sum_{r \in R} \left( X_{r} \cdot \sum_{v \in V_{r}} \sum_{(a,b) \in P_{v}} (cd \cdot d_{ab}) \right)}_{F_{\text{viaggio}}} \\
-& + \underbrace{\sum_{r \in R} \left( X_{r} \cdot \sum_{v \in V_{r}} cm \cdot T_{v} \right)}_{F_{\text{lavoro}}} \Biggr\}
-\end{split}
-\label{eq:obiettivo-completo}
+	\begin{split}
+		F = \min \Biggl\{ & \underbrace{\sum_{r \in R} \sum_{u \in U_G} I_{ru}}_{F_{\text{insoddis}}} + \underbrace{\sum_{r \in R} (c_r \cdot V_{r} \cdot X_{r})}_{F_{\text{fisso}}} \\
+		& + \underbrace{\sum_{r \in R} \left( X_{r} \cdot \sum_{v \in V_{r}} \sum_{(a,b) \in P_{v}} (cd \cdot d_{ab}) \right)}_{F_{\text{viaggio}}} \\
+		& + \underbrace{\sum_{r \in R} \left( X_{r} \cdot \sum_{v \in V_{r}} cm \cdot T_{v} \right)}_{F_{\text{lavoro}}} \Biggr\}
+	\end{split}
+	\label{eq:obiettivo-completo}
 \end{equation}
 
 \noindent
-Le funzioni ausiliarie $I_{ru}$ (funzione di insoddisfazione), $Q_{ru}(X_r)$ (quantità di rifiuto raccolta) e $T_v$ (tempo totale di servizio del veicolo) vengono definite nelle sezioni seguenti.
+Le funzioni ausiliarie $I_{ru}$ (funzione di insoddisfazione), $Q_{ru}(X_r)$ (quantità di rifiuto raccolta) e $T_v$ (tempo totale di attività del veicolo) vengono definite nelle sezioni seguenti.
 
 \subsection{Funzione di Insoddisfazione}
 
 Si penalizza lo scostamento tra i ritiri programmati $X_r$ e quelli desiderati $x^*_{r t_u}$. La funzione di disservizio $I_{ru}$ punisce più severamente il sotto-servizio rispetto al sovra-servizio, con $\alpha > \beta$.
 
 \begin{equation}
-I_{ru} =
-\begin{cases}
-\alpha \cdot \left(x^*_{r t_u} - X_r\right), & \text{se } X_r < x^*_{r t_u}, \\
-0, & \text{se } X_r = x^*_{r t_u}, \\
-\beta \cdot \left(X_r - x^*_{r t_u}\right), & \text{se } X_r > x^*_{r t_u}.
-\end{cases}
+	I_{ru} =
+	\begin{cases}
+		\alpha \cdot \left(x^*_{r t_u} - X_r\right), & \text{se } X_r < x^*_{r t_u}, \\
+		0, & \text{se } X_r = x^*_{r t_u}, \\
+		\beta \cdot \left(X_r - x^*_{r t_u}\right), & \text{se } X_r > x^*_{r t_u}.
+	\end{cases}
 \end{equation}
 
 
 \subsection{Tempo Totale di Attività per Veicolo}
 
-Il tempo totale di attività del veicolo $v$ è dato dalla somma tra il tempo di viaggio lungo tutti gli archi del percorso $P_v$ e il tempo di carico presso gli utenti serviti dallo stesso percorso.
+Il tempo totale di attività del veicolo $v$ è dato dalla somma tra il tempo di viaggio lungo tutti gli archi del percorso $P_v$ e il tempo di servizio presso gli utenti serviti dallo stesso percorso.
 
 \begin{equation}
-T_v = \sum_{(a,b) \in P_v} \tau_{ab}
-+ \sum_{u \in P_v} \left( s_{r t_u} \cdot Q_{ru}(X_r) \right)
+	T_v = \sum_{(a,b) \in P_v} \tau_{ab}
+	+ \sum_{u \in P_v} s_{r t_u}
 \end{equation}
 
 \noindent
-La quantità stimata di rifiuto $r$ raccolta presso l'utente $u$ a ogni passaggio è definita come:
+Il tempo di servizio $s_{r t_u}$ dipende dal rifiuto e dalla tipologia dell'utente: svuotare i contenitori condominiali di una palazzina richiede più tempo che svuotare il mastello di una famiglia. Si assume invece che non dipenda dalla quantità raccolta a ogni passaggio, cioè che le operazioni di svuotamento durino lo stesso tempo qualunque sia il riempimento dei contenitori.
+
+La quantità stimata di rifiuto $r$ raccolta presso l'utente $u$ a ogni passaggio, che determina il carico del veicolo, è definita come:
 \begin{equation}
-Q_{ru}(X_r) = \frac{W_{r t_u}}{X_r}.
+	Q_{ru}(X_r) = \frac{W_{r t_u}}{X_r}.
 \end{equation}
 Essa dipende dalla quantità settimanale stimata $W_{r t_u}$ ed è inversamente proporzionale al numero di passaggi settimanali $X_r$.
 
@@ -142,15 +144,15 @@ Essa dipende dalla quantità settimanale stimata $W_{r t_u}$ ed è inversamente 
 Per ogni percorso, la somma delle quantità stimate di rifiuto raccolte presso i nodi visitati non deve superare la capacità massima del veicolo.
 
 \begin{equation}
-\sum_{u \in P_v} Q_{ru}(X_r) \le C_r,
-\qquad \forall v \in V_r,\; \forall r \in R.
+	\sum_{u \in P_v} Q_{ru}(X_r) \le C_r,
+	\qquad \forall v \in V_r,\; \forall r \in R.
 \end{equation}
 
 \subsection{Vincolo Temporale del Turno Lavorativo}
 
-La somma dei tempi di viaggio lungo gli archi del percorso e dei tempi di sosta per il carico presso i nodi non deve eccedere la durata massima $L$ del turno lavorativo.
+La somma dei tempi di viaggio lungo gli archi del percorso e dei tempi di servizio presso i nodi non deve eccedere la durata massima $L$ del turno lavorativo.
 
 \begin{equation}
-T_v \le L,
-\qquad \forall v \in V.
+	T_v \le L,
+	\qquad \forall v \in V.
 \end{equation}

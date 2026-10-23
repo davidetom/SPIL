@@ -1,12 +1,16 @@
-# fig_gap_B1_B2.py  -- eseguire dalla cartella che contiene analisi_seed/
+# fig_gap_B1_B2.py
 # Produce: analisi_seed/fig_gap_vs_N_B1.png  (B1: gap vs N, 3 politiche)
 #          analisi_seed/fig_gap_B2.png       (B2: gap per scenario, 3 politiche)
 # Fonte: analisi_seed/riepilogo_gap.csv (media e IC95 su 30 seed)
-import pandas as pd
-import numpy as np
+from pathlib import Path
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
-G = pd.read_csv("analisi_seed/riepilogo_gap.csv")
+ROOT = Path(__file__).parent.parent   # cartella Euristiche/
+OUT = ROOT / "analisi_seed"
+
+G = pd.read_csv(OUT / "riepilogo_gap.csv")
 G["gamma"] = G["gamma"].round(2)
 
 POL = {0.1: ("Pro-Azienda (γ=0.1)", "#1f78b4", "o"),
@@ -21,7 +25,7 @@ for g, (lab, col, mk) in POL.items():
                 capsize=3, lw=1.6, label=lab)
 ax.set_xlabel("N utenti"); ax.set_ylabel("Gap $F_{tot}$ Greedy–CW (%)")
 ax.set_xticks([100, 250, 500, 750, 1000]); ax.grid(alpha=.3); ax.legend(fontsize=9)
-fig.tight_layout(); fig.savefig("analisi_seed/fig_gap_vs_N_B1.png", dpi=300); plt.close(fig)
+fig.tight_layout(); fig.savefig(OUT / "fig_gap_vs_N_B1.png", dpi=300); plt.close(fig)
 
 # ---------------- B2: gap per scenario ----------------
 ordine = ["residenziale", "suburbano", "misto_periferia", "grandi_condomini", "villette"]
@@ -37,5 +41,5 @@ for k, (g, (lab, col, mk)) in enumerate(POL.items()):
     ax.bar(x + (k - 1) * w, m, w, yerr=e, capsize=3, color=col, alpha=.85, label=lab)
 ax.set_xticks(x); ax.set_xticklabels(etich)
 ax.set_ylabel("Gap $F_{tot}$ Greedy–CW (%)"); ax.grid(axis="y", alpha=.3); ax.legend(fontsize=9)
-fig.tight_layout(); fig.savefig("analisi_seed/fig_gap_B2.png", dpi=300); plt.close(fig)
+fig.tight_layout(); fig.savefig(OUT / "fig_gap_B2.png", dpi=300); plt.close(fig)
 print("ok")

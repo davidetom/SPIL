@@ -1,8 +1,8 @@
 \babel@toc {italian}{}\relax 
 \babel@toc {italian}{}\relax 
 \contentsline {chapter}{Introduzione}{ii}{chapter*.2}%
-\contentsline {chapter}{Indice}{iii}{chapter*.3}%
-\contentsline {chapter}{Elenco delle figure}{vii}{chapter*.4}%
+\contentsline {chapter}{Indice}{iv}{chapter*.3}%
+\contentsline {chapter}{Elenco delle figure}{viii}{chapter*.4}%
 \contentsline {chapter}{\chapternumberline {1}Formulazione del problema}{1}{chapter.1}%
 \contentsline {section}{\numberline {1.1}Contesto applicativo}{1}{section.1.1}%
 \contentsline {subsection}{\numberline {1.1.1}La raccolta differenziata urbana}{1}{subsection.1.1.1}%
@@ -48,93 +48,99 @@
 \contentsline {section}{\numberline {3.2}Configurazione Sperimentale}{32}{section.3.2}%
 \contentsline {subsection}{\numberline {3.2.1}Ambiente di Sviluppo}{32}{subsection.3.2.1}%
 \contentsline {subsection}{\numberline {3.2.2}Parametri Utilizzati}{33}{subsection.3.2.2}%
-\contentsline {subsection}{\numberline {3.2.3}Indicatori di prestazione}{35}{subsection.3.2.3}%
-\contentsline {subsubsection}{\numberline {3.2.3.1}Funzione obiettivo}{35}{subsubsection.3.2.3.1}%
+\contentsline {subsection}{\numberline {3.2.3}Indicatori di prestazione}{36}{subsection.3.2.3}%
+\contentsline {subsubsection}{\numberline {3.2.3.1}Funzione obiettivo}{36}{subsubsection.3.2.3.1}%
 \contentsline {subsubsection}{\numberline {3.2.3.2}Insoddisfazione degli utenti}{36}{subsubsection.3.2.3.2}%
-\contentsline {subsubsection}{\numberline {3.2.3.3}Costi logistici}{36}{subsubsection.3.2.3.3}%
-\contentsline {subsubsection}{\numberline {3.2.3.4}Saturazione fisica}{36}{subsubsection.3.2.3.4}%
+\contentsline {subsubsection}{\numberline {3.2.3.3}Costi logistici}{37}{subsubsection.3.2.3.3}%
+\contentsline {subsubsection}{\numberline {3.2.3.4}Saturazione fisica}{37}{subsubsection.3.2.3.4}%
 \contentsline {subsubsection}{\numberline {3.2.3.5}Saturazione temporale}{37}{subsubsection.3.2.3.5}%
-\contentsline {subsubsection}{\numberline {3.2.3.6}Numero di veicoli}{37}{subsubsection.3.2.3.6}%
-\contentsline {subsubsection}{\numberline {3.2.3.7}Tempo computazionale}{37}{subsubsection.3.2.3.7}%
-\contentsline {subsubsection}{\numberline {3.2.3.8}Soluzione selezionata}{37}{subsubsection.3.2.3.8}%
-\contentsline {subsection}{\numberline {3.2.4}Metodo di analisi dei risultati}{38}{subsection.3.2.4}%
-\contentsline {paragraph}{Ruolo di $\gamma $.}{38}{section*.10}%
-\contentsline {paragraph}{Grandezze fisiche.}{38}{section*.11}%
-\contentsline {paragraph}{Gap tra Greedy e Clarke-Wright.}{39}{section*.12}%
-\contentsline {paragraph}{Replicazione.}{39}{section*.13}%
+\contentsline {subsubsection}{\numberline {3.2.3.6}Numero di veicoli}{38}{subsubsection.3.2.3.6}%
+\contentsline {subsubsection}{\numberline {3.2.3.7}Tempo computazionale}{38}{subsubsection.3.2.3.7}%
+\contentsline {subsubsection}{\numberline {3.2.3.8}Soluzione selezionata}{38}{subsubsection.3.2.3.8}%
+\contentsline {subsection}{\numberline {3.2.4}Metodo di analisi dei risultati}{39}{subsection.3.2.4}%
+\contentsline {paragraph}{Ruolo di $\gamma $.}{39}{section*.10}%
+\contentsline {paragraph}{Grandezze fisiche.}{39}{section*.11}%
+\contentsline {paragraph}{Gap tra Greedy e Clarke-Wright.}{40}{section*.12}%
+\contentsline {paragraph}{Replicazione.}{40}{section*.13}%
 \contentsline {section}{\numberline {3.3}Benchmark 1 - Analisi della Variazione del Numero di Utenti}{40}{section.3.3}%
 \contentsline {subsection}{\numberline {3.3.1}Descrizione dello scenario}{40}{subsection.3.3.1}%
-\contentsline {subsection}{\numberline {3.3.2}Discussione dei risultati}{40}{subsection.3.3.2}%
-\contentsline {paragraph}{Andamento del gap rispetto a $N$.}{40}{section*.14}%
-\contentsline {paragraph}{Effetto di $\gamma $ sul gap.}{42}{section*.15}%
-\contentsline {paragraph}{Il paradosso dei camion.}{43}{section*.16}%
-\contentsline {paragraph}{Costo marginale e scelta di $\gamma $.}{44}{section*.17}%
-\contentsline {paragraph}{Clarke-Wright sotto capacità.}{44}{section*.18}%
-\contentsline {paragraph}{Tempi di calcolo.}{45}{section*.19}%
-\contentsline {paragraph}{Sintesi.}{46}{section*.20}%
-\contentsline {section}{\numberline {3.4}Benchmark 2 - Analisi delle tipologie urbanistiche}{46}{section.3.4}%
-\contentsline {subsection}{\numberline {3.4.1}Descrizione degli scenari}{46}{subsection.3.4.1}%
-\contentsline {subsection}{\numberline {3.4.2}Discussione dei risultati}{47}{subsection.3.4.2}%
-\contentsline {paragraph}{La tipologia cambia la soluzione fisica più del gap.}{48}{section*.21}%
-\contentsline {paragraph}{Il paradosso dei camion dipende dal carico per fermata.}{49}{section*.22}%
-\contentsline {paragraph}{Resilienza e disservizio residuo.}{49}{section*.23}%
-\contentsline {paragraph}{Gap nei grandi condomini a $\gamma =0.1$ e $0.9$.}{50}{section*.24}%
-\contentsline {paragraph}{Origine del vantaggio logistico per scenario.}{50}{section*.25}%
-\contentsline {paragraph}{Sintesi.}{50}{section*.26}%
-\contentsline {section}{\numberline {3.5}Benchmark 3 - Analisi della distribuzione geografica degli utenti}{51}{section.3.5}%
-\contentsline {subsection}{\numberline {3.5.1}Descrizione degli scenari}{51}{subsection.3.5.1}%
-\contentsline {subsection}{\numberline {3.5.2}Discussione dei risultati}{51}{subsection.3.5.2}%
-\contentsline {paragraph}{Cosa cambia con la concentrazione degli utenti.}{52}{section*.27}%
-\contentsline {paragraph}{Gap: la concentrazione riduce il vantaggio di CW a $\gamma \ge 0.5$.}{52}{section*.28}%
-\contentsline {paragraph}{Profilo del gap a frequenza fissata.}{52}{section*.29}%
-\contentsline {paragraph}{Contabilità del gap a pari politica.}{53}{section*.30}%
-\contentsline {paragraph}{Sintesi.}{54}{section*.31}%
-\contentsline {section}{\numberline {3.6}Benchmark 4 - Analisi sulla Mappa Reale di Fabriano}{54}{section.3.6}%
-\contentsline {subsection}{\numberline {3.6.1}Istanza reale e lettura dei risultati}{54}{subsection.3.6.1}%
-\contentsline {subsection}{\numberline {3.6.2}Soluzione fisica al variare di $\gamma $}{55}{subsection.3.6.2}%
-\contentsline {paragraph}{Cosa cambia passando da una politica all'altra.}{55}{section*.32}%
-\contentsline {paragraph}{Il paradosso dei camion a $\gamma =0.10$.}{56}{section*.33}%
-\contentsline {paragraph}{Il vincolo attivo per $\gamma \ge 0.5$.}{57}{section*.34}%
-\contentsline {paragraph}{Resilienza e scelta di $\gamma $.}{57}{section*.35}%
-\contentsline {subsection}{\numberline {3.6.3}Confronto tra reti sintetiche e rete reale}{59}{subsection.3.6.3}%
-\contentsline {paragraph}{Topologia e chilometri.}{60}{section*.36}%
-\contentsline {paragraph}{Peso economico del viaggio.}{61}{section*.37}%
-\contentsline {paragraph}{Area e densità.}{62}{section*.38}%
-\contentsline {subsection}{\numberline {3.6.4}Confronto tra Greedy e Clarke-Wright e discussione}{65}{subsection.3.6.4}%
-\contentsline {paragraph}{Regimi di capacità e di tempo.}{65}{section*.39}%
-\contentsline {paragraph}{$\gamma =0.90$: routing puro e diluizione.}{65}{section*.40}%
-\contentsline {paragraph}{$\gamma =0.50$ e $\gamma =0.10$: lo spostamento di frequenza.}{66}{section*.41}%
-\contentsline {paragraph}{Perché il gap è massimo a $\gamma =0.5$.}{66}{section*.42}%
-\contentsline {paragraph}{Conclusioni per il decisore.}{67}{section*.43}%
-\contentsline {section}{\numberline {3.7}Benchmark 5 - Analisi sul Grafo Standard}{67}{section.3.7}%
-\contentsline {subsection}{\numberline {3.7.1}Descrizione dello scenario}{67}{subsection.3.7.1}%
-\contentsline {subsection}{\numberline {3.7.2}Discussione dei risultati}{68}{subsection.3.7.2}%
-\contentsline {paragraph}{Soluzione fisica per politica.}{68}{section*.44}%
-\contentsline {paragraph}{Paradosso dei camion e resilienza.}{68}{section*.45}%
-\contentsline {paragraph}{Gap e variabilità tra istanze.}{69}{section*.46}%
-\contentsline {paragraph}{Trade-off tra le due componenti.}{70}{section*.47}%
-\contentsline {paragraph}{Sintesi.}{70}{section*.48}%
-\contentsline {section}{\numberline {3.8}Benchmark Trasversale 1 - Generalità dell'Effetto di $\gamma $}{71}{section.3.8}%
-\contentsline {subsection}{\numberline {3.8.1}Obiettivo e dati}{71}{subsection.3.8.1}%
-\contentsline {subsection}{\numberline {3.8.2}Effetto di $\gamma $ sulla soluzione fisica}{71}{subsection.3.8.2}%
-\contentsline {subsection}{\numberline {3.8.3}Struttura del disservizio: la frequenza di minimo disservizio}{72}{subsection.3.8.3}%
-\contentsline {subsection}{\numberline {3.8.4}Soglie di $\gamma $, soluzioni discrete e plateau}{73}{subsection.3.8.4}%
-\contentsline {subsection}{\numberline {3.8.5}Confronto tra Greedy e Clarke-Wright}{75}{subsection.3.8.5}%
-\contentsline {subsection}{\numberline {3.8.6}Sintesi}{77}{subsection.3.8.6}%
-\contentsline {section}{\numberline {3.9}Benchmark Trasversale 2 - Analisi di Sensibilità e Profilo della Funzione Obiettivo}{77}{section.3.9}%
-\contentsline {subsection}{\numberline {3.9.1}Obiettivi e configurazione dell'analisi di sensibilità}{77}{subsection.3.9.1}%
-\contentsline {subsection}{\numberline {3.9.2}Andamento aggregato della funzione obiettivo}{78}{subsection.3.9.2}%
-\contentsline {subsection}{\numberline {3.9.3}Scomposizione dei costi: il trade-off logistico-sociale}{80}{subsection.3.9.3}%
-\contentsline {subsection}{\numberline {3.9.4}Profilo di ottimizzazione per tipologia di rifiuto}{81}{subsection.3.9.4}%
-\contentsline {subsection}{\numberline {3.9.5}Relazione meccanica tra frequenza e dimensionamento della flotta}{83}{subsection.3.9.5}%
-\contentsline {section}{\numberline {3.10}Discussione complessiva}{85}{section.3.10}%
-\contentsline {subsection}{\numberline {3.10.1}Impatto del parametro $\gamma $}{85}{subsection.3.10.1}%
-\contentsline {subsection}{\numberline {3.10.2}Efficienza logistica delle euristiche}{86}{subsection.3.10.2}%
-\contentsline {subsection}{\numberline {3.10.3}Qualità delle soluzioni ottenute}{86}{subsection.3.10.3}%
-\contentsline {subsection}{\numberline {3.10.4}Considerazioni operative}{87}{subsection.3.10.4}%
-\contentsline {chapter}{Conclusioni e sviluppi futuri}{88}{chapter*.50}%
-\contentsline {section}{Limiti del modello}{89}{section*.51}%
-\contentsline {section}{Possibili sviluppi futuri}{91}{section*.52}%
-\contentsline {subsection}{Metaeuristiche avanzate}{91}{section*.53}%
-\contentsline {subsection}{Dati dinamici e traffico reale}{91}{section*.54}%
-\contentsline {subsection}{Integrazione con sistemi intelligenti}{92}{section*.55}%
+\contentsline {subsection}{\numberline {3.3.2}Discussione dei risultati}{41}{subsection.3.3.2}%
+\contentsline {paragraph}{Andamento del gap rispetto a $N$.}{42}{section*.14}%
+\contentsline {paragraph}{Effetto di $\gamma $ sul gap.}{43}{section*.15}%
+\contentsline {paragraph}{Il paradosso dei camion.}{44}{section*.16}%
+\contentsline {paragraph}{Costo marginale e scelta di $\gamma $.}{45}{section*.17}%
+\contentsline {paragraph}{Clarke-Wright sotto capacità.}{45}{section*.18}%
+\contentsline {paragraph}{Tempi di calcolo.}{46}{section*.19}%
+\contentsline {paragraph}{Sintesi.}{47}{section*.20}%
+\contentsline {section}{\numberline {3.4}Benchmark 2 - Analisi delle tipologie urbanistiche}{47}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Descrizione degli scenari}{47}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}Discussione dei risultati}{48}{subsection.3.4.2}%
+\contentsline {paragraph}{La tipologia cambia la soluzione fisica più del gap.}{49}{section*.21}%
+\contentsline {paragraph}{Il paradosso dei camion dipende dal carico per fermata.}{50}{section*.22}%
+\contentsline {paragraph}{Resilienza e disservizio residuo.}{50}{section*.23}%
+\contentsline {paragraph}{Gap nei grandi condomini a $\gamma =0.1$ e $0.9$.}{51}{section*.24}%
+\contentsline {paragraph}{Origine del vantaggio logistico per scenario.}{51}{section*.25}%
+\contentsline {paragraph}{Sintesi.}{51}{section*.26}%
+\contentsline {section}{\numberline {3.5}Benchmark 3 - Analisi della distribuzione geografica degli utenti}{52}{section.3.5}%
+\contentsline {subsection}{\numberline {3.5.1}Descrizione degli scenari}{52}{subsection.3.5.1}%
+\contentsline {subsection}{\numberline {3.5.2}Discussione dei risultati}{52}{subsection.3.5.2}%
+\contentsline {paragraph}{Cosa cambia con la concentrazione degli utenti.}{53}{section*.27}%
+\contentsline {paragraph}{Gap: la concentrazione riduce il vantaggio di CW a $\gamma \ge 0.5$.}{53}{section*.28}%
+\contentsline {paragraph}{Profilo del gap a frequenza fissata.}{53}{section*.29}%
+\contentsline {paragraph}{Contabilità del gap a pari politica.}{54}{section*.30}%
+\contentsline {paragraph}{Sintesi.}{55}{section*.31}%
+\contentsline {section}{\numberline {3.6}Benchmark 4 - Analisi sulla Mappa Reale di Fabriano}{55}{section.3.6}%
+\contentsline {subsection}{\numberline {3.6.1}Istanza reale e lettura dei risultati}{55}{subsection.3.6.1}%
+\contentsline {subsection}{\numberline {3.6.2}Soluzione fisica al variare di $\gamma $}{56}{subsection.3.6.2}%
+\contentsline {paragraph}{Cosa cambia passando da una politica all'altra.}{56}{section*.32}%
+\contentsline {paragraph}{Il paradosso dei camion a $\gamma =0.10$.}{57}{section*.33}%
+\contentsline {paragraph}{Il vincolo attivo per $\gamma \ge 0.5$.}{58}{section*.34}%
+\contentsline {paragraph}{Resilienza e scelta di $\gamma $.}{58}{section*.35}%
+\contentsline {subsection}{\numberline {3.6.3}Confronto tra reti sintetiche e rete reale}{60}{subsection.3.6.3}%
+\contentsline {paragraph}{Topologia e chilometri.}{61}{section*.36}%
+\contentsline {paragraph}{Peso economico del viaggio.}{63}{section*.37}%
+\contentsline {paragraph}{Area e densità.}{63}{section*.38}%
+\contentsline {subsection}{\numberline {3.6.4}Confronto tra Greedy e Clarke-Wright e discussione}{66}{subsection.3.6.4}%
+\contentsline {paragraph}{Regimi di capacità e di tempo.}{66}{section*.39}%
+\contentsline {paragraph}{$\gamma =0.90$: routing puro e diluizione.}{66}{section*.40}%
+\contentsline {paragraph}{$\gamma =0.50$ e $\gamma =0.10$: lo spostamento di frequenza.}{67}{section*.41}%
+\contentsline {paragraph}{Perché il gap è massimo a $\gamma =0.5$.}{67}{section*.42}%
+\contentsline {paragraph}{Conclusioni per il decisore.}{68}{section*.43}%
+\contentsline {section}{\numberline {3.7}Benchmark 5 - Analisi sul Grafo Standard}{68}{section.3.7}%
+\contentsline {subsection}{\numberline {3.7.1}Descrizione dello scenario}{68}{subsection.3.7.1}%
+\contentsline {subsection}{\numberline {3.7.2}Discussione dei risultati}{69}{subsection.3.7.2}%
+\contentsline {paragraph}{Soluzione fisica per politica.}{69}{section*.44}%
+\contentsline {paragraph}{Paradosso dei camion e resilienza.}{69}{section*.45}%
+\contentsline {paragraph}{Gap e variabilità tra istanze.}{70}{section*.46}%
+\contentsline {paragraph}{Trade-off tra le due componenti.}{71}{section*.47}%
+\contentsline {paragraph}{Sintesi.}{71}{section*.48}%
+\contentsline {section}{\numberline {3.8}Benchmark Trasversale 1 - Generalità dell'Effetto di $\gamma $}{72}{section.3.8}%
+\contentsline {subsection}{\numberline {3.8.1}Obiettivo e dati}{72}{subsection.3.8.1}%
+\contentsline {subsection}{\numberline {3.8.2}Effetto di $\gamma $ sulla soluzione fisica}{72}{subsection.3.8.2}%
+\contentsline {subsection}{\numberline {3.8.3}Struttura del disservizio: la frequenza di minimo disservizio}{74}{subsection.3.8.3}%
+\contentsline {subsection}{\numberline {3.8.4}Soglie di $\gamma $, soluzioni discrete e plateau}{75}{subsection.3.8.4}%
+\contentsline {subsection}{\numberline {3.8.5}Confronto tra Greedy e Clarke-Wright}{77}{subsection.3.8.5}%
+\contentsline {subsection}{\numberline {3.8.6}Sintesi}{78}{subsection.3.8.6}%
+\contentsline {section}{\numberline {3.9}Benchmark Trasversale 2 - Profilo in Frequenza e Ricerca Potata}{78}{section.3.9}%
+\contentsline {subsection}{\numberline {3.9.1}Obiettivo e dati}{78}{subsection.3.9.1}%
+\contentsline {subsection}{\numberline {3.9.2}Regime a capacità e regime a tempo}{79}{subsection.3.9.2}%
+\contentsline {subsection}{\numberline {3.9.3}Sensibilità attorno alla frequenza ottima}{80}{subsection.3.9.3}%
+\contentsline {subsection}{\numberline {3.9.4}Confronto tra algoritmi a pari frequenza}{81}{subsection.3.9.4}%
+\contentsline {subsection}{\numberline {3.9.5}Ricerca potata della griglia}{82}{subsection.3.9.5}%
+\contentsline {subsection}{\numberline {3.9.6}Sintesi}{84}{subsection.3.9.6}%
+\contentsline {section}{\numberline {3.10}Discussione complessiva}{84}{section.3.10}%
+\contentsline {subsection}{\numberline {3.10.1}Che cosa decide $\gamma $}{85}{subsection.3.10.1}%
+\contentsline {subsection}{\numberline {3.10.2}Quanto vale Clarke-Wright e perché}{86}{subsection.3.10.2}%
+\contentsline {subsection}{\numberline {3.10.3}Che cosa cambia da un'istanza all'altra}{87}{subsection.3.10.3}%
+\contentsline {subsection}{\numberline {3.10.4}Solidità delle conclusioni}{88}{subsection.3.10.4}%
+\contentsline {chapter}{Conclusioni e sviluppi futuri}{89}{chapter*.50}%
+\contentsline {paragraph}{La scelta di $\gamma $ è una scelta tra poche soluzioni, ciascuna con un prezzo.}{89}{section*.51}%
+\contentsline {paragraph}{Il disservizio ha un minimo strutturale e la flotta ha due regimi.}{89}{section*.52}%
+\contentsline {paragraph}{Clarke-Wright domina Greedy a parità di disservizio, non a parità di $\gamma $.}{90}{section*.53}%
+\contentsline {paragraph}{Il vantaggio di CW dipende dal peso del viaggio, non dalla rete.}{90}{section*.54}%
+\contentsline {paragraph}{La ricerca sulle frequenze può essere potata senza perdere l'ottimo.}{91}{section*.55}%
+\contentsline {section}{Limiti del modello}{91}{section*.56}%
+\contentsline {section}{Possibili sviluppi futuri}{92}{section*.57}%
+\contentsline {subsection}{Modello del servizio}{92}{section*.58}%
+\contentsline {subsection}{Algoritmi}{92}{section*.59}%
+\contentsline {subsection}{Dati}{93}{section*.60}%

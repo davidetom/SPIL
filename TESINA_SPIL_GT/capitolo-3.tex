@@ -9,7 +9,7 @@ Un ulteriore obiettivo consiste nell'analizzare l'effetto del parametro $\gamma$
 
 Per ciascuna configurazione vengono analizzate sia la qualità della soluzione ottenuta sia le risorse necessarie per la sua realizzazione. In particolare, il confronto considera la funzione obiettivo complessiva e la sua scomposizione nelle componenti di insoddisfazione degli utenti e di costo logistico, oltre agli indicatori relativi alla saturazione fisica e temporale dei veicoli, al numero di mezzi impiegati e al tempo computazionale richiesto dagli algoritmi.
 
-L'analisi sperimentale è quindi organizzata in una serie di benchmark, ciascuno finalizzato allo studio di uno specifico aspetto del problema. Tale struttura consente di valutare separatamente l'impatto della dimensione dell'istanza, della configurazione urbanistica, della distribuzione spaziale degli utenti e della differenza tra un grafo sintetico e una rete stradale reale. Il confronto sistematico tra le due euristiche permette infine di evidenziare eventuali differenze in termini di qualità delle soluzioni, efficienza nell'utilizzo della flotta e comportamento computazionale.
+L'analisi sperimentale è quindi organizzata in una serie di benchmark, ciascuno finalizzato allo studio di uno specifico aspetto del problema. Tale struttura consente di valutare separatamente l'impatto della dimensione dell'istanza, della configurazione urbanistica, della distribuzione spaziale degli utenti e della differenza tra un grafo sintetico e una rete stradale reale. Due benchmark trasversali verificano infine su tutte le istanze l'effetto di $\gamma$ e il comportamento della soluzione a frequenza fissata. Il confronto sistematico tra le due euristiche permette infine di evidenziare eventuali differenze in termini di qualità delle soluzioni, efficienza nell'utilizzo della flotta e comportamento computazionale.
 
 
 \section{Configurazione Sperimentale}\label{se:configurazione}
@@ -58,7 +58,7 @@ I principali parametri globali del modello sono riportati in Tabella~\ref{tab:pa
 		$\alpha$ & $10.0$ & Penalità per sottofrequenza \\
 		$\beta$ & $2.0$ & Penalità per sovrafrequenza \\
 		$X_{\mathrm{VALUES}}$ & $0.5,\ldots,6.0$ & Griglia delle frequenze \\
-		$\gamma$ & $0.10,\,0.50,\,0.90$ & Configurazioni della funzione obiettivo \\
+		$\gamma$ & $0.05,\ldots,0.95$ & Pesi (riferimento: $0.10$, $0.50$, $0.90$) \\
 		\hline
 	\end{tabular}
 \end{table}
@@ -104,7 +104,7 @@ La quantità di rifiuto prodotta dagli utenti viene determinata a partire da un 
 
 \begin{table}[htbp]
 	\centering
-	\caption{Moltiplicatori associati alle tipologie di utenza.}
+	\caption{Moltiplicatori della produzione di rifiuto per tipologia di utenza.}
 	\label{tab:moltiplicatori}
 	\begin{tabular}{lr}
 		\hline
@@ -118,13 +118,44 @@ La quantità di rifiuto prodotta dagli utenti viene determinata a partire da un 
 	\end{tabular}
 \end{table}
 
+Allo stesso modo, la frequenza ideale $x^*_{rt}$ e il tempo di servizio per fermata $s_{rt}$ sono il prodotto di un valore base per rifiuto e di un moltiplicatore per tipologia di utenza (Tabella~\ref{tab:xstar_servizio}).
+
+\begin{table}[htbp]
+	\centering
+	\caption{Frequenze ideali e tempi di servizio per fermata: valori base per rifiuto (sopra) e moltiplicatori per tipologia di utenza (sotto).}
+	\label{tab:xstar_servizio}
+	\begin{tabular}{lcc}
+		\hline
+		Rifiuto & $x^*$ base (ritiri/sett.) & $s$ base (min) \\
+		\hline
+		Organico        & 2.5 & 1.2 \\
+		Carta           & 1.0 & 1.0 \\
+		Plastica        & 1.7 & 1.0 \\
+		Vetro           & 0.5 & 1.5 \\
+		Indifferenziata & 2.0 & 1.2 \\
+		\hline
+	\end{tabular}
+	
+	\medskip
+	\begin{tabular}{lcc}
+		\hline
+		Tipologia di utenza & Molt.\ $x^*$ & Molt.\ $s$ \\
+		\hline
+		Single            & 0.7 & 1.0 \\
+		Famiglia          & 1.0 & 1.0 \\
+		Palazzina piccola & 1.5 & 3.0 \\
+		Palazzina grande  & 2.0 & 3.0 \\
+		\hline
+	\end{tabular}
+\end{table}
+
 
 Per rappresentare differenti configurazioni urbanistiche, sono state definite diverse distribuzioni percentuali delle tipologie di utenza. La composizione degli scenari utilizzati è riportata in Tabella~\ref{tab:scenari_urbanistici}.
 
 \begin{table}[htbp]
 	\centering
 	\caption{Distribuzione delle tipologie di utenza nei diversi scenari urbanistici.}
-	\label{tab:scenari_urbanistici_}
+	\label{tab:scenari_urbanistici}
 	\begin{tabular}{lrrrr}
 		\hline
 		Scenario & Single & Famiglia & Pal. piccola & Pal. grande \\
@@ -199,7 +230,7 @@ Con i valori adottati nella sperimentazione, $\alpha=10$ e $\beta=2$, una freque
 
 I costi logistici comprendono le tre componenti principali considerate dal modello: costo fisso di attivazione dei veicoli, costo di percorrenza e costo della manodopera.
 
-Il costo fisso dipende dal numero di veicoli attivati e dal costo specifico associato alla tipologia di rifiuto. Il costo di viaggio dipende invece dalla distanza complessivamente percorsa dai veicoli, mentre il costo della manodopera è determinato dal tempo complessivamente impiegato e dal relativo costo orario.
+Il costo fisso dipende dal numero di veicoli attivati e dal costo specifico associato alla tipologia di rifiuto. Il costo di viaggio dipende invece dalla distanza complessivamente percorsa dai veicoli, mentre il costo della manodopera è determinato dal tempo complessivamente impiegato e dal relativo costo per unità di tempo.
 
 L'indicatore $F_{\mathrm{costi}}$ è quindi utilizzato per quantificare l'impegno economico necessario per realizzare il servizio di raccolta associato alla soluzione considerata.
 
@@ -235,13 +266,13 @@ Anche questo indicatore è espresso in percentuale e consente di valutare quanto
 
 \subsubsection{Numero di veicoli}
 
-Il numero di veicoli rappresenta la dimensione della flotta effettivamente attivata per realizzare il servizio. L'indicatore permette di valutare l'impatto delle diverse configurazioni del problema sull'impiego delle risorse aziendali e contribuisce alla determinazione dei costi fissi di attivazione.
+Il numero di veicoli $V_r$ è il numero di camion necessari per un giro di raccolta del rifiuto $r$; moltiplicato per la frequenza $X_r$ dà le attivazioni settimanali, che determinano i costi fissi di attivazione. L'indicatore permette di valutare l'impatto delle diverse configurazioni del problema sull'impiego delle risorse aziendali.
 
 \subsubsection{Tempo computazionale}
 
 Il tempo computazionale misura il tempo di elaborazione necessario all'algoritmo per completare la procedura di ricerca della soluzione. Nel file dei risultati tale valore è indicato dal campo \texttt{algo\_time\_sec} ed è espresso in secondi.
 
-Il tempo viene misurato mediante un riferimento temporale di tipo wall-clock e comprende l'intera procedura di ricerca effettuata dall'algoritmo sull'istanza considerata. Tale indicatore è particolarmente rilevante nel confronto tra Greedy e Clarke-Wright e nell'analisi della scalabilità rispetto alla dimensione dell'istanza.
+Il tempo viene misurato mediante un riferimento temporale di tipo wall-clock e comprende l'intera procedura di ricerca effettuata dall'algoritmo sull'istanza considerata, compreso l'avvio dei processi paralleli. Tale indicatore è particolarmente rilevante nel confronto tra Greedy e Clarke-Wright e nell'analisi della scalabilità rispetto alla dimensione dell'istanza.
 
 \subsubsection{Soluzione selezionata}
 
@@ -256,19 +287,21 @@ Per ogni valore fissato di $X_r$ le euristiche di routing minimizzano il costo l
 \begin{equation}
 	X_r^{*}(\gamma)=\arg\min_{X_r\in\mathcal{X}}\;\Bigl[\gamma\,k_{\mathrm{scala}}\,F_{\mathrm{insoddis}}(X_r)+(1-\gamma)\,F_{\mathrm{costi}}(X_r)\Bigr].
 \end{equation}
-La proprietà è stata verificata numericamente. Per tutte le 1920 combinazioni (istanza, algoritmo, rifiuto, $X_r$) dei benchmark originali rotte e componenti coincidono tra i tre valori di $\gamma$. Ricostruendo $X_r^*$ a posteriori dalle componenti grezze si ritrovano le soluzioni selezionate in 480 casi su 480, e rieseguendo l'intera procedura con $\gamma=0.3$ e $\gamma=0.7$ (valori mai usati nelle run originali) le frequenze ottime coincidono con quelle previste in 20 casi su 20. Per questo i risultati per un qualunque valore di $\gamma$ si ottengono dalle stesse esecuzioni, senza ripetere il routing.
+La proprietà è stata verificata numericamente. Per tutte le 1920 combinazioni (istanza, algoritmo, rifiuto, $X_r$) dei benchmark originali rotte e componenti coincidono tra i tre valori di $\gamma$. Ricostruendo $X_r^*$ a posteriori dalle componenti grezze si ritrovano le soluzioni selezionate in 480 casi su 480, e rieseguendo l'intera procedura con $\gamma=0.3$ e $\gamma=0.7$ (valori mai usati nelle run originali) le frequenze ottime coincidono con quelle previste in 20 casi su 20. Per questo i risultati per un qualunque valore di $\gamma$ si ottengono dalle stesse esecuzioni, senza ripetere il routing. I benchmark usano come riferimento le tre politiche $\gamma=0.10$, $0.50$ e $0.90$; le analisi in funzione di $\gamma$ (Benchmark~1 e~4 e benchmark trasversali) usano i 19 valori $\gamma=0.05,0.10,\dots,0.95$.
 
 Ne segue che il confronto tra i valori di $F_{\mathrm{tot}}$ al variare di $\gamma$ non è informativo: $F_{\mathrm{tot}}$ cambia anche solo perché cambiano i pesi, e il fattore $k_{\mathrm{scala}}$ varia da istanza a istanza (da $0.55$ a $2.05$ tra le istanze dei benchmark originali). Le politiche vengono quindi confrontate sulla soluzione fisica che producono.
 
 \paragraph{Grandezze fisiche.}
 Per ogni soluzione si considerano, sommate sui cinque rifiuti e non pesate:
-\begin{itemize}
-	\item il numero di camion per giro $V=\sum_r V_r$ e le attivazioni settimanali $\sum_r V_r X_r$ (il modello non include un calendario settimanale: $V_r$ è la dimensione della flotta di un singolo giro, non il parco veicoli);
-	\item i chilometri settimanali $\sum_r F_{\mathrm{viaggio}}/cd$ e le ore di lavoro settimanali $\sum_r F_{\mathrm{lavoro}}/(60\,cm)$;
-	\item il disservizio grezzo $F_{\mathrm{insoddis}}$, non scalato, e il costo logistico grezzo $F_{\mathrm{costi}}$ in euro;
-	\item le frequenze ottime $X_r^*$ e le saturazioni fisica e temporale.
-\end{itemize}
-Il tempo di servizio per fermata è costante per tipologia di utenza e rifiuto e non dipende da $X_r$; il tempo di viaggio è proporzionale ai chilometri (velocità di 25\,km/h).
+{\sloppy
+	\begin{itemize}
+		\item il numero di camion per giro $V=\sum_r V_r$ e le attivazioni settimanali $\sum_r V_r X_r$ (il modello non include un calendario settimanale: $V_r$ è la dimensione della flotta di un singolo giro, non il parco veicoli);
+		\item i chilometri settimanali $\sum_r F_{\mathrm{viaggio}}/cd$ e le ore di lavoro settimanali $\sum_r F_{\mathrm{lavoro}}/(60\,cm)$;
+		\item il disservizio grezzo $F_{\mathrm{insoddis}}$, non scalato, e il costo logistico grezzo $F_{\mathrm{costi}}$ in euro;
+		\item le frequenze ottime $X_r^*$ e le saturazioni fisica e temporale.
+	\end{itemize}
+	\par}
+Il tempo di servizio per fermata dipende dal rifiuto e dalla tipologia di utenza (Tabella~\ref{tab:xstar_servizio}) e non da $X_r$; il tempo di viaggio è proporzionale ai chilometri (velocità di 25\,km/h).
 
 \paragraph{Gap tra Greedy e Clarke-Wright.}
 Il gap è calcolato come
@@ -339,7 +372,7 @@ Il vantaggio logistico a pari frequenza (regime a tempo) si scompone in un termi
 \end{figure}
 
 \paragraph{Effetto di $\gamma$ sul gap.}\mbox{}\\
-A $\gamma=0.9$ i due algoritmi scelgono le stesse frequenze e il gap è routing puro diluito dal termine di insoddisfazione ($5.99\%$ a $N=100$ e $2.8$--$4.2\%$ per $N\ge250$). A $\gamma=0.1$ il gap per $N\ge250$ non dipende da $N$ ($7.2$--$7.5\%$, intervalli sovrapposti) e una quota del $12$--$30\%$ è dovuta allo spostamento di $X^*$ ($2.25$ punti a $N=250$, $0.87$ a $N=1000$). Il picco a $\gamma=0.5$ vale per tutte le dimensioni, con intervalli non sovrapposti rispetto a $\gamma=0.1$ e $0.9$: a $\gamma=0.5$ la frequenza ottima sta sopra il ``ginocchio'', dove il gap logistico è maggiore (circa $13\%$ a $X_r=0.5$ per $N\ge250$, contro $19$--$27\%$ a $X_r\ge3$), e il peso del costo $1-\gamma$ è ancora $0.5$.
+A $\gamma=0.9$ i due algoritmi scelgono le stesse frequenze e il gap è routing puro diluito dal termine di insoddisfazione ($5.99\%$ a $N=100$ e $2.8$--$4.2\%$ per $N\ge250$). A $\gamma=0.1$ il gap per $N\ge250$ non dipende da $N$ ($7.2$--$7.5\%$, intervalli sovrapposti) e una quota del $12$--$30\%$ è dovuta allo spostamento di $X^*$ ($2.25$ punti a $N=250$, $0.87$ a $N=1000$). Il picco a $\gamma=0.5$ vale per tutte le dimensioni, con intervalli non sovrapposti rispetto a $\gamma=0.1$ e $0.9$: a $\gamma=0.5$ la frequenza ottima sta sopra la soglia tra i due regimi (Sezione~\ref{sse:t2-regimi}), dove il gap logistico è maggiore (circa $13\%$ a $X_r=0.5$ per $N\ge250$, contro $19$--$27\%$ a $X_r\ge3$), e il peso del costo $1-\gamma$ è ancora $0.5$.
 
 \newpage
 \begin{figure}[htbp]
@@ -364,13 +397,13 @@ A $N=1000$ il numero di camion per giro a $\gamma=0.1$ è $49.0$ per Greedy e $3
 Il numero di camion crolla tra $\gamma=0.05$ e $0.15$ e poi resta costante ($34.1$ per Greedy e $31.7$ per CW da $\gamma=0.5$), mentre attivazioni, chilometri e ore continuano a salire a gradini: la flotta è resiliente al peso, il lavoro no. I gradini coincidono con i cambi delle frequenze ottime (ultimo pannello).
 
 \paragraph{Costo marginale e scelta di $\gamma$.}\mbox{}\\
-Il costo marginale per unità di disservizio eliminata tra $\gamma=0.5$ e $0.9$ è $6.9$--$8.2$ volte quello tra $0.1$ e $0.5$ per CW ($6.5$--$7.4$ per Greedy), senza dipendenza evidente da $N$: a $N=1000$, per CW, da $0.196$\,\euro\ a $1.358$\,\euro\ per unità. Il ``ginocchio'' del compromesso sta quindi a $\gamma\approx0.5$ a tutte le dimensioni.
+Il costo marginale per unità di disservizio eliminata tra $\gamma=0.5$ e $0.9$ è $6.9$--$8.2$ volte quello tra $0.1$ e $0.5$ per CW ($6.5$--$7.4$ per Greedy), senza dipendenza evidente da $N$: a $N=1000$, per CW, da $0.196$\,\euro\ a $1.358$\,\euro\ per unità. Con tre soli valori di $\gamma$ il salto sembra cadere a $\gamma=0.5$; sulla griglia di 19 valori il costo marginale cresce invece a ogni passo e il salto più grande cade tra $\gamma=0.85$ e $0.90$ a tutte le dimensioni (Sezione~\ref{sse:t1-soglie}).
 
 \paragraph{Clarke-Wright sotto capacità.}\mbox{}\\
 A $X_r=0.5$, dove vincola la capacità, CW non riduce il numero di camion: per $N=250,\dots,1000$ ne usa in media $0.6$--$0.9$ in più di Greedy (differenza Greedy$-$CW pari a $-0.77\pm0.35$, $-0.73\pm0.49$, $-0.90\pm0.43$, $-0.57\pm0.47$), mentre a $N=100$ ne usa $1.17\pm0.44$ in meno. Coerentemente, l'eccesso rispetto al limite inferiore di capacità $\lceil\sum Q/C\rceil$, sommato sui rifiuti, è maggiore per CW da $N=250$ in su ($1.87$ contro $1.10$, $2.77$ contro $2.03$, $3.70$ contro $2.80$, $3.60$ contro $3.03$ camion) e minore a $N=100$ ($1.27$ contro $2.43$). Il meccanismo non è stato isolato: si registra la differenza, non la sua causa.
 
 \paragraph{Tempi di calcolo.}\mbox{}\\
-La Tabella~\ref{tab:b1_tempi} riporta il tempo di una griglia completa ($12$ valori di $X_r$ per $5$ rifiuti, con processi paralleli sulla macchina descritta nella Sezione~\ref{se:metodo-analisi}), medio su 30 seed. Fino a $N=250$ i due algoritmi richiedono lo stesso tempo, circa $9.5$\,s: è una componente fissa, indipendente da $N$ e dall'algoritmo (il tempo a $N=100$ è $9.57$\,s per Greedy e $9.58$\,s per CW). Oltre $N=250$ i tempi crescono: sopra la componente fissa l'incremento cresce circa come $N^2$ per entrambi (esponente $2.0$ per CW e $1.95$ per Greedy, stimato su $N\ge500$), con una costante circa tre volte maggiore per CW (rapporto tra incrementi $2.6$--$3.6$). Il rapporto tra i tempi totali passa così da $1.00$ a $N=100$ a $1.37$ a $N=1000$ e a $2.16$ a $N=2000$ (campionamenti di Fabriano); sull'istanza completa di Fabriano ($N=3932$, campagna principale) è $2.38$ ($100.8$\,s contro $42.3$\,s). I tempi non dipendono dalla natura dell'istanza: a $N=1000$ valgono $15.73$\,s (CW) e $11.49$\,s (Greedy) sul sintetico e $15.63$\,s e $11.34$\,s sui sottocampioni reali, e a $N=400$ sono $10.4$--$10.6$\,s e $9.9$--$10.0$\,s in tutte le tipologie e distribuzioni. In valore assoluto entrambi sono praticamente utilizzabili: una griglia completa su $3932$ utenti richiede meno di due minuti.
+La Tabella~\ref{tab:b1_tempi} riporta il tempo di una griglia completa ($12$ valori di $X_r$ per $5$ rifiuti, con processi paralleli sulla macchina descritta nella Sezione~\ref{se:metodo-analisi}), medio su 30 seed. Fino a $N=250$ i due algoritmi richiedono lo stesso tempo, circa $9.5$\,s: è una componente fissa, indipendente da $N$ e dall'algoritmo (il tempo a $N=100$ è $9.57$\,s per Greedy e $9.58$\,s per CW), che comprende l'avvio dei processi paralleli, ripetuto per ogni rifiuto: avviandoli una sola volta per l'intera griglia, il tempo a $N=100$ scende a circa $5.4$\,s (Sezione~\ref{sse:t2-potatura}). Oltre $N=250$ i tempi crescono: sopra la componente fissa l'incremento cresce circa come $N^2$ per entrambi (esponente $2.0$ per CW e $1.95$ per Greedy, stimato su $N\ge500$), con una costante circa tre volte maggiore per CW (rapporto tra incrementi $2.6$--$3.6$); poiché l'incremento comprende anche il trasferimento dei dati ai processi, uguale per i due algoritmi, questo rapporto sottostima la differenza tra i soli tempi di routing. Il rapporto tra i tempi totali passa così da $1.00$ a $N=100$ a $1.37$ a $N=1000$ e a $2.16$ a $N=2000$ (campionamenti di Fabriano); sull'istanza completa di Fabriano ($N=3932$, campagna principale) è $2.38$ ($100.8$\,s contro $42.3$\,s), mentre misurando i due algoritmi con un unico insieme di processi è $5.2$ ($87.6$\,s contro $16.8$\,s, Sezione~\ref{sse:t2-potatura}). I tempi non dipendono dalla natura dell'istanza: a $N=1000$ valgono $15.73$\,s (CW) e $11.49$\,s (Greedy) sul sintetico e $15.63$\,s e $11.34$\,s sui sottocampioni reali, e a $N=400$ sono $10.4$--$10.6$\,s e $9.9$--$10.0$\,s in tutte le tipologie e distribuzioni. In valore assoluto entrambi sono praticamente utilizzabili: una griglia completa su $3932$ utenti richiede meno di due minuti.
 
 \begin{table}[htbp]
 	\centering
@@ -394,7 +427,7 @@ La Tabella~\ref{tab:b1_tempi} riporta il tempo di una griglia completa ($12$ val
 
 \newpage
 \paragraph{Sintesi.}\mbox{}\\
-Il benchmark mostra tre fatti: la dimensione dell'istanza sposta il gap soprattutto attraverso il termine discreto dei camion e il peso del viaggio, non attraverso la qualità relativa dei chilometri (che migliora con $N$); $\gamma$ cambia la soluzione fisica in modo costante a tratti, con un ginocchio a $\gamma\approx0.5$; e il vantaggio di CW sui camion esiste nel regime a tempo e non sotto capacità.
+Il benchmark mostra tre fatti: la dimensione dell'istanza sposta il gap soprattutto attraverso il termine discreto dei camion e il peso del viaggio, non attraverso la qualità relativa dei chilometri (che migliora con $N$); $\gamma$ cambia la soluzione fisica in modo costante a tratti, con un costo marginale che cresce a ogni passo; e il vantaggio di CW sui camion esiste nel regime a tempo e non sotto capacità.
 
 
 
@@ -410,24 +443,7 @@ Sono stati considerati cinque differenti scenari urbanistici: \textit{residenzia
 
 In particolare, lo scenario \textit{residenziale} presenta una distribuzione maggiormente equilibrata tra famiglie e altre tipologie di utenza, mentre lo scenario \textit{suburbano} è caratterizzato da una maggiore presenza di palazzine. Lo scenario \textit{grandi condomini} rappresenta invece una configurazione fortemente concentrata, nella quale prevalgono le palazzine di grandi dimensioni. Al contrario, lo scenario \textit{villette} descrive una realtà a bassa densità abitativa, caratterizzata prevalentemente da utenti singoli e famiglie. Infine, lo scenario \textit{misto periferia} rappresenta una situazione intermedia, con una presenza significativa di palazzine piccole e una distribuzione più eterogenea delle utenze.
 
-Le percentuali utilizzate per costruire i cinque scenari sono riportate nella Tabella~\ref{tab:scenari_urbanistici}.
-
-\begin{table}[htbp]
-	\centering
-	\caption{Composizione percentuale degli scenari urbanistici.}
-	\label{tab:scenari_urbanistici}
-	\begin{tabular}{lcccc}
-		\hline
-		\textbf{Scenario} & \textbf{Single} & \textbf{Famiglia} & \textbf{Pal. piccola} & \textbf{Pal. grande} \\
-		\hline
-		Residenziale       & 25\% & 45\% & 20\% & 10\% \\
-		Suburbano          & 20\% & 35\% & 30\% & 15\% \\
-		Grandi condomini   & 5\%  & 10\% & 25\% & 60\% \\
-		Villette           & 40\% & 55\% & 5\%  & 0\%  \\
-		Misto periferia    & 15\% & 25\% & 45\% & 15\% \\
-		\hline
-	\end{tabular}
-\end{table}
+Le percentuali utilizzate per costruire i cinque scenari sono riportate nella Tabella~\ref{tab:scenari_urbanistici} (Sezione~\ref{se:configurazione}).
 
 Per ciascuna configurazione urbanistica, su $N=400$ utenti distribuiti uniformemente, vengono applicati entrambi gli algoritmi su 30 seed. Come nel Benchmark 1, le tre politiche $\gamma=0.10$ (Pro-Azienda), $0.50$ (Neutra) e $0.90$ (Pro-Cittadino) sono applicate in post-elaborazione sulla stessa griglia di frequenze (Sezione~\ref{se:metodo-analisi}). Poiché $k_{\mathrm{scala}}$ dipende dalla composizione degli utenti, i valori di $F_{\mathrm{tot}}$ non sono confrontabili tra scenari: il confronto tra tipologie si basa sulla soluzione fisica (camion, attivazioni, costo logistico e disservizio non pesati, saturazioni, frequenze ottime) e sul gap tra i due algoritmi.
 
@@ -526,17 +542,17 @@ Le due configurazioni differiscono quindi per la distanza tra utenti e deposito 
 	\centering
 	\caption{Benchmark 3: soluzione selezionata a $\gamma=0.5$ per distribuzione spaziale (media su 30 seed; somma sui cinque rifiuti, grandezze non pesate).}
 	\label{tab:b3_fisica}
-	\small
-	\begin{tabular}{llrrrrrrr}
-		\hline
-		Distribuzione & Algoritmo & $V$ & $V\!\cdot\!X$ & km/sett. & ore/sett. & $F_{\mathrm{ins}}$ & $F_{\mathrm{costi}}$ (\euro) & Viaggio (\%) \\
-		\hline
-		Uniforme & Greedy & 18.1 & 31.2 & 2751 & 215.0 & 6003 & 7169 & 50.7 \\
-		Uniforme & CW     & 16.5 & 30.9 & 1986 & 198.1 & 5250 & 6568 & 39.6 \\
-		Aggregata & Greedy & 15.8 & 26.4 & 1758 & 175.4 & 5959 & 5712 & 39.8 \\
-		Aggregata & CW     & 14.2 & 26.4 & 1116 & 158.5 & 5466 & 5256 & 27.8 \\
-		\hline
-	\end{tabular}
+	\resizebox{\textwidth}{!}{%
+		\begin{tabular}{llrrrrrrr}
+			\hline
+			Distribuzione & Algoritmo & $V$ & $V\!\cdot\!X$ & km/sett. & ore/sett. & $F_{\mathrm{ins}}$ & $F_{\mathrm{costi}}$ (\euro) & Viaggio (\%) \\
+			\hline
+			Uniforme & Greedy & 18.1 & 31.2 & 2751 & 215.0 & 6003 & 7169 & 50.7 \\
+			Uniforme & CW     & 16.5 & 30.9 & 1986 & 198.1 & 5250 & 6568 & 39.6 \\
+			Aggregata & Greedy & 15.8 & 26.4 & 1758 & 175.4 & 5959 & 5712 & 39.8 \\
+			Aggregata & CW     & 14.2 & 26.4 & 1116 & 158.5 & 5466 & 5256 & 27.8 \\
+			\hline
+	\end{tabular}}
 \end{table}
 
 \newpage
@@ -592,7 +608,7 @@ Per il confronto con le reti sintetiche (Sezione~\ref{sse:b4-sintetico-reale}) s
 
 \begin{gather*}
 	\text{Area}_{\text{Fabriano}} = 16.47 \, \text{km}^2 \implies \text{scala} = 0.4058 \\[1ex]
-	\text{mix} = \{ \text{single}: 0.106, \, \text{famiglia}: 0.581, \, \text{palazzina\_piccola}: 0.267, \, \text{palazzina\_grande}: 0.046 \}
+	\text{mix: single } 0.106, \ \text{famiglia } 0.581, \\ \text{palazzina piccola } 0.267, \ \text{palazzina grande } 0.046
 \end{gather*}
 
 
@@ -606,19 +622,19 @@ La Tabella~\ref{tab:b4_fisica} riporta, per le tre politiche, la soluzione selez
 	\centering
 	\caption{Benchmark 4: soluzione selezionata per politica (somma sui cinque rifiuti, grandezze non pesate; le saturazioni sono medie sui rifiuti). $V$: camion per giro; $V\!\cdot\!X$: attivazioni settimanali; $F_{\mathrm{ins}}$: disservizio grezzo; $F_{\mathrm{costi}}$: costo logistico grezzo settimanale.}
 	\label{tab:b4_fisica}
-	\small
-	\begin{tabular}{llrrrrrrr}
-		\hline
-		$\gamma$ & Algoritmo & $V$ & $V\!\cdot\!X$ & km/sett. & ore/sett. & $F_{\mathrm{ins}}$ & $F_{\mathrm{costi}}$ (\euro) & Sat.\ fis./temp.\ (\%) \\
-		\hline
-		0.10 & Greedy & 145 & 92.5  & 1615 & 485  & 211\,992 & 16\,529 & 89.6 / 69.6 \\
-		0.10 & CW     & 112 & 93.0  & 1017 & 579  & 174\,227 & 17\,724 & 89.7 / 78.6 \\
-		0.50 & Greedy & 93  & 161.0 & 3570 & 1224 & 47\,228  & 34\,711 & 55.8 / 95.2 \\
-		0.50 & CW     & 88  & 170.0 & 2104 & 1293 & 40\,344  & 36\,025 & 56.2 / 95.3 \\
-		0.90 & Greedy & 93  & 199.0 & 4377 & 1512 & 33\,460  & 43\,301 & 50.1 / 95.2 \\
-		0.90 & CW     & 88  & 188.0 & 2319 & 1429 & 33\,460  & 40\,307 & 53.0 / 95.3 \\
-		\hline
-	\end{tabular}
+	\resizebox{\textwidth}{!}{%
+		\begin{tabular}{llrrrrrrr}
+			\hline
+			$\gamma$ & Algoritmo & $V$ & $V\!\cdot\!X$ & km/sett. & ore/sett. & $F_{\mathrm{ins}}$ & $F_{\mathrm{costi}}$ (\euro) & Sat.\ fis./temp.\ (\%) \\
+			\hline
+			0.10 & Greedy & 145 & 92.5  & 1615 & 485  & 211\,992 & 16\,529 & 89.6 / 69.6 \\
+			0.10 & CW     & 112 & 93.0  & 1017 & 579  & 174\,227 & 17\,724 & 89.7 / 78.6 \\
+			0.50 & Greedy & 93  & 161.0 & 3570 & 1224 & 47\,228  & 34\,711 & 55.8 / 95.2 \\
+			0.50 & CW     & 88  & 170.0 & 2104 & 1293 & 40\,344  & 36\,025 & 56.2 / 95.3 \\
+			0.90 & Greedy & 93  & 199.0 & 4377 & 1512 & 33\,460  & 43\,301 & 50.1 / 95.2 \\
+			0.90 & CW     & 88  & 188.0 & 2319 & 1429 & 33\,460  & 40\,307 & 53.0 / 95.3 \\
+			\hline
+	\end{tabular}}
 \end{table}
 
 \begin{table}[htbp]
@@ -640,10 +656,10 @@ La Tabella~\ref{tab:b4_fisica} riporta, per le tre politiche, la soluzione selez
 \end{table}
 
 \paragraph{Cosa cambia passando da una politica all'altra.}\mbox{}\\
-Da $\gamma=0.10$ a $\gamma=0.50$ le attivazioni settimanali passano da $92.5$ a $161$ per Greedy e da $93$ a $170$ per CW, i chilometri settimanali da $1615$ a $3570$ e da $1017$ a $2104$, le ore di lavoro da $485$ a $1224$ e da $579$ a $1293$. In cambio il disservizio grezzo scende da $212$\,mila a $47$\,mila (Greedy, $-78\%$) e da $174$\,mila a $40$\,mila (CW, $-77\%$). Il passo successivo, da $\gamma=0.50$ a $\gamma=0.90$, riduce il disservizio solo di un ulteriore $29\%$ per Greedy e $17\%$ per CW (a $33$\,mila per entrambi), ma aumenta il costo logistico grezzo del $24.7\%$ e dell'$11.9\%$. Il costo marginale per unità di disservizio eliminata passa, per CW, da $0.137$\,\euro\ tra $\gamma=0.1$ e $0.5$ a $0.622$\,\euro\ tra $0.5$ e $0.9$ ($4.55$ volte; per Greedy da $0.110$ a $0.624$\,\euro, $5.65$ volte): il ``ginocchio'' del compromesso si trova a $\gamma\approx0.5$.
+Da $\gamma=0.10$ a $\gamma=0.50$ le attivazioni settimanali passano da $92.5$ a $161$ per Greedy e da $93$ a $170$ per CW, i chilometri settimanali da $1615$ a $3570$ e da $1017$ a $2104$, le ore di lavoro da $485$ a $1224$ e da $579$ a $1293$. In cambio il disservizio grezzo scende da $212$\,mila a $47$\,mila (Greedy, $-78\%$) e da $174$\,mila a $40$\,mila (CW, $-77\%$). Il passo successivo, da $\gamma=0.50$ a $\gamma=0.90$, riduce il disservizio solo di un ulteriore $29\%$ per Greedy e $17\%$ per CW (a $33$\,mila per entrambi), ma aumenta il costo logistico grezzo del $24.7\%$ e dell'$11.9\%$. Il costo marginale per unità di disservizio eliminata passa, per CW, da $0.137$\,\euro\ tra $\gamma=0.1$ e $0.5$ a $0.622$\,\euro\ tra $0.5$ e $0.9$ ($4.55$ volte; per Greedy da $0.110$ a $0.624$\,\euro, $5.65$ volte). Sulla griglia completa di $\gamma$ il salto più grande è però l'ultimo: da $0.622$ a $7.9$\,\euro\ per unità al passaggio a $\gamma=0.95$ (Sezione~\ref{sse:t1-soglie}).
 
 \paragraph{Il paradosso dei camion a $\gamma=0.10$.}\mbox{}\\
-A $\gamma=0.10$ vengono usati più camion per giro che a $\gamma=0.50$ ($145$ contro $93$ per Greedy, $112$ contro $88$ per CW), pur essendo la politica che minimizza il costo logistico. Il motivo è che $V_r$ conta i camion di un singolo giro, mentre il costo è proporzionale ai passaggi settimanali. A $\gamma=0.10$ la Grid Search seleziona frequenze basse (Tabella~\ref{tab:b4_freq}); poiché $Q_{ru}=W_{rt_u}/X_r$, il carico per ritiro cresce e la capacità diventa il vincolo attivo: la saturazione fisica media è $89.6\%$ (Greedy) e $89.7\%$ (CW), contro circa il $56\%$ di $\gamma=0.50$, e per l'organico raggiunge il $99.1\%$. In questo regime il numero di carichi settimanali è fissato dal rifiuto prodotto, $V_rX_r\simeq\sum_u W_{rt_u}/(C_r\cdot\mathrm{sat}_r)$, e non dipende da $X_r$: per l'organico $V_rX_r=25$ sia con Greedy ($X_r=0.5$, $50$ camion) sia con CW ($X_r=1.0$, $25$ camion). Dimezzare la frequenza raddoppia i camion per giro ma non le attivazioni settimanali: sotto il ``ginocchio'' il costo fisso $c_rV_rX_r$ resta al suo minimo, e ciò che continua a scendere è il lavoro, perché ogni giro visita tutti gli utenti (il tempo di servizio di un giro è, ad esempio, $6390$\,min per la carta e $7668$\,min per l'organico, identico per i due algoritmi). Le attivazioni settimanali totali sono quindi $92.5$ (Greedy) e $93$ (CW) a $\gamma=0.10$, contro $161$ e $170$ a $\gamma=0.50$, e i chilometri settimanali sono meno della metà ($1615$ contro $3570$ per Greedy).
+A $\gamma=0.10$ vengono usati più camion per giro che a $\gamma=0.50$ ($145$ contro $93$ per Greedy, $112$ contro $88$ per CW), pur essendo la politica che minimizza il costo logistico. Il motivo è che $V_r$ conta i camion di un singolo giro, mentre il costo è proporzionale ai passaggi settimanali. A $\gamma=0.10$ la Grid Search seleziona frequenze basse (Tabella~\ref{tab:b4_freq}); poiché $Q_{ru}=W_{rt_u}/X_r$, il carico per ritiro cresce e la capacità diventa il vincolo attivo: la saturazione fisica media è $89.6\%$ (Greedy) e $89.7\%$ (CW), contro circa il $56\%$ di $\gamma=0.50$, e per l'organico raggiunge il $99.1\%$. In questo regime il numero di carichi settimanali è fissato dal rifiuto prodotto, $V_rX_r\simeq\sum_u W_{rt_u}/(C_r\cdot\mathrm{sat}_r)$, e non dipende da $X_r$: per l'organico $V_rX_r=25$ sia con Greedy ($X_r=0.5$, $50$ camion) sia con CW ($X_r=1.0$, $25$ camion). Dimezzare la frequenza raddoppia i camion per giro ma non le attivazioni settimanali: sotto la soglia di regime il costo fisso $c_rV_rX_r$ resta al suo minimo, e ciò che continua a scendere è il lavoro, perché ogni giro visita tutti gli utenti (il tempo di servizio di un giro è, ad esempio, $6390$\,min per la carta e $7668$\,min per l'organico, identico per i due algoritmi). Le attivazioni settimanali totali sono quindi $92.5$ (Greedy) e $93$ (CW) a $\gamma=0.10$, contro $161$ e $170$ a $\gamma=0.50$, e i chilometri settimanali sono meno della metà ($1615$ contro $3570$ per Greedy).
 
 \paragraph{Il vincolo attivo per $\gamma\ge0.5$.}\mbox{}\\
 Per $\gamma\ge0.5$ la saturazione temporale è circa il $95\%$ per entrambi gli algoritmi ed è il tempo del turno a determinare la flotta: $V_r=\lceil T_r/L\rceil$, con $T_r$ minuti totali di un giro. Per la carta, ad esempio, un giro richiede $6872$\,min con CW ($14.3$ turni da $480$\,min, quindi $15$ camion) e $7313$\,min con Greedy ($15.2$, quindi $16$ camion). Qui più frequenza significa più viaggi, ma non più camion per giro: $V$ è identico a $\gamma=0.5$ e a $\gamma=0.9$ ($93$ e $88$).
@@ -708,7 +724,7 @@ I chilometri di un giro scalano come $\sqrt{N A}$, con $A$ area servita. Si defi
 
 Il valore assoluto di $r$ dipende dalla rete di base. A pari $N$ e area, sulla rete da 4000 nodi $r_{CW}$ è più alto che su quella da 1000 nodi del $5.6\%$ a $N=100$ e del $16.1\%$ a $N=1000$, e decresce più lentamente: $r_{CW}\simeq1.742\,N^{-0.088}$ sulla rete da 1000 nodi, $1.495\,N^{-0.044}$ su quella da 4000 nodi e $1.525\,N^{-0.049}$ con area e mix di Fabriano (residui sotto lo $0.8\%$). La legge della rete da 1000 nodi, estrapolata a $N=3932$, darebbe $0.838$, lo stesso valore di Fabriano; la misura diretta sui sintetici a $N=3932$ dà invece $1.048$ e $1.026$, per cui quella coincidenza non va interpretata.
 
-Il confronto più omogeneo è con il sintetico che ha la stessa area, lo stesso mix e la stessa rete di base da 4000 nodi. Rispetto a questo, su Fabriano $r_{CW}$ è più alto per $N\le250$ ($+5.7\%$ e $+4.2\%$) e più basso da $N=500$ in poi, fino al $-18.3\%$ a $N=3932$: tra $N=100$ e $N=3932$ scende del $35\%$ sulla rete reale e del $16\%$ sul sintetico. Greedy segue lo stesso andamento ($+6.3\%$ a $N=100$, $-20.8\%$ a $N=3932$). La causa di questa decrescita più rapida non è stata isolata. Il rapporto Greedy/CW sulla rete reale coincide con quello del sintetico da 1000 nodi per $N\le1000$ ed è inferiore del $3$--$6\%$ a quello del sintetico con area di Fabriano per $N\ge250$. In chilometri a giro, a $N=3932$ CW percorre $213$\,km contro $402$ di Greedy ($-47.0\%$), contro il $-48.6\%$ del sintetico con area di Fabriano e il $-45.7\%$ del sintetico originale: sulla rete reale il margine di routing di CW è dello stesso ordine che sul sintetico.
+Il confronto più omogeneo è con il sintetico che ha la stessa area, lo stesso mix e la stessa rete di base da 4000 nodi. Rispetto a questo, su Fabriano $r_{CW}$ è più alto per $N\le250$ ($+5.7\%$ e $+4.2\%$) e più basso da $N=500$ in poi, fino al $-18.3\%$ a $N=3932$: tra $N=100$ e $N=3932$ scende del $35\%$ sulla rete reale e del $16\%$ sul sintetico. Greedy segue lo stesso andamento ($+6.3\%$ a $N=100$, $-20.8\%$ a $N=3932$). Gli utenti reali non sono distribuiti uniformemente sull'inviluppo convesso: l'indice di Clark--Evans $R$, cioè la distanza media dal vicino più prossimo divisa per quella attesa con punti uniformi alla stessa densità, vale $0.87$ sui sottocampioni con $N=100$ e scende a $0.32$ con tutti gli utenti, mentre per punti uniformi resta tra $1.00$ e $1.12$. Al crescere di $N$ emergono quindi gli addensamenti, e questo va nella direzione della decrescita più rapida di $r$. L'addensamento però non ne spiega l'ampiezza: se la lunghezza del giro scalasse con un'area efficace $A R^2$, lo scarto di $r$ rispetto al sintetico dovrebbe passare da $-22\%$ a $-68\%$ tra $N=100$ e $N=3932$, mentre quello osservato passa da $+5.7\%$ a $-18.3\%$. Non spiega nemmeno lo scarto positivo per $N\le250$, la cui causa resta non isolata. Il rapporto Greedy/CW sulla rete reale coincide con quello del sintetico da 1000 nodi per $N\le1000$ ed è inferiore del $3$--$6\%$ a quello del sintetico con area di Fabriano per $N\ge250$. In chilometri a giro, a $N=3932$ CW percorre $213$\,km contro $402$ di Greedy ($-47.0\%$), contro il $-48.6\%$ del sintetico con area di Fabriano e il $-45.7\%$ del sintetico originale: sulla rete reale il margine di routing di CW è dello stesso ordine che sul sintetico.
 
 \paragraph{Peso economico del viaggio.}\mbox{}\\
 Il tempo di servizio è identico tra algoritmi e valori di $\gamma$ (differenza massima di $0.003$\,min su 960 gruppi di soluzioni), quindi il tempo di viaggio si ricava per differenza. A $X_r=4$ (regime a tempo, media sui cinque rifiuti) il viaggio è il $6.4\%$ del tempo di giro di CW a Fabriano ($11.5\%$ per Greedy), contro il $28.0\%$ ($N=1000$) e il $59.8\%$ ($N=100$) del sintetico originale; la densità è $239$ utenti$/\mathrm{km}^2$ a Fabriano e $10$ utenti$/\mathrm{km}^2$ e $1$ utenti$/\mathrm{km}^2$ rispettivamente nelle due istanze sintetiche. Poiché i chilometri crescono come $\sqrt{N A}$ mentre servizio e camion crescono con $N$, ad alta densità la quota di costo su cui il routing può agire è piccola. Il vantaggio logistico di CW a pari $X_r$ nel regime a tempo si scompone in un termine di chilometri (che costano $0.95$\,\euro/km tra costo chilometrico e tempo) e in un termine di camion ($\Delta V\,c_r\,X_r$): è pari al $7.5\%$ a Fabriano (circa il $66\%$ dai chilometri e il $34\%$ da cinque camion in meno su $93$), al $19.1\%$ a $N=1000$ sintetico e al $42.8\%$ a $N=100$.
@@ -778,7 +794,7 @@ La Tabella~\ref{tab:b4_gapdec} scompone il gap su $F_{\mathrm{tot}}$ secondo il 
 \end{table}
 
 \paragraph{Regimi di capacità e di tempo.}\mbox{}\\
-A parità di frequenza CW è meno costoso di Greedy in tutte le combinazioni (rifiuto, $X_r$), con un gap logistico tra $2.6\%$ e $8.7\%$, indipendente da $\gamma$. Il gap dipende dal regime: sotto il ``ginocchio'', dove vincola la capacità, vale in media $4.3\%$ a $X_r=0.5$ e non c'è vantaggio nel numero di camion (a $X_r=0.5$ $\Delta V=0$ per quattro rifiuti su cinque, $+1$ per il vetro); sopra il ginocchio, dove vincola il tempo, i chilometri risparmiati liberano anche camion e il gap sale a $7.5\%$ (carta $8.55\%$, plastica $8.65\%$, indifferenziata $7.17\%$, organico $6.97\%$, vetro $5.93\%$, già vincolato dal tempo a $X_r=0.5$). A questi valori il costo di un giro non dipende più da $X_r$ e il costo settimanale cresce linearmente con la frequenza.
+A parità di frequenza CW è meno costoso di Greedy in tutte le combinazioni (rifiuto, $X_r$), con un gap logistico tra $2.6\%$ e $8.7\%$, indipendente da $\gamma$. Il gap dipende dal regime: sotto la soglia di regime, dove vincola la capacità, vale in media $4.3\%$ a $X_r=0.5$ e non c'è vantaggio nel numero di camion (a $X_r=0.5$ $\Delta V=0$ per quattro rifiuti su cinque, $+1$ per il vetro); sopra la soglia, dove vincola il tempo, i chilometri risparmiati liberano anche camion e il gap sale a $7.5\%$ (carta $8.55\%$, plastica $8.65\%$, indifferenziata $7.17\%$, organico $6.97\%$, vetro $5.93\%$, già vincolato dal tempo a $X_r=0.5$). A questi valori il costo di un giro non dipende più da $X_r$ e il costo settimanale cresce linearmente con la frequenza.
 
 \paragraph{$\gamma=0.90$: routing puro e diluizione.}\mbox{}\\
 A $\gamma=0.90$ i due algoritmi scelgono le stesse frequenze, il disservizio è identico ($33\,460$) e il gap è tutto routing: CW costa il $6.9\%$ in meno ($40\,307$ contro $43\,301$\,\euro), cioè $L_g=7.43\%$ (Greedy costa il $7.4\%$ in più). Il gap su $F_{\mathrm{tot}}$ scende all'$1.46\%$ perché l'$80\%$ di $F_{\mathrm{tot}}$ è il termine di insoddisfazione, comune ai due algoritmi: il peso del termine logistico è $w=0.197$ e $7.43\%\times0.197=1.46\%$ ($L_g$ e $w$ sono definiti nella Sezione~\ref{sse:b3-discussione}). Non si tratta quindi di una perdita di margine di routing, come si potrebbe pensare dall'alta saturazione temporale: il vantaggio logistico a $\gamma=0.9$ è paragonabile a quello degli altri regimi.
@@ -787,10 +803,10 @@ A $\gamma=0.90$ i due algoritmi scelgono le stesse frequenze, il disservizio è 
 A $\gamma=0.50$ il gap ($4.21\%$) è quasi tutto routing a pari frequenza ($4.18\%$, circa $2400$\,\euro\ di costo: $34\,711$ contro $32\,284$\,\euro\ alle frequenze di Greedy), perché il vantaggio logistico è $L_g=7.52\%$ e il peso del termine logistico è ancora $w=0.556$ ($7.52\%\times0.556=4.18\%$). I due algoritmi, però, scelgono soluzioni diverse: CW porta l'indifferenziata a $3.0$ ritiri contro $2.0$ e ottiene $-14.6\%$ di disservizio a fronte di $+3.8\%$ di costo. Questo spostamento pesa solo $0.03\%$ su $F_{\mathrm{tot}}$ perché, vicino all'ottimo, la funzione pesata è piatta: $F_{\mathrm{tot}}$ nasconde una differenza fisica rilevante. A $\gamma=0.10$ lo spostamento vale $0.94$ punti su $3.88$: CW sceglie organico a $1.0$ ritiri (Greedy $0.5$) e plastica a $1.5$ ($1.0$), con $-17.8\%$ di disservizio e $+7.2\%$ di costo. Anche la differenza di camion ($112$ contro $145$) è conseguenza di frequenze diverse e non di fusioni migliori: alle frequenze di Greedy CW userebbe $143$ camion, quindi $31$ dei $33$ camion di differenza derivano dallo spostamento di frequenza e solo $2$ dal routing. A pari frequenza il vantaggio logistico è $L_g=5.3\%$ e il peso $w=0.55$, da cui i $2.94$ punti di routing ($5.3\%\times0.55\simeq2.9$).
 
 \paragraph{Perché il gap è massimo a $\gamma=0.5$.}\mbox{}\\
-Il gap su $F_{\mathrm{tot}}$ è il prodotto $L_g\cdot w$ (routing a pari frequenza) più lo spostamento di $X^*$. Il vantaggio logistico $L_g$ dipende dal regime in cui cade $X^*$: $5.3\%$ a $\gamma=0.1$, dove $X^*$ sta sotto il ginocchio e vincola la capacità, e $7.5\%$ a $\gamma=0.5$ e $7.4\%$ a $\gamma=0.9$, dove $X^*$ sta sopra e vincola il tempo. Il peso $w$ del termine logistico vale $0.55$, $0.556$ e $0.197$: a $\gamma=0.9$ il termine di insoddisfazione, comune ai due algoritmi, è l'$80\%$ di $F_{\mathrm{tot}}$ e diluisce il vantaggio. Ne risultano $2.9$, $4.18$ e $1.46$ punti di routing, a cui si aggiunge lo spostamento di $X^*$ ($0.94$, $0.03$ e $0.00$ punti), per un gap di $3.88\%$, $4.21\%$ e $1.46\%$. Il massimo cade a $\gamma=0.5$ perché lì si sommano il vantaggio logistico del regime a tempo e un peso del costo ancora alto: a $\gamma=0.1$ manca il primo fattore, a $\gamma=0.9$ il secondo. Il margine tra $\gamma=0.1$ e $\gamma=0.5$ è piccolo su Fabriano ($0.33$ punti, singola istanza), ma il massimo a $\gamma=0.5$ si ritrova nei sottocampioni per tutte le $N$ (da $5.41\%$ a $6.57\%$ a $N=100$, da $4.95\%$ a $8.84\%$ a $N=1000$). In valore assoluto il vantaggio logistico resta limitato dal peso ridotto del viaggio (Sezione~\ref{sse:b4-sintetico-reale}).
+Il gap su $F_{\mathrm{tot}}$ è il prodotto $L_g\cdot w$ (routing a pari frequenza) più lo spostamento di $X^*$. Il vantaggio logistico $L_g$ dipende dal regime in cui cade $X^*$: $5.3\%$ a $\gamma=0.1$, dove $X^*$ sta sotto la soglia di regime e vincola la capacità, e $7.5\%$ a $\gamma=0.5$ e $7.4\%$ a $\gamma=0.9$, dove $X^*$ sta sopra e vincola il tempo. Il peso $w$ del termine logistico vale $0.55$, $0.556$ e $0.197$: a $\gamma=0.9$ il termine di insoddisfazione, comune ai due algoritmi, è l'$80\%$ di $F_{\mathrm{tot}}$ e diluisce il vantaggio. Ne risultano $2.9$, $4.18$ e $1.46$ punti di routing, a cui si aggiunge lo spostamento di $X^*$ ($0.94$, $0.03$ e $0.00$ punti), per un gap di $3.88\%$, $4.21\%$ e $1.46\%$. Il massimo cade a $\gamma=0.5$ perché lì si sommano il vantaggio logistico del regime a tempo e un peso del costo ancora alto: a $\gamma=0.1$ manca il primo fattore, a $\gamma=0.9$ il secondo. Il margine tra $\gamma=0.1$ e $\gamma=0.5$ è piccolo su Fabriano ($0.33$ punti, singola istanza), ma il massimo a $\gamma=0.5$ si ritrova nei sottocampioni per tutte le $N$ (da $5.41\%$ a $6.57\%$ a $N=100$, da $4.95\%$ a $8.84\%$ a $N=1000$). In valore assoluto il vantaggio logistico resta limitato dal peso ridotto del viaggio (Sezione~\ref{sse:b4-sintetico-reale}).
 
 \paragraph{Conclusioni per il decisore.}\mbox{}\\
-Le due scelte sono indipendenti. Sull'algoritmo: a pari frequenza CW riduce i chilometri del $47\%$ e il costo logistico di circa il $7\%$, a un tempo di calcolo di circa $2.4$ volte quello di Greedy ($\approx100$\,s contro $\approx42$\,s per l'intera griglia). Sul peso: la soluzione è costante a tratti in $\gamma$ e il costo marginale della riduzione di disservizio cresce di un fattore $4.55$--$5.65$ oltre $\gamma=0.5$, per cui la soluzione del ginocchio e quella del plateau sono i due candidati ragionevoli. I punti selezionati da CW e da Greedy a $\gamma=0.1$ e $0.5$ non sono confrontabili sul solo costo ($+7.2\%$ e $+3.8\%$ per CW), perché corrispondono a frequenze diverse: con rotte più economiche CW sposta le frequenze verso più servizio ($-17.8\%$ e $-14.6\%$ di disservizio). A pari disservizio, cioè a pari frequenze, CW costa il $6.8$--$7.0\%$ in meno e usa $5$ camion in meno su $93$ per tutti i livelli di disservizio delle soluzioni, salvo quello a $\gamma=0.05$ ($-3.9\%$, un camion in meno). Ad esempio la soluzione di CW a $\gamma=0.45$ ha lo stesso disservizio di quella di Greedy a $\gamma=0.5$ ($47\,228$) con $32\,284$\,\euro\ contro $34\,711$\,\euro\ ($-7.0\%$) e $88$ camion contro $93$. La frontiera di CW sta quindi sotto quella di Greedy (Figura~\ref{fig:b4_intervalli}), e la scelta dell'algoritmo vale circa il $7\%$ del costo logistico a servizio invariato.
+Le due scelte sono indipendenti. Sull'algoritmo: a pari frequenza CW riduce i chilometri del $47\%$ e il costo logistico di circa il $7\%$, a un tempo di calcolo maggiore ($87.6$\,s contro $16.8$\,s per l'intera griglia, con un unico insieme di processi; Sezione~\ref{sse:t2-potatura}). Sul peso: la soluzione è costante a tratti in $\gamma$ e il costo marginale della riduzione di disservizio cresce di un fattore $4.55$--$5.65$ dal tratto $0.1$--$0.5$ al tratto $0.5$--$0.9$, per poi saltare da $0.62$ a $7.9$\,\euro\ per unità all'ultimo passo ($\gamma=0.95$): la soluzione del plateau ($\gamma\in[0.55,0.90]$) è l'ultima prima del salto. I punti selezionati da CW e da Greedy a $\gamma=0.1$ e $0.5$ non sono confrontabili sul solo costo ($+7.2\%$ e $+3.8\%$ per CW), perché corrispondono a frequenze diverse: con rotte più economiche CW sposta le frequenze verso più servizio ($-17.8\%$ e $-14.6\%$ di disservizio). A pari disservizio, cioè a pari frequenze, CW costa il $6.8$--$7.0\%$ in meno e usa $5$ camion in meno su $93$ per tutti i livelli di disservizio delle soluzioni, salvo quello a $\gamma=0.05$ ($-3.9\%$, un camion in meno). Ad esempio la soluzione di CW a $\gamma=0.45$ ha lo stesso disservizio di quella di Greedy a $\gamma=0.5$ ($47\,228$) con $32\,284$\,\euro\ contro $34\,711$\,\euro\ ($-7.0\%$) e $88$ camion contro $93$. La frontiera di CW sta quindi sotto quella di Greedy (Figura~\ref{fig:b4_intervalli}), e la scelta dell'algoritmo vale circa il $7\%$ del costo logistico a servizio invariato.
 
 
 \section{Benchmark 5 - Analisi sul Grafo Standard}\label{se:b5}
@@ -826,7 +842,7 @@ Le tre politiche sono le stesse dei benchmark precedenti: \textbf{Pro-Azienda} (
 \end{table}
 
 \paragraph{Soluzione fisica per politica.}\mbox{}\\
-Dalla Tabella~\ref{tab:b5_fisica}, il passaggio da $\gamma=0.1$ a $\gamma=0.5$ moltiplica per circa $2.5$ le attivazioni settimanali ($7.2\rightarrow18.1$ per Greedy, $7.5\rightarrow18.7$ per CW) e per $3.1$ (Greedy, $597\rightarrow1822$) e $2.8$ (CW, $444\rightarrow1240$) i chilometri, e riduce il disservizio grezzo di $76\%$ (Greedy) e $75\%$ (CW). Il passo da $0.5$ a $0.9$ riduce il disservizio solo di un ulteriore $22\%$ (Greedy) e $18\%$ (CW), a fronte di $+32\%$ e $+26\%$ di costo logistico. Il costo marginale per unità di disservizio eliminata passa da $0.292$ a $1.994$\,\euro\ per CW ($6.8$ volte) e da $0.304$ a $2.140$\,\euro\ per Greedy ($7.0$ volte): il ginocchio è a $\gamma\approx0.5$, come negli altri benchmark.
+Dalla Tabella~\ref{tab:b5_fisica}, il passaggio da $\gamma=0.1$ a $\gamma=0.5$ moltiplica per circa $2.5$ le attivazioni settimanali ($7.2\rightarrow18.1$ per Greedy, $7.5\rightarrow18.7$ per CW) e per $3.1$ (Greedy, $597\rightarrow1822$) e $2.8$ (CW, $444\rightarrow1240$) i chilometri, e riduce il disservizio grezzo di $76\%$ (Greedy) e $75\%$ (CW). Il passo da $0.5$ a $0.9$ riduce il disservizio solo di un ulteriore $22\%$ (Greedy) e $18\%$ (CW), a fronte di $+32\%$ e $+26\%$ di costo logistico. Il costo marginale per unità di disservizio eliminata passa da $0.292$ a $1.994$\,\euro\ per CW ($6.8$ volte) e da $0.304$ a $2.140$\,\euro\ per Greedy ($7.0$ volte), come negli altri benchmark; sulla griglia di 19 valori di $\gamma$ il salto più grande del costo marginale cade a $\gamma=0.80$ (Sezione~\ref{sse:t1-soglie}).
 
 \paragraph{Paradosso dei camion e resilienza.}\mbox{}\\
 A $\gamma=0.1$ i camion per giro sono $13.3$ (Greedy) e $11.7$ (CW), contro $10.8$ e $10.0$ a $\gamma=0.5$ e $0.9$, mentre le attivazioni settimanali crescono ($7.2\rightarrow18.1\rightarrow23.9$ per Greedy): a frequenze basse il carico per ritiro rende vincolante la capacità (saturazione fisica $73.8\%$ e $70.1\%$ contro $31.6\%$ e $32.5\%$ a $\gamma=0.5$), a frequenze alte il tempo del turno (saturazione temporale $85.6\%$ per Greedy e $72.3\%$ per CW). Tra $\gamma=0.5$ e $0.9$ il numero di camion è identico, mentre le ore di lavoro passano da $127$ a $167$ per Greedy e da $107$ a $133$ per CW. A parità di politica CW usa $0.8$ camion in meno di Greedy ($-7\%$) nel regime a tempo, ma la differenza non si ripete a frequenze basse ($\Delta V$ a $X_r=0.5$ pari a $0.13\pm0.41$: nessun vantaggio sotto capacità).
@@ -860,7 +876,7 @@ In tutti i benchmark il gap è quasi interamente routing a pari frequenza; lo sp
 A $\gamma=0.9$ CW costa il $15.4\%$ in meno a parità di disservizio ($4766$ contro $5637$\,\euro, stesse frequenze); a $\gamma=0.5$ costa il $10.9\%$ in meno e riduce il disservizio del $5.0\%$; a $\gamma=0.1$ costa il $5.3\%$ in meno e riduce il disservizio dell'$8.9\%$. In questo benchmark CW è migliore o uguale a Greedy in entrambi gli obiettivi grezzi a ogni politica.
 
 \paragraph{Sintesi.}\mbox{}\\
-Nel grafo standard valgono gli stessi regimi osservati altrove (capacità sotto il ginocchio, tempo sopra, resilienza del numero di camion tra $\gamma=0.5$ e $0.9$, ginocchio a $\gamma\approx0.5$); la variabilità tra istanze è però sufficiente a rendere inaffidabile ogni conclusione basata su un solo seed, in particolare sul gap a $\gamma=0.1$.
+Nel grafo standard valgono gli stessi regimi osservati altrove (capacità sotto la soglia di frequenza, tempo sopra, resilienza del numero di camion tra $\gamma=0.5$ e $0.9$, costo marginale crescente); la variabilità tra istanze è però sufficiente a rendere inaffidabile ogni conclusione basata su un solo seed, in particolare sul gap a $\gamma=0.1$.
 
 
 \section{Benchmark Trasversale 1 - Generalità dell'Effetto di \texorpdfstring{$\gamma$}{gamma}}\label{se:t1}
@@ -902,7 +918,7 @@ Si usano le $23$ istanze indipendenti dei benchmark precedenti: il sintetico ori
 
 La Tabella~\ref{tab:t1_fisica} conferma su tutte le istanze l'andamento osservato a Fabriano. Da $\gamma=0.10$ a $\gamma=0.50$ il disservizio scende in mediana del $76.8\%$ per CW (tra il $70.4\%$ e il $95.4\%$ a seconda dell'istanza) e del $78.8\%$ per Greedy, mentre il costo logistico cresce del $157\%$ e del $165\%$, con chilometri e ore di lavoro che crescono nella stessa misura. Il passo da $\gamma=0.50$ a $\gamma=0.90$ aggiunge una riduzione di soli $4$--$6$ punti del disservizio (riferita al livello di $\gamma=0.10$) contro $36$--$70$ punti di costo. I camion per giro, invece, diminuiscono ($-17\%$ per CW, $-25\%$ per Greedy) e sono gli stessi a $\gamma=0.50$ e $\gamma=0.90$ su tutta la distribuzione, così come la saturazione temporale e la quota del viaggio.
 
-L'invarianza dipende dal regime del vincolo. Sotto una frequenza di soglia $\bar X$ il carico per ritiro $Q_{ru}=W_{rt_u}/X_r$ è grande e la capacità determina il numero di camion; sopra $\bar X$ il vincolo attivo è il turno e il giro non cambia più con $X_r$. Nei sottocampioni di Fabriano con $N=1000$ (organico, CW, 30 seed), da $X_r=0.5$ a $X_r=2$ i camion per giro passano da $13.3$ a $5.0$; da $X_r=2$ in poi ogni giro usa $5.0$ camion, percorre $130.2$\,km, dura $2264$\,min e satura il turno al $94.3\%$, mentre la saturazione fisica scende come $1/X_r$ (dal $62.9\%$ a $X_r=2$ al $21.0\%$ a $X_r=6$). Il costo settimanale è quindi lineare in $X_r$: ogni mezzo ritiro settimanale in più costa la stessa cifra ($606$\,\euro{} in questo esempio). Tra $\gamma=0.50$ e $\gamma=0.90$ cambiano solo frequenze già sopra la soglia (organico e indifferenziata; il vetro resta in mediana a $0.5$), quindi cambia il numero di giri e non il giro. La saturazione fisica del $31$--$35\%$ a $\gamma=0.90$ non indica rotte inefficienti: il camion termina il turno prima di riempirsi perché ritira meno rifiuto a ogni passaggio.
+L'invarianza dipende dal regime del vincolo. Sotto una frequenza di soglia $\bar X$ (ricavata nella Sezione~\ref{sse:t2-regimi}) il carico per ritiro $Q_{ru}=W_{rt_u}/X_r$ è grande e la capacità determina il numero di camion; sopra $\bar X$ il vincolo attivo è il turno e il giro non cambia più con $X_r$. Nei sottocampioni di Fabriano con $N=1000$ (organico, CW, 30 seed), da $X_r=0.5$ a $X_r=2$ i camion per giro passano da $13.3$ a $5.0$; da $X_r=2$ in poi ogni giro usa $5.0$ camion, percorre $130.2$\,km, dura $2264$\,min e satura il turno al $94.3\%$, mentre la saturazione fisica scende come $1/X_r$ (dal $62.9\%$ a $X_r=2$ al $21.0\%$ a $X_r=6$). Il costo settimanale è quindi lineare in $X_r$: ogni mezzo ritiro settimanale in più costa la stessa cifra ($606$\,\euro{} in questo esempio). Tra $\gamma=0.50$ e $\gamma=0.90$ cambiano solo frequenze già sopra la soglia (organico e indifferenziata; il vetro resta in mediana a $0.5$), quindi cambia il numero di giri e non il giro. La saturazione fisica del $31$--$35\%$ a $\gamma=0.90$ non indica rotte inefficienti: il camion termina il turno prima di riempirsi perché ritira meno rifiuto a ogni passaggio.
 
 Tra i due algoritmi la differenza fisica sta nel giro: nel regime a tempo Greedy satura il turno all'$88.2\%$ contro il $79.6\%$ di CW (mediane), con una quota di viaggio del $40.2\%$ contro il $28.6\%$.
 
@@ -912,7 +928,7 @@ L'insoddisfazione di un rifiuto, $F_{\mathrm{insoddis}}(X_r)=\sum_u\bigl[\alpha\
 \begin{equation}\label{eq:t1_pendenza}
 	\frac{dF_{\mathrm{insoddis}}}{dX_r}=-\alpha\,n_>(X_r)+\beta\,n_<(X_r),
 \end{equation}
-dove $n_>(X_r)$ e $n_<(X_r)$ sono gli utenti con frequenza ideale rispettivamente maggiore e minore di $X_r$. La pendenza cambia segno quando la quota di utenti ancora sotto-serviti scende sotto $\beta/(\alpha+\beta)=1/6$: la frequenza di minimo disservizio è il quantile $\alpha/(\alpha+\beta)=83.3\%$ delle frequenze ideali degli utenti. Poiché $x^*_{ru}$ è il prodotto di un valore base per rifiuto e di un moltiplicatore per tipologia ($0.7$, $1.0$, $1.5$, $2.0$), il quantile coincide con la frequenza ideale di una sola tipologia e dipende soltanto dal mix degli utenti. La Tabella~\ref{tab:t1_quantile} riporta il quantile, il punto della griglia con disservizio minimo e, per confronto, la frequenza scelta a $\gamma=0.95$: coincidono in tutti i $30$ casi.
+dove $n_>(X_r)$ e $n_<(X_r)$ sono gli utenti con frequenza ideale rispettivamente maggiore e minore di $X_r$. La pendenza cambia segno quando la quota di utenti ancora sotto-serviti scende sotto $\beta/(\alpha+\beta)=1/6$: la frequenza di minimo disservizio è il quantile $\alpha/(\alpha+\beta)=83.3\%$ delle frequenze ideali degli utenti. Poiché $x^*_{ru}$ è il prodotto di un valore base per rifiuto e di un moltiplicatore per tipologia ($0.7$, $1.0$, $1.5$, $2.0$; Tabella~\ref{tab:xstar_servizio}), il quantile coincide con la frequenza ideale di una sola tipologia e dipende soltanto dal mix degli utenti. La Tabella~\ref{tab:t1_quantile} riporta il quantile, il punto della griglia con disservizio minimo e, per confronto, la frequenza scelta a $\gamma=0.95$: coincidono in tutti i $30$ casi.
 
 \begin{table}[htbp]
 	\centering
@@ -990,191 +1006,171 @@ A pari $\gamma$ il confronto è diverso, perché i due algoritmi possono sceglie
 
 Le proprietà osservate a Fabriano valgono per tutte le 23 istanze e discendono dalla struttura del modello. Oltre una frequenza di soglia il giro è fisso e il costo cresce linearmente con il numero di giri, mentre il guadagno di disservizio di ogni mezzo ritiro diminuisce fino ad annullarsi al quantile $83.3\%$ delle frequenze ideali: la frontiera è convessa e ogni passo di frequenza entra a una soglia $\gamma^*=s/(k_{\mathrm{scala}}+s)$. Il plateau di $\gamma$ è il vuoto tra le soglie dei passi di avvicinamento e quelle dei passi che attraversano il quantile, e il salto finale del costo marginale nasce dal fatto che il quantile cade a metà di una cella della griglia. CW domina Greedy a parità di disservizio, con un risparmio di costo mediano del $9$--$13\%$; a parità di $\gamma$ la dominanza vale fuori da due bande, dentro le quali CW anticipa ogni aumento di frequenza perché ogni passo gli costa meno.
 
-\section{Benchmark Trasversale 2 - Analisi di Sensibilità e Profilo della Funzione Obiettivo}
+\section{Benchmark Trasversale 2 - Profilo in Frequenza e Ricerca Potata}\label{se:t2}
 
-\subsection{Obiettivi e configurazione dell'analisi di sensibilità}
+\subsection{Obiettivo e dati}\label{sse:t2-dati}
 
-Mentre il Benchmark Trasversale 1 (T1) si è focalizzato esclusivamente sull'estrazione delle soluzioni ottime (identificate dal flag logico di fine ottimizzazione) per tracciare la frontiera di Pareto, il Benchmark Trasversale 2 (T2) adotta un approccio esplorativo radicalmente diverso. %[cite: 4]
-L'obiettivo di questa sezione è condurre un'analisi di sensibilità completa sull'intero dominio delle soluzioni ammissibili, valutando il comportamento del sistema per ogni singolo passo della procedura di Grid Search. %[cite: 4]
+Il Benchmark Trasversale 1 ha studiato la frequenza scelta al variare di $\gamma$. Questo benchmark guarda invece l'intera griglia $X_r=0.5,1.0,\dots,6.0$, cioè come cambiano camion, saturazioni e costi a frequenza fissata, che sono grandezze indipendenti da $\gamma$ (Sezione~\ref{se:metodo-analisi}). Si usano le stesse 23 istanze di T1, per un totale di $6610$ profili (istanza, seed, algoritmo, rifiuto) di 12 punti ciascuno. I valori di $F_{\mathrm{tot}}$ si confrontano solo all'interno dello stesso profilo, mai tra istanze o tra valori di $\gamma$. L'analisi porta a una proposta di miglioramento della procedura di ricerca, verificata su 29 istanze ricalcolate (Sezione~\ref{sse:t2-potatura}).
 
-Dal punto di vista metodologico, i dati elaborati in questo benchmark non si limitano alle sole configurazioni dominanti, ma includono tutte le righe generate dalle simulazioni, coprendo l'intero spettro delle frequenze di raccolta candidate. %[cite: 4]
-Tale dominio discreto è definito nell'intervallo $X_r \in [0.5, 6.0]$, rappresentando variazioni che spaziano da un ritiro ogni due settimane fino a quasi un ritiro giornaliero. %[cite: 4]
-Questa indagine di sensibilità risulta fondamentale nell'ambito della ricerca operativa applicata alla logistica, in quanto permette di ricostruire la forma topologica della funzione obiettivo $F_{tot}$ e di studiarne la convessità. %[cite: 4]
+\subsection{Regime a capacità e regime a tempo}\label{sse:t2-regimi}
 
-L'analisi del profilo di $F_{tot}$ sull'intero dominio di ricerca fornisce risposte a questioni gestionali cruciali: permette di giustificare analiticamente la posizione del minimo globale individuato dagli algoritmi, di valutare l'ampiezza e la stabilità delle regioni di ottimalità, e di osservare matematicamente in che modo la variazione della politica decisionale (il parametro $\gamma$) e la natura del singolo rifiuto deformino la funzione di costo. %[cite: 4]
-Nelle sezioni successive, l'analisi partirà da una visione aggregata su tutti gli scenari per poi destrutturare la funzione obiettivo nelle sue componenti primarie, dimostrando le ragioni del trade-off e l'impatto diretto sulle risorse di flotta. %[cite: 4]
+Sia $W_r$ il rifiuto prodotto in una settimana dagli utenti e $C_r$ la capacità di un camion. Per un ritiro servono almeno $W_r/(X_r C_r)$ camion per la capacità e $V^{\mathrm{t}}_r$ camion per il turno, dove $V^{\mathrm{t}}_r$ è il numero di camion del regime a tempo, che non dipende da $X_r$ (Sezione~\ref{sse:t1-fisica}). Il regime a tempo inizia quando la capacità smette di essere vincolante, cioè per
+\begin{equation}\label{eq:t2_soglia}
+	X_r\ge\bar X_r=\frac{W_r}{C_r\,V^{\mathrm{t}}_r}=X_r\,\frac{\text{sat. fisica}(X_r)}{100}\quad(X_r\text{ nel regime a tempo}),
+\end{equation}
+dove l'ultima uguaglianza segue da $\text{sat. fisica}=W_r/(X_r V^{\mathrm{t}}_r C_r)$ e permette di calcolare la soglia da qualunque punto del regime a tempo (qui $X_r=6$). La Tabella~\ref{tab:t2_soglia} confronta la soglia prevista con quella osservata, cioè la frequenza da cui il numero di camion per giro resta costante. Arrotondata al punto successivo della griglia, la previsione coincide con l'osservazione nel $95.8\%$ dei profili e non la anticipa mai; nel $4.2\%$ restante la soglia osservata arriva più tardi perché il carico non entra perfettamente nei camion previsti (con CW più spesso che con Greedy: fino al $10.7\%$ dei profili dell'organico contro il $5.0\%$).
 
-
-
-\subsection{Andamento aggregato della funzione obiettivo}
-
-La prima fase dell'analisi di sensibilità esplora il comportamento macroscopico del sistema, aggregando i risultati su tutti i benchmark e su tutte le tipologie di rifiuto. %[cite: 4]
-La Figura \ref{fig:t2_profilo_ftot} illustra il profilo medio aggregato della funzione obiettivo $F_{tot}$ al variare della frequenza di raccolta $X_r$, separato in tre curve distinte che rappresentano le diverse politiche decisionali (governate dal parametro $\gamma$) e suddiviso nei due grafici relativi agli algoritmi Greedy e Clarke-Wright. %[cite: 4]
+\begin{table}[htbp]
+	\centering
+	\caption{Soglia tra regime a capacità e regime a tempo per rifiuto (6610 profili): soglia osservata e prevista dalla~\eqref{eq:t2_soglia}, mediana [minimo; massimo]; quota di profili in cui la soglia osservata coincide con la previsione arrotondata alla griglia o arriva dopo; saturazione fisica alla soglia osservata.}
+	\label{tab:t2_soglia}
+	\resizebox{\textwidth}{!}{%
+		\begin{tabular}{llcccccc}
+			\hline
+			Rifiuto & Algoritmo & Soglia osservata & Soglia prevista & Coincide (\%) & Dopo (\%) & Sat.\ fisica alla soglia (\%) \\
+			\hline
+			Organico        & CW     & 1.5 [0.5; 3.5] & 1.00 [0.25; 2.84] & 89.3  & 10.7 & 74 [48; 100] \\
+			& Greedy & 1.0 [0.5; 2.5] & 0.95 [0.25; 2.34] & 95.0  & 5.0  & 72 [50; 100] \\
+			Indifferenziata & CW     & 1.0 [0.5; 2.0] & 0.62 [0.16; 1.77] & 95.9  & 4.1  & 69 [31; 100] \\
+			& Greedy & 1.0 [0.5; 1.5] & 0.60 [0.16; 1.46] & 99.5  & 0.5  & 66 [31; 100] \\
+			Plastica        & CW     & 1.0 [0.5; 3.0] & 0.91 [0.22; 2.49] & 89.6  & 10.4 & 73 [44; 99]  \\
+			& Greedy & 1.0 [0.5; 3.0] & 0.86 [0.21; 2.49] & 96.7  & 3.3  & 73 [42; 100] \\
+			Carta           & CW     & 1.0 [0.5; 2.5] & 0.71 [0.17; 1.95] & 93.9  & 6.1  & 72 [35; 100] \\
+			& Greedy & 1.0 [0.5; 2.5] & 0.68 [0.17; 1.95] & 98.0  & 2.0  & 75 [33; 100] \\
+			Vetro           & CW     & 0.5 [0.5; 1.0] & 0.25 [0.06; 0.70] & 100.0 & 0.0  & 51 [12; 75]  \\
+			& Greedy & 0.5 [0.5; 1.0] & 0.24 [0.06; 0.69] & 100.0 & 0.0  & 48 [13; 69]  \\
+			\hline
+	\end{tabular}}
+\end{table}
 
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=\textwidth]{immagini/t2 Ftot rispetto a Xr.png}
-	\caption{Profilo aggregato della funzione obiettivo $F_{tot}$ al variare della frequenza di raccolta $X_r$ e della politica decisionale $\gamma$.}
-	\label{fig:t2_profilo_ftot}
+	\includegraphics[width=\textwidth]{immagini/fig_t2_regimi.png}
+	\caption{Fabriano, istanza completa, CW: saturazione temporale e fisica in funzione di $X_r$ per rifiuto. La linea punteggiata è la soglia prevista dalla~\eqref{eq:t2_soglia}; nel titolo, la frequenza da cui il numero di camion per giro resta costante.}
+	\label{fig:t2_regimi}
 \end{figure}
 
-L'analisi morfologica delle curve restituisce una conformazione a convessità pronunciata, tipicamente a "U". %[cite: 4]
-Questa forma è caratteristica dei problemi di ottimizzazione in cui la variabile decisionale (in questo caso, la frequenza settimanale) funge da elemento di tensione tra due forze di segno opposto: l'insoddisfazione, che decresce all'aumentare dei ritiri, e i costi logistici, che invece crescono linearmente o più che linearmente. %[cite: 4]
-Osservando l'evoluzione delle curve, si nota come la posizione del punto di minimo globale $X_r^*$ subisca una traslazione sistematica verso destra all'aumentare del parametro $\gamma$. %[cite: 4]
+La Figura~\ref{fig:t2_regimi} mostra il meccanismo su Fabriano. Sotto la soglia la saturazione fisica è vicina al $100\%$ e quella temporale cresce con $X_r$, perché a ogni ritiro c'è meno rifiuto e lo stesso camion visita più utenti; sopra la soglia la saturazione temporale resta ferma intorno al $95\%$ e quella fisica scende come $1/X_r$. Per indifferenziata, carta e vetro la soglia osservata è il primo punto della griglia dopo quella prevista, per organico e plastica il secondo. Il vetro, che ha la capacità più alta (a pari merito con l'indifferenziata) e la produzione per utente più bassa, è nel regime a tempo già a $X_r=0.5$ in quasi tutti i profili (soglia prevista $0.25$ in mediana): ogni mezzo ritiro in più del vetro costa quindi un giro intero, il che contribuisce a rendere il suo passo da $0.5$ a $1.0$ uno degli ultimi a entrare nella soluzione (Sezione~\ref{sse:t1-soglie}).
 
-Nello scenario Pro-Azienda ($\gamma=0.10$, rappresentato dalla linea continua), l'assoluta preminenza della componente economica spinge il minimo globale verso l'estremo inferiore del dominio ammissibile. %[cite: 4]
-Entrambi gli algoritmi individuano l'ottimo a $X_r^*=0.5$ (un ritiro ogni due settimane), confermando che l'abbattimento radicale dei costi operativi richiede l'adozione delle frequenze minime, a prescindere dal conseguente accumulo di rifiuti presso le utenze. %[cite: 4]
-Il ramo ascendente della curva, per valori di $X_r > 0.5$, risulta estremamente ripido, evidenziando come ogni ritiro aggiuntivo in questa politica generi una penalizzazione insostenibile nella funzione obiettivo. %[cite: 4]
+\subsection{Sensibilità attorno alla frequenza ottima}\label{sse:t2-sensibilita}
 
-Passando alla configurazione Neutra ($\gamma=0.50$, linea tratteggiata) e successivamente a quella Pro-Cittadino ($\gamma=0.90$, linea punteggiata), la curva subisce una marcata deformazione. %[cite: 4]
-La necessità di bilanciare o di privilegiare la qualità del servizio sposta il punto di minimo globale verso il centro del dominio, stabilizzandosi su valori compresi tra 2.0 e 2.6 ritiri settimanali. %[cite: 4]
-In queste configurazioni, le valli di ottimizzazione risultano sensibilmente più ampie e piatte rispetto allo scenario aziendalista; ciò indica che, intorno al punto di ottimo, piccole variazioni nella pianificazione della frequenza non comportano stravolgimenti drammatici nella prestazione complessiva del sistema, garantendo una maggiore robustezza operativa. %[cite: 4]
+Sul singolo profilo $F_{\mathrm{tot}}(X_r)$ è unimodale sulla griglia nel $99.8\%$ dei casi (sui $6610$ profili e 19 valori di $\gamma$; $97.8\%$ a $\gamma=0.10$), ma il minimo non cade in generale nel punto di incrocio tra la componente di disservizio e quella di costo: cade dove il costo di un mezzo ritiro in più eguaglia il disservizio che evita, secondo la soglia~\eqref{eq:t1_soglia}. La Tabella~\ref{tab:t2_sensibilita} mostra che cosa succede spostandosi di mezzo ritiro dall'ottimo a $\gamma=0.5$.
 
-Infine, il confronto strutturale tra i due metodi di instradamento riafferma la superiorità della logica basata sui risparmi (savings). %[cite: 4]
-Sebbene l'euristica Greedy e l'euristica Clarke-Wright individuino approssimativamente le stesse posizioni lungo l'asse delle ascisse per i punti di minimo $X_r^*$, l'intero fascio di curve generato dalla Clarke-Wright risulta traslato verso il basso. %[cite: 4]
-Ciò dimostra che, indipendentemente dalla frequenza imposta e dalla politica adottata, la capacità della Clarke-Wright di aggregare i nodi in percorsi più efficienti garantisce un valore aggregato della funzione obiettivo $F_{tot}$ costantemente inferiore. %[cite: 4]
+\begin{table}[htbp]
+	\centering
+	\caption{Effetto di mezzo ritiro in più o in meno rispetto a $X_r^*$ (CW, $\gamma=0.5$): variazioni percentuali di costo logistico, disservizio e $F_{\mathrm{tot}}$, mediana [minimo; massimo] sulle 23 istanze (media sui seed). Per il vetro il passo in meno esiste solo in 2 istanze.}
+	\label{tab:t2_sensibilita}
+	\resizebox{\textwidth}{!}{%
+		\begin{tabular}{llccc}
+			\hline
+			Rifiuto & Passo & $\Delta F_{\mathrm{costi}}$ (\%) & $\Delta F_{\mathrm{ins}}$ (\%) & $\Delta F_{\mathrm{tot}}$ (\%) \\
+			\hline
+			Organico        & $+0.5$ & $+18.7$ [$+10.0$; $+20.0$] & $-14.4$ [$-18.9$; $+69.6$] & $+2.8$ [$+1.2$; $+28.4$] \\
+			& $-0.5$ & $-18.7$ [$-20.0$; $-10.0$] & $+82.7$ [$+37.1$; $+217.0$] & $+26.3$ [$+1.9$; $+35.6$] \\
+			Indifferenziata & $+0.5$ & $+20.0$ [$+12.5$; $+25.0$] & $+11.9$ [$-4.9$; $+87.0$] & $+13.3$ [$+6.8$; $+36.8$] \\
+			& $-0.5$ & $-20.0$ [$-25.0$; $-12.5$] & $+67.3$ [$+44.7$; $+271.2$] & $+18.0$ [$+0.1$; $+48.9$] \\
+			Plastica        & $+0.5$ & $+20.3$ [$+14.3$; $+28.6$] & $+17.0$ [$-7.6$; $+84.9$] & $+18.4$ [$+9.1$; $+25.1$] \\
+			& $-0.5$ & $-20.3$ [$-28.6$; $-14.3$] & $+49.9$ [$+34.1$; $+161.8$] & $+5.8$ [$+3.1$; $+35.6$] \\
+			Carta           & $+0.5$ & $+35.6$ [$+21.8$; $+50.0$] & $+34.3$ [$+2.3$; $+173.9$] & $+30.5$ [$+19.3$; $+76.6$] \\
+			& $-0.5$ & $-33.7$ [$-50.0$; $-15.7$] & $+102.0$ [$+68.6$; $+739.3$] & $+29.5$ [$+6.2$; $+172.2$] \\
+			Vetro           & $+0.5$ & $+100.0$ [$+50.0$; $+100.0$] & $-7.5$ [$-51.5$; $+352.9$] & $+49.6$ [$+9.2$; $+155.5$] \\
+			& $-0.5$ & $-44.4$ [$-50.0$; $-38.9$] & $+682.5$ [$+194.0$; $+1171.0$] & $+38.2$ [$+5.1$; $+71.2$] \\
+			\hline
+	\end{tabular}}
+\end{table}
 
+Nel regime a tempo il costo è proporzionale al numero di giri, quindi mezzo ritiro in più a partire da $X^*$ aumenta il costo di $0.5/X^*$: il $20\%$ da $2.5$, il $33\%$ da $1.5$, il $100\%$ da $0.5$, come in tabella. Il disservizio, invece, si comporta in modo diverso per i diversi rifiuti. Per carta, indifferenziata e plastica mezzo ritiro in più aumenta in mediana anche il disservizio ($+12$--$34\%$): in almeno metà delle istanze la frequenza scelta a $\gamma=0.5$ è già quella di minimo disservizio (Sezione~\ref{sse:t1-quantile}), per cui il passo peggiora entrambe le componenti e $F_{\mathrm{tot}}$ cresce del $13$--$31\%$. L'organico, che a $\gamma=0.5$ sta sotto la propria frequenza di minimo disservizio, è l'unico rifiuto con un vero compromesso: mezzo ritiro in più costa il $18.7\%$ in più e riduce il disservizio del $14.4\%$, con $F_{\mathrm{tot}}$ che sale solo del $2.8\%$.
 
+Un $F_{\mathrm{tot}}$ quasi piatto vicino all'ottimo non indica quindi una soluzione fisicamente stabile, ma una quasi indifferenza secondo i pesi: nell'esempio dell'organico, due soluzioni con valori di $F_{\mathrm{tot}}$ distanti meno del $3\%$ differiscono di circa un quinto nel costo e di un settimo nel disservizio. La sensibilità è inoltre asimmetrica: togliere mezzo ritiro aumenta il disservizio del $50$--$102\%$ (escluso il vetro), mentre aggiungerlo lo riduce al più del $14\%$ (organico), coerentemente con una penalità di sotto-servizio cinque volte quella di sovra-servizio ($\alpha/\beta=5$).
 
-\subsection{Scomposizione dei costi: il trade-off logistico-sociale}
-
-Per comprendere l'origine analitica della marcata convessità riscontrata nel profilo aggregato, risulta indispensabile destrutturare la funzione obiettivo complessiva $F_{tot}$ nelle sue due componenti fondamentali. %[cite: 4]
-La Figura \ref{fig:t2_scomposizione_organico} isola questo fenomeno analizzando nello specifico la frazione organica, calcolata sull'istanza standard con una politica decisionale Neutra ($\gamma=0.50$). %[cite: 4]
+\subsection{Confronto tra algoritmi a pari frequenza}\label{sse:t2-algoritmi}
 
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=\textwidth]{immagini/t2 Scomposizione Ftot (Organico) rispetto a Xr.png}
-	\caption{Scomposizione della funzione obiettivo $F_{tot}$ nelle componenti di insoddisfazione e costo logistico per il rifiuto organico ($\gamma=0.50$).}
-	\label{fig:t2_scomposizione_organico}
+	\includegraphics[width=\textwidth]{immagini/fig_t2_algoritmi.png}
+	\caption{CW rispetto a Greedy a pari $X_r$ (somma sui rifiuti, media sui seed): vantaggio logistico, cioè costo di Greedy diviso costo di CW meno uno, e variazione percentuale dei camion per giro. Linea: mediana sulle 23 istanze; fascia: minimo e massimo.}
+	\label{fig:t2_algoritmi}
 \end{figure}
 
-Il grafico rende esplicita l'intersezione matematica tra due dinamiche di costo puramente antagoniste. %[cite: 4]
-Da un lato, la curva relativa all'insoddisfazione pesata dell'utenza (rappresentata dalla linea verde) mostra un andamento strettamente decrescente e asintotico. %[cite: 4]
-L'incremento della frequenza di ritiro $X_r$ riduce drasticamente i volumi di rifiuto accumulati presso le abitazioni e avvicina il servizio erogato alle alte frequenze ideali richieste per i materiali ad alta putrescibilità come l'organico. %[cite: 4]
-Dall'altro lato, la curva dei costi operativi logistici (rappresentata dalla linea grigio scura) esibisce una crescita monotona e quasi lineare. %[cite: 4]
-Ogni passaggio settimanale aggiuntivo costringe infatti l'algoritmo a instradare nuovamente i veicoli lungo la rete, moltiplicando i costi legati ai chilometri percorsi, alle ore di lavoro retribuite e all'eventuale attivazione di automezzi aggiuntivi. %[cite: 4]
+La Figura~\ref{fig:t2_algoritmi} riassume il confronto tra gli algoritmi lungo tutta la griglia. Il vantaggio logistico di CW è in mediana del $10.1\%$ a $X_r=0.5$ ($4.1$--$21.5\%$ a seconda dell'istanza), dell'$11.3\%$ a $X_r=1.0$ e del $14.6\%$ da $X_r=2$ in poi ($7.2$--$39.1\%$). I camion per giro seguono il regime. A $X_r=0.5$, dove decide la capacità, CW ne usa in mediana l'$1.8\%$ in più di Greedy (da $-11.7\%$ a $+6.6\%$): il suo vantaggio sotto capacità viene solo dai chilometri. Da $X_r=2$, dove decide il turno, ne usa il $5.8\%$ in meno (fino al $-35\%$), perché il tempo risparmiato in viaggio lascia spazio a più utenti per camion. Da $X_r=2$ in poi entrambe le curve sono costanti, come atteso dal fatto che oltre la soglia il giro non cambia. Il vantaggio maggiore nel regime a tempo è il motivo per cui il gap tra gli algoritmi è più alto quando la soluzione scelta sta sopra la soglia, come a Fabriano a $\gamma=0.5$ rispetto a $\gamma=0.1$ (Sezione~\ref{se:b4}).
 
-La sovrapposizione punto a punto di queste due tensioni opposte genera la curva della funzione obiettivo totale $F_{tot}$. %[cite: 4]
-Il punto di minimo globale, individuato a $X_r^*=2.5$ ritiri settimanali per entrambi gli algoritmi, si posiziona esattamente in prossimità del punto di incrocio tra le due componenti. %[cite: 4]
-Dal punto di vista dell'ottimizzazione marginale, questo vertice rappresenta il limite esatto oltre il quale il costo economico necessario per finanziare un ritiro aggiuntivo supera nettamente il beneficio sociale marginale derivante dalla mitigazione del disservizio residuo. %[cite: 4]
+\subsection{Ricerca potata della griglia}\label{sse:t2-potatura}
 
-Infine, confrontando i grafici relativi alle due euristiche, si evince come la radice del vantaggio prestazionale dell'euristica Clarke-Wright risieda interamente nella componente logistica. %[cite: 4]
-Mentre la curva dell'insoddisfazione risulta identica per entrambi gli algoritmi, essendo matematicamente dipendente in via primaria dalla variabile $X_r$, la curva dei costi operativi della Clarke-Wright mantiene pendenze inferiori e valori assoluti sistematicamente più contenuti rispetto al metodo Greedy. %[cite: 4]
-Questa superiore efficienza nell'aggregazione spaziale delle rotte si traduce in una traslazione verso il basso dell'intera curva $F_{tot}$, permettendo al sistema di raggiungere lo stesso punto di equilibrio sociale sostenendo un onere logistico decisamente minore. %[cite: 4]
+La struttura del disservizio suggerisce una riduzione della ricerca. $F_{\mathrm{insoddis}}(X_r)$ dipende solo da $X_r$ e dalle frequenze ideali degli utenti, quindi si calcola su tutta la griglia senza costruire alcuna rotta. Sia $X^{\min}_r$ il punto della griglia con disservizio minimo, cioè la frequenza al quantile $83.3\%$ della Sezione~\ref{sse:t1-quantile}. Per $X_r>X^{\min}_r$ il disservizio non diminuisce; se nemmeno il costo logistico diminuisce, ogni $X_r>X^{\min}_r$ è peggiore di $X^{\min}_r$ per qualunque $\gamma$ e $k_{\mathrm{scala}}$ e non va instradata. La ricerca potata valuta quindi solo $X_r\le X^{\min}_r$.
 
+La condizione sul costo non è garantita a priori, perché le rotte sono euristiche, ma è verificata in tutti i $6610$ profili dei benchmark: il costo per $X_r>X^{\min}_r$ non scende mai sotto quello di $X^{\min}_r$, e su $125\,590$ scelte ($6610$ profili per 19 valori di $\gamma$) la frequenza ottima sta sempre entro $X^{\min}_r$. La potatura valuta in media $4.78$ frequenze su 12 ($-60.1\%$): $1.9$ per il vetro, $3.0$ per la carta, $5.1$ per la plastica, $6.0$ per l'indifferenziata e $7.9$ per l'organico. Rispetto a una ricerca che parte da $X_r=0.5$ e si ferma al primo aumento di $F_{\mathrm{tot}}$, che trova il minimo nel $99.9\%$ dei casi, la potatura è esatta nei casi esaminati, non dipende da $\gamma$ e, per coprire tutti i 19 valori di $\gamma$, richiede meno valutazioni ($4.78$ contro $5.72$; per un solo valore di $\gamma$ la discesa ne richiede in media $4.60$).
 
-\subsection{Profilo di ottimizzazione per tipologia di rifiuto}
+La regola è stata implementata e verificata ricalcolando 29 istanze (sintetico originale con $N=100$, $500$, $1000$; scenari residenziale, villette e grandi condomini; grafo standard; sottocampioni di Fabriano con $N=1000$ e $2000$; Fabriano completa). Per ogni istanza e algoritmo sono state eseguite sia la griglia completa sia quella potata, con lo stesso insieme di processi paralleli. Le $1382$ righe della griglia potata sono identiche a quelle della griglia completa e le frequenze scelte coincidono in tutte le $5510$ scelte (29 istanze, 2 algoritmi, 5 rifiuti, 19 valori di $\gamma$). Anche le $4862$ righe ricalcolate coincidono con quelle dei CSV dei benchmark, entro la precisione con cui questi sono salvati: i risultati sono riproducibili.
 
-Estendendo l'analisi di sensibilità all'intero spettro delle frazioni merceologiche, è possibile osservare come la funzione obiettivo si adatti dinamicamente alle caratteristiche intrinseche di ciascun materiale. %[cite: 4]
-La Figura \ref{fig:t2_profilo_rifiuto} illustra i profili di ottimizzazione $F_{tot}(X_r)$ differenziati per le cinque tipologie di rifiuto considerate (organico, indifferenziato, carta, plastica e vetro), mantenendo fissa la configurazione della politica decisionale sullo scenario Neutro ($\gamma=0.50$).
-
-\begin{figure}[htbp]
+\begin{table}[htbp]
 	\centering
-	\includegraphics[width=\textwidth]{immagini/t2 Ftot per Rifiuto rispetto a Xr.png}
-	\caption{Profilo della funzione obiettivo $F_{tot}$ in relazione alla frequenza $X_r$, differenziato per tipologia di rifiuto ($\gamma=0.50$).}
-	\label{fig:t2_profilo_rifiuto}
-\end{figure}
+	\caption{Ricerca potata contro griglia completa (stesso insieme di processi, stessa macchina; mediana sui seed): quota di frequenze valutate, rapporto tra i tempi reali e tempo reale della griglia completa.}
+	\label{tab:t2_tempi}
+	\small
+	\begin{tabular}{lccccc}
+		\hline
+		& & \multicolumn{2}{c}{Tempo potata / completa} & \multicolumn{2}{c}{Completa (s)} \\
+		Istanza & Valutazioni & CW & Greedy & CW & Greedy \\
+		\hline
+		Sintetico, $N=100$         & 0.40 & 0.86 & 0.85 & 5.4  & 5.4 \\
+		Sintetico, $N=500$         & 0.40 & 0.80 & 0.84 & 6.1  & 5.6 \\
+		Sintetico, $N=1000$        & 0.40 & 0.68 & 0.80 & 8.8  & 6.1 \\
+		Residenziale, $N=400$      & 0.40 & 0.82 & 0.84 & 5.9  & 5.6 \\
+		Villette, $N=400$          & 0.27 & 0.69 & 0.70 & 5.8  & 5.5 \\
+		Grandi condomini, $N=400$  & 0.52 & 0.95 & 0.98 & 5.9  & 5.5 \\
+		Grafo standard, $N=200$    & 0.40 & 0.85 & 0.86 & 5.5  & 5.4 \\
+		Fabriano, $N=1000$         & 0.40 & 0.67 & 0.82 & 8.7  & 6.2 \\
+		Fabriano, $N=2000$         & 0.40 & 0.55 & 0.72 & 21.7 & 7.8 \\
+		Fabriano, $N=3932$         & 0.40 & 0.43 & 0.60 & 87.6 & 16.8 \\
+		\hline
+	\end{tabular}
+\end{table}
 
-L'indagine visiva delle curve conferma una spiccata eterogeneità nei comportamenti di costo, evidenziando come il modello riesca a discriminare le priorità di servizio.
-La curva relativa al vetro (rappresentata dalla linea marrone) esibisce un ramo ascendente estremamente ripido già per valori moderati di $X_r$, localizzando in modo netto il proprio minimo globale in corrispondenza di $X_r^*=0.5$ ritiro settimanale.
-Tale andamento è giustificato dalla natura inerte del materiale: il vetro presenta un tasso di putrescibilità nullo e un accumulo che genera un'insoddisfazione marginale molto bassa.
-Di conseguenza, incrementare la frequenza di raccolta del vetro comporta costi operativi altissimi e del tutto ingiustificati sotto il profilo del beneficio sociale.
+Il risparmio di tempo è minore di quello di valutazioni e cresce con la dimensione dell'istanza (Tabella~\ref{tab:t2_tempi}). Fino a $N=500$ la griglia completa richiede tra $5.4$ e $6.1$\,s indipendentemente da $N$, segno di un costo fisso (avvio dei processi e trasferimento dei dati) che la potatura non riduce, e il tempo scende solo del $14$--$20\%$. Su Fabriano completa, dove prevale il routing, il tempo di CW passa da $87.6$ a $37.7$\,s ($-57\%$, vicino al $-60\%$ delle valutazioni) e quello di Greedy da $16.8$ a $10.1$\,s ($-40\%$). Sulle 29 istanze il tempo totale scende del $29.7\%$ e il tempo di CPU del $31.9\%$. Il numero di frequenze valutate dipende dal mix tipologico, perché questo fissa il quantile: $27\%$ della griglia nelle villette, $52\%$ nei grandi condomini.
 
-Al polo opposto si collocano le curve relative alla frazione organica (linea blu) e al rifiuto indifferenziato (linea verde). %[cite: 4]
-Questi materiali presentano valli di ottimizzazione significativamente più ampie e traslate verso destra, individuando i propri punti di minimo globale tra $2.5$ e $3.0$ passaggi settimanali. %[cite: 4]
-L'elevata putrescibilità dell'organico e la rapida saturazione volumetrica dei mastelli per l'indifferenziato impongono al sistema di sostenere costi logistici maggiori per garantire svuotamenti frequenti, al fine di evitare che la penalità associata all'insoddisfazione dell'utenza faccia esplodere il valore della funzione obiettivo. %[cite: 4]
-Le frazioni intermedie, come carta (linea rossa) e plastica (linea viola), si posizionano coerentemente tra questi due estremi. %[cite: 4]
+L'applicazione operativa ha due limiti. Il primo è che la condizione sul costo è verificata empiricamente e non garantita: un'implementazione prudente dovrebbe valutare anche il primo punto oltre $X^{\min}_r$ e controllare che il costo non scenda. Il secondo riguarda $k_{\mathrm{scala}}$, che nei benchmark è calcolato sulla griglia completa di Greedy: con la ricerca potata va definito in altro modo, oppure la scelta va espressa direttamente come prezzo accettato per unità di disservizio (Sezione~\ref{sse:t1-soglie}), che non richiede $k_{\mathrm{scala}}$.
 
-Da un punto di vista metodologico, la profonda differenza morfologica tra queste "U-curves" certifica la correttezza formale e la necessità pratica di aver implementato una formulazione disaccoppiata del problema. %[cite: 4]
-Consentire all'algoritmo di ricercare frequenze ottime indipendenti per ciascun rifiuto permette infatti di massimizzare l'efficienza globale del sistema, evitando sovradimensionamenti logistici (es. raccogliere il vetro troppo spesso) o gravi criticità igienico-sanitarie (es. raccogliere l'organico troppo raramente). %[cite: 4]
-Anche in questa scomposizione di dettaglio, l'euristica Clarke-Wright si conferma dominante, restituendo per ogni frazione merceologica una curva $F_{tot}$ strettamente inferiore rispetto a quella individuata dall'euristica Greedy. %[cite: 4]
+\subsection{Sintesi}\label{sse:t2-sintesi}
 
+A frequenza fissata la soluzione attraversa due regimi separati da una soglia prevedibile, $\bar X_r=W_r/(C_r V^{\mathrm{t}}_r)$, che coincide con quella osservata nel $95.8\%$ dei profili e non la anticipa mai. Oltre la soglia il giro è fisso, il costo cresce in proporzione al numero di giri e il vantaggio di CW si stabilizza al $14.6\%$ in mediana, con il $5.8\%$ di camion in meno; sotto la soglia il vantaggio è minore e non viene dai camion. Vicino all'ottimo un $F_{\mathrm{tot}}$ piatto può nascondere differenze di un quinto nel costo, e togliere mezzo ritiro costa più disservizio di quanto aggiungerlo faccia risparmiare. Infine, poiché il disservizio non richiede il routing, la griglia si può potare alla frequenza di minimo disservizio: in tutti i casi esaminati la soluzione non cambia, le valutazioni scendono del $60\%$ e il tempo di calcolo su Fabriano completa del $40$--$57\%$.
 
+\section{Discussione complessiva}\label{se:discussione}
 
+Questa sezione riunisce i risultati dei cinque benchmark e dei due benchmark trasversali in quattro domande: che cosa decide $\gamma$, quanto vale Clarke-Wright rispetto a Greedy e perché, che cosa cambia da un'istanza all'altra e quanto sono solide queste conclusioni. I valori riportati sono quelli delle sezioni precedenti, a cui si rimanda per i dettagli.
 
-\subsection{Relazione meccanica tra frequenza e dimensionamento della flotta}
+\subsection{Che cosa decide \texorpdfstring{$\gamma$}{gamma}}\label{sse:disc-gamma}
 
-Un ultimo, ma cruciale, aspetto dell'analisi esplorativa di sensibilità riguarda l'impatto diretto della scelta della frequenza $X_r$ sulle risorse fisiche richieste dall'azienda per l'espletamento del servizio. %[cite: 4]
-La Figura \ref{fig:t2_veicoli} illustra la relazione tra la frequenza di raccolta e il numero medio di veicoli attivati (aggregato come somma sui cinque rifiuti), confrontando le tre politiche decisionali nei due scenari algoritmici. %[cite: 4]
+Il parametro $\gamma$ non modifica le rotte: a frequenza fissata camion, chilometri e ore sono gli stessi per ogni $\gamma$, che interviene solo nella scelta di $X_r^*$ (Sezione~\ref{se:metodo-analisi}). Per questo la soluzione è costante a tratti: sui 19 valori di $\gamma$ le soluzioni distinte sono da $6$ a $10$ per istanza e la stessa soluzione resta ottima, in mediana, per $\gamma$ tra $0.55$ e $0.90$ (Sezione~\ref{sse:t1-soglie}). Il confronto tra politiche va quindi fatto sulla soluzione fisica e non sul valore di $F_{\mathrm{tot}}$, che cambia anche solo perché cambiano i pesi.
 
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[width=\textwidth]{immagini/t2 Veicoli rispetto a Xr.png}
-	\caption{Andamento del numero medio di veicoli impiegati al variare della frequenza di raccolta $X_r$.}
-	\label{fig:t2_veicoli}
-\end{figure}
+In unità fisiche, passare da $\gamma=0.10$ a $\gamma=0.50$ riduce il disservizio del $77\%$ (mediana sulle istanze, CW) e aumenta del $157$--$175\%$ costo, chilometri e ore di lavoro; passare da $0.50$ a $0.90$ toglie altri $4$ punti di disservizio al prezzo di altri $36$ punti di costo (Tabella~\ref{tab:t1_fisica}). Il meccanismo fisico è il cambio di regime (Sezione~\ref{sse:t2-regimi}). Sotto la soglia $\bar X_r=W_r/(C_rV^{\mathrm{t}}_r)$ il carico per ritiro rende vincolante la capacità, sopra quella soglia il turno: il giro non cambia più e il costo cresce in proporzione al numero di giri. Ne deriva il paradosso dei camion: la politica più economica usa più camion per giro (a Fabriano $145$ contro $93$ per Greedy), perché con frequenze basse ogni camion si riempie prima di esaurire il turno, mentre le attivazioni settimanali e il lavoro sono minimi. L'effetto cresce con il carico per fermata, da assente nelle villette a un rapporto di $3.3$ nei grandi condomini (Sezione~\ref{se:b2}). Tra $\gamma=0.50$ e $\gamma=0.90$, invece, la flotta per giro non cambia mai: cambia solo quante volte la si usa.
 
-Il grafico descrive una dinamica fortemente non lineare, caratterizzata da un crollo verticale del dimensionamento della flotta nel passaggio dalle frequenze minime ($X_r=0.5$) verso il valore unitario ($X_r=1.0$), seguito da un rapido appiattimento asintotico della curva per valori di $X_r$ superiori a 2.0. %[cite: 4]
-Questo comportamento controintuitivo (dove minori passaggi richiedono più camion) è spiegato analiticamente dalla relazione matematica che definisce la quantità di rifiuto attesa per singola utenza durante un singolo ritiro: $Q_u = W / X_r$, dove $W$ rappresenta la produzione volumetrica settimanale stimata. %[cite: 4]
+Il disservizio non si annulla mai. Con una frequenza unica per rifiuto e frequenze ideali diverse tra tipologie, il minimo raggiungibile cade al quantile $\alpha/(\alpha+\beta)=83.3\%$ delle frequenze ideali degli utenti, previsto esattamente in tutti i 30 casi verificati (Sezione~\ref{sse:t1-quantile}). Avvicinandosi a quel quantile ogni mezzo ritiro in più evita sempre meno disservizio, mentre nel regime a tempo costa sempre lo stesso: il costo marginale cresce quindi a ogni passo, in tutte le coppie istanza-seed, da $0.087$\,\euro\ a $4.95$\,\euro\ per unità di disservizio evitata (mediane del primo e dell'ultimo passo). Il salto finale nasce dal fatto che il quantile cade a metà di una cella della griglia: a Fabriano l'ultimo passo costa $7.9$\,\euro\ per unità, aumenta il costo logistico dell'$11.6\%$ e riduce il disservizio dell'$1.8\%$. Nelle villette e nei grandi condomini, dove il quantile cade su un punto della griglia, il salto finale non esiste.
 
-Impostando frequenze bassissime (un ritiro ogni due settimane), l'enorme accumulo volumetrico generato presso i nodi manda quasi istantaneamente in saturazione fisica i camion. %[cite: 4]
-In questa condizione estrema, la capacità di carico del mezzo diventa il vincolo rigidamente attivo del sistema logistico, imponendo l'attivazione simultanea di numerosi veicoli per riuscire a svuotare tutti i mastelli senza violare i limiti di portata. %[cite: 4]
-All'aumentare di $X_r$, i carichi si frammentano: la quantità $Q_u$ prelevata a ogni sosta diminuisce proporzionalmente, permettendo ai veicoli di visitare un numero significativamente maggiore di utenze nel corso dello stesso viaggio senza saturare la propria stiva. %[cite: 4]
-Questo decongestionamento fisico dei mezzi permette al sistema logistico di stabilizzare e ridurre drasticamente la dimensione della flotta necessaria. %[cite: 4]
+Per il decisore ne seguono due indicazioni. La prima è che la scelta è tra poche soluzioni discrete, ciascuna con un prezzo esplicito per unità di disservizio evitata: la soluzione del plateau è l'ultima prima del salto, e la successiva va giustificata con quel prezzo. La seconda è che $\gamma$ non è trasferibile da un'istanza all'altra, perché un passo di costo $s$ entra a $\gamma^*=s/(k_{\mathrm{scala}}+s)$ e $k_{\mathrm{scala}}$ varia tra $0.55$ e $2.05$: la grandezza da fissare è il prezzo accettato, non il peso.
 
-Nella porzione destra del grafico, l'andamento asintotico piatto dimostra che ulteriori incrementi di $X_r$ (oltre i 3 passaggi settimanali) non producono più alcuna riduzione del numero di veicoli. %[cite: 4]
-Come anticipato nell'analisi della saturazione, in questa regione del dominio il vincolo attivo cessa definitivamente di essere la portata fisica e diventa la massima durata temporale del turno di lavoro. %[cite: 4]
-Anche se i camion viaggiano vuoti, non hanno il tempo materiale per visitare ulteriori nodi all'interno della stessa giornata lavorativa, rendendo impossibile un'ulteriore contrazione della flotta. %[cite: 4]
-Dal confronto tra le due euristiche, si nota che l'algoritmo Clarke-Wright riesce a posizionare l'asintoto su livelli leggermente inferiori rispetto al Greedy, specialmente per le politiche Pro-Azienda e Neutra, a dimostrazione di come l'ottimizzazione dei percorsi e la conseguente riduzione dei tempi di viaggio consentano di sfruttare al meglio la capacità temporale dei mezzi attivati. %[cite: 4]
+\subsection{Quanto vale Clarke-Wright e perché}\label{sse:disc-algoritmi}
 
+Il confronto corretto tra i due algoritmi è a parità di frequenze, cioè a parità di disservizio. In questo confronto CW costa meno di Greedy nel $95.3\%$ delle combinazioni a $X_r=0.5$ e nel $99.2$--$99.3\%$ per $X_r\ge1.5$; servendo con CW le frequenze scelte da Greedy il costo scende nel $99.6$--$100\%$ dei casi, del $9$--$13\%$ in mediana (Sezione~\ref{sse:t1-algoritmi}), e a Fabriano del $6.8$--$7.0\%$ con $5$ camion in meno su $93$. La frontiera di CW sta quindi sotto quella di Greedy.
 
-\section{Discussione complessiva}
+Il vantaggio ha due componenti con comportamento diverso (Sezione~\ref{sse:t2-algoritmi}). Quella dei chilometri è sempre presente: CW percorre per giro dal $30\%$ al $42\%$ di chilometri in meno nel sintetico al crescere di $N$ e il $47\%$ in meno a Fabriano. Quella dei camion esiste solo nel regime a tempo, dove il tempo risparmiato in viaggio lascia spazio a più utenti per camion ($-5.8\%$ di camion per giro in mediana); sotto capacità CW non risparmia camion e anzi ne usa in mediana l'$1.8\%$ in più, e raggiunge la soglia di regime più tardi di Greedy (nel $10.7\%$ dei profili dell'organico contro il $5.0\%$). Il vantaggio logistico passa così dal $10.1\%$ a $X_r=0.5$ al $14.6\%$ da $X_r=2$ in poi.
 
+A pari $\gamma$, invece, i due algoritmi possono scegliere frequenze diverse. Poiché ogni aumento di frequenza costa meno a CW, la sua soglia $\gamma^*$ è più bassa nel $98.6\%$ dei passi e CW alza le frequenze prima di Greedy: per $\gamma$ tra $0.10$ e $0.20$ e tra $0.45$ e $0.55$ le soluzioni scelte non sono confrontabili fino al $58.5\%$ dei casi, perché CW ha meno disservizio ma costa di più. È il caso di Fabriano a $\gamma=0.10$, dove CW costa il $7.2\%$ in più e ha il $17.8\%$ di disservizio in meno: non è un peggioramento del routing ma una scelta di servizio diversa.
 
-Il presente lavoro di tesi ha affrontato la complessità della pianificazione della raccolta differenziata urbana sviluppando un modello di ottimizzazione bi-obiettivo e risolvendolo attraverso euristiche di instradamento integrate con una ricerca a griglia sulle frequenze. %[cite: 1] 
-L'estesa campagna di sperimentazione, strutturata in cinque benchmark specifici e due benchmark trasversali, ha permesso di testare il comportamento del sistema su scenari eterogenei: dalla variazione della densità demografica alle diverse morfologie urbanistiche, dalla distribuzione spaziale delle utenze (uniforme o a cluster) fino all'applicazione su una mappa reale (il comune di Fabriano). %[cite: 1] 
-In questa sezione si sintetizzano i principali risultati emersi, fornendo una chiave di lettura integrata sulle dinamiche decisionali e operative del problema. %[cite: 1]
+Il gap su $F_{\mathrm{tot}}$ combina questi elementi. È il prodotto del vantaggio logistico $L_g$ per il peso $w$ del costo nel totale, più lo spostamento di $X^*$, e il suo massimo cade a $\gamma=0.5$ in tutti i benchmark (nel grafo standard non distinguibile da $\gamma=0.1$) perché lì $X^*$ è già nel regime a tempo, dove $L_g$ è più alto, e il peso del costo è ancora alto. A $\gamma=0.1$ la soluzione è sotto la soglia e $L_g$ è minore, a $\gamma=0.9$ il termine di disservizio, uguale per i due algoritmi, diluisce il vantaggio: a Fabriano $L_g$ vale $5.3$, $7.5$ e $7.4\%$ e $w$ vale $0.55$, $0.556$ e $0.197$, per un gap di $3.88$, $4.21$ e $1.46\%$ (Sezione~\ref{se:b4}).
 
+Il prezzo di CW è il tempo di calcolo, che oltre la componente fissa cresce circa come $N^2$ e più rapidamente di quello di Greedy (Sezione~\ref{se:b1}). Su Fabriano completa una griglia richiede $87.6$\,s contro $16.8$\,s misurando entrambi con un unico insieme di processi (Sezione~\ref{sse:t2-potatura}); nella campagna principale, dove ogni rifiuto avvia i propri processi, i tempi erano $100.8$ e $42.3$\,s. La ricerca potata porta CW a $37.7$\,s senza cambiare la soluzione.
 
-\subsection{Impatto del parametro \texorpdfstring{$\gamma$}{gamma}}
+\subsection{Che cosa cambia da un'istanza all'altra}\label{sse:disc-istanze}
 
+Le caratteristiche dell'istanza spostano molto i costi e poco il vantaggio relativo di CW, che dipende soprattutto dal peso del viaggio nel costo.
 
-Il parametro $\gamma$ si è confermato il fulcro decisionale dell'intero modello, governando efficacemente il trade-off tra l'efficienza logistica aziendale e la qualità del servizio percepita dai cittadini. %[cite: 1] 
-L'analisi trasversale ha dimostrato come la variazione di questo peso trasformi radicalmente la struttura delle soluzioni ottime, tracciando una chiara frontiera di Pareto empirica. %[cite: 3]
+\begin{itemize}
+	\item \textbf{Dimensione.} Il gap a $\gamma=0.5$ scende da $21.7\%$ a $N=100$ a una fascia tra $8.7\%$ e $10.7\%$ per $N=500$--$1000$, con un minimo a $500$ e una risalita a $750$ legati al numero intero di camion risparmiati (Sezione~\ref{se:b1}). Il risparmio relativo di chilometri di CW cresce con $N$, ma il peso del viaggio cala (dal $59.8\%$ al $28.0\%$ del tempo di giro) e i due effetti quasi si compensano.
+	\item \textbf{Tipologia urbanistica.} Il mix cambia il carico per fermata, il regime e la frequenza di minimo disservizio, e quindi i costi: a $\gamma=0.5$ il costo logistico di CW è $3.1$ volte più alto nei grandi condomini che nelle villette. Il gap, invece, resta tra $11.6\%$ e $12.4\%$ in quattro scenari su cinque ($9.7\%$ nel misto periferia).
+	\item \textbf{Distribuzione spaziale.} Concentrare gli utenti attorno al deposito riduce il costo del $20\%$ senza cambiare le frequenze, e riduce il gap a $\gamma=0.5$ da $11.6\%$ a $8.9\%$ perché il viaggio pesa meno ($27.8\%$ contro $39.6\%$ del tempo di giro di CW).
+	\item \textbf{Rete reale.} Il gap di Fabriano ($4.2\%$ a $\gamma=0.5$) è molto più basso di quello del sintetico originale, ma non per rotte peggiori: a Fabriano il viaggio è il $6.4\%$ del tempo di giro di CW e CW percorre il $47\%$ di chilometri in meno, come nei sintetici alla stessa dimensione ($46$--$49\%$). Un sintetico con area e mix di Fabriano dà a $N=3932$ un gap del $4.58\%$, contro $8.75\%$ con l'area originale (Sezione~\ref{sse:b4-sintetico-reale}): la differenza dipende da area, densità e mix, e la struttura della rete stradale incide al più per $2.1$ punti.
+\end{itemize}
 
-Nelle configurazioni Pro-Azienda ($\gamma \le 0.10$), il sistema minimizza i costi operativi comprimendo drasticamente le frequenze di raccolta. %[cite: 1, 3] 
-Questa scelta genera un massiccio accumulo di rifiuti presso i nodi, portando i veicoli a viaggiare con tassi di saturazione fisica prossimi all'80\%. %[cite: 2, 3] 
-In tale scenario, la capacità volumetrica della flotta rappresenta il vero e unico collo di bottiglia del sistema. %[cite: 1, 3]
+\subsection{Solidità delle conclusioni}\label{sse:disc-solidita}
 
-Spostando il baricentro decisionale verso politiche orientate al cittadino ($\gamma \ge 0.50$), il modello reagisce innalzando i ritiri settimanali per abbattere l'insoddisfazione. %[cite: 1, 3] 
-Tale frammentazione dei prelievi riduce la saturazione fisica a valori marginali (25-30\%), ma innesca una rapida impennata della saturazione temporale. %[cite: 2, 3] 
-Il limite logistico cessa di essere la stiva dei camion e diventa la durata massima del turno di lavoro giornaliero: i veicoli viaggiano parzialmente vuoti ma esauriscono il tempo a disposizione a causa della moltiplicazione delle percorrenze e delle soste per lo svuotamento. %[cite: 1, 3] 
-Dal punto di vista gestionale, la politica Neutra ($\gamma=0.50$) è emersa come il punto di flesso strategico ideale, capace di abbattere gran parte delle inefficienze sociali senza incorrere nell'esplosione dei costi marginali tipica degli scenari estremi. %[cite: 3]
-
-
-\subsection{Efficienza logistica delle euristiche}
-
-
-
-Il confronto sistematico tra i due approcci risolutivi ha evidenziato una superiorità strutturale e inequivocabile dell'euristica di Clarke-Wright rispetto all'algoritmo costruttivo Greedy. %[cite: 1, 2, 3] 
-Su tutte le istanze testate, sintetiche e reali, il metodo basato sulla valutazione globale dei risparmi (savings) ha restituito configurazioni di instradamento più compatte, richiedendo l'attivazione di un numero inferiore di veicoli e garantendo costi di viaggio (distanze percorse e ore lavorate) sistematicamente minori. %[cite: 1, 2, 3]
-
-Particolarmente rilevante è l'analisi del gap prestazionale tra i due metodi. %[cite: 2] 
-Il vantaggio dell'euristica Clarke-Wright tocca il suo apice negli scenari di compromesso ($\gamma=0.50$ e $\gamma=0.60$), dove l'algoritmo deve bilanciare con attenzione i costi e le penalità; in questi casi, la visione globale della matrice dei risparmi permette di identificare fusioni di rotte impossibili da cogliere per la logica locale (cheapest insertion) del Greedy. %[cite: 1, 2] 
-Al contrario, negli scenari fortemente Pro-Cittadino ($\gamma \ge 0.90$), l'obbligo di programmare ritiri quasi giornalieri satura rapidamente il tempo di turno, frammentando le rotte ammissibili e restringendo lo spazio delle soluzioni. %[cite: 1, 2] 
-In queste condizioni vincolanti, i margini di ottimizzazione si assottigliano e il gap tra i due algoritmi si riduce in modo significativo, pur mantenendo la Clarke-Wright in posizione dominante. %[cite: 2]
-
-
-
-\subsection{Qualità delle soluzioni ottenute}
-
-
-L'architettura del modello ha dimostrato un'eccellente capacità di adattamento alle specifiche intrinseche delle diverse tipologie di rifiuto. %[cite: 1] 
-L'esplorazione dell'intero dominio delle frequenze ha rivelato come la funzione obiettivo complessiva presenti una forma convessa (a "U"), determinata dall'intersezione tra la curva decrescente dell'insoddisfazione e quella crescente dei costi operativi. %[cite: 4]
-
-La disaccoppiatura delle variabili decisionali per frazione merceologica ha permesso al sistema di evitare inefficienze grossolane. %[cite: 4] 
-Per materiali ad alta putrescibilità e forte percezione di disservizio, come la frazione organica, il modello ha individuato minimi spostati verso le alte frequenze (tra i 2.5 e i 4 ritiri settimanali), assorbendo l'onere logistico pur di rispettare le esigenze igieniche. %[cite: 3, 4] 
-Diametralmente opposto è stato il trattamento di materiali inerti come il vetro: la procedura ha riconosciuto l'inutilità sociale di ritiri frequenti, schiacciando stabilmente la frequenza ottima verso il basso (1 ritiro a settimana) in quasi tutte le politiche decisionali. %[cite: 3, 4] 
-Questa flessibilità certifica la validità dell'approccio proposto per la progettazione di calendari di raccolta realistici e differenziati. %[cite: 1, 4]
-
-
-
-\subsection{Considerazioni operative}
-
-A livello manageriale, i risultati ottenuti offrono spunti concreti per la gestione delle aziende di nettezza urbana. %[cite: 1] 
-L'analisi di sensibilità sul dimensionamento della flotta ha smontato un potenziale paradosso logistico: impostare frequenze di ritiro troppo basse (es. un passaggio ogni due settimane) non riduce il numero di mezzi necessari, ma al contrario ne richiede un picco massimo. %[cite: 4] 
-L'accumulo incontrollato di volumi manda in saturazione immediata i mezzi, obbligando l'azienda ad attivare una flotta imponente per svuotare le utenze. %[cite: 1, 4] 
-Aumentando la frequenza a valori intermedi, i carichi si alleggeriscono, permettendo ai veicoli di consolidare più utenze in un singolo viaggio e stabilizzando il numero di camion richiesti. %[cite: 4]
-
-In conclusione, il modello bi-obiettivo sviluppato si configura come un efficace Sistema di Supporto alle Decisioni (DSS). %[cite: 1] 
-Invece di imporre una singola configurazione ottima, esso permette agli amministratori pubblici e ai manager aziendali di navigare l'intera frontiera di Pareto, quantificando in anticipo il costo economico necessario per finanziare un determinato livello di qualità urbana o, viceversa, l'impatto sociale derivante da un taglio dei budget logistici. %[cite: 1, 3]
+Le conclusioni sui benchmark sintetici si basano su 30 seed per istanza, e la variabilità tra istanze non è trascurabile: con il solo seed 42 il gap del grafo standard a $\gamma=0.1$ sarebbe stato $3.12\%$ contro una media di $8.22\%$ (Sezione~\ref{se:b5}). Fabriano completa è una singola istanza deterministica; la sua variabilità è stimata con sottocampioni di utenti reali, i cui intervalli di confidenza sottostimano l'incertezza per $N\ge2500$ perché i campioni condividono gran parte degli utenti. Le proprietà strutturali (soluzione costante a tratti, soglia di regime, frequenza di minimo disservizio, dominanza di CW a pari frequenze) valgono su tutte le 23 istanze esaminate e, dove derivano dalla formulazione, sono state ricavate analiticamente e verificate sui dati. Infine, $29$ istanze ricalcolate riproducono i CSV dei benchmark riga per riga (Sezione~\ref{sse:t2-potatura}). Restano non spiegati, e sono dichiarati come tali, il peggior impacchettamento di CW sotto capacità, la risalita del gap a $N=750$ e lo scarto positivo dei chilometri reali rispetto al sintetico a $N\le250$.

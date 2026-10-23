@@ -12,6 +12,7 @@ import pandas as pd
 
 ROOT = Path(__file__).parent.parent            # cartella Euristiche/
 OUT, RAW = ROOT / "analisi_seed", ROOT / "risultati_seed"
+OUT.mkdir(exist_ok=True)
 KS = ["bench", "N", "scenario", "modo"]        # istanza (si aggrega sui seed)
 KI = KS + ["seed"]
 X_COLS = ["X_organico", "X_indifferenziata", "X_plastica", "X_carta", "X_vetro"]
