@@ -44,6 +44,7 @@ La configurazione sperimentale è stata definita mediante un insieme di parametr
 
 I principali parametri globali del modello sono riportati in Tabella~\ref{tab:parametri_globali}.
 
+\newpage
 \begin{table}[htbp]
 	\centering
 	\caption{Principali parametri globali utilizzati nelle simulazioni.}
@@ -363,10 +364,9 @@ A $\gamma=0.5$ il gap passa da $21.67\pm2.36\%$ a $N=100$ a $13.82\pm1.53\%$ a $
 
 Il vantaggio logistico a pari frequenza (regime a tempo) si scompone in un termine di chilometri e in uno di camion ($\Delta V\,c_r\,X_r$). Il termine di chilometri varia poco ($19.2$, $18.1$, $16.7$, $16.0$ e $15.7$ punti): il risparmio relativo di CW cresce con $N$ (il rapporto Greedy/CW sui chilometri passa da $1.43$ a $1.74$, cioè da $-30\%$ a $-42\%$ di percorrenza), ma il peso del viaggio cala (dal $59.8\%$ al $28.0\%$ del tempo di giro di CW) e i due effetti si compensano quasi. Il termine di camion decade con $N$ ($23.6$, $9.3$, $2.5$, $5.2$, $3.4$ punti) perché lo stesso scarto pesa meno su una flotta più grande, ed è non monotono perché $\Delta V$ è un numero intero ($3.5$, $2.7$, $1.4$, $2.9$ e $2.4$ camion in media): la forma del gap segue la riduzione percentuale di camion di CW ($-35.0\%$, $-18.3\%$, $-6.5\%$, $-10.2\%$, $-7.0\%$), minima a $N=500$ e massima a $N=750$ tra le istanze maggiori.
 
-\newpage
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=0.85\textwidth]{immagini/fig_gap_vs_N_B1.png}
+	\includegraphics[width=0.75\textwidth]{immagini/fig_gap_vs_N_B1.png}
 	\caption{Benchmark 1: gap su $F_{\mathrm{tot}}$ tra Greedy e Clarke-Wright al variare di $N$ per le tre politiche (media su 30 seed).}
 	\label{fig:b1_gap}
 \end{figure}
@@ -374,7 +374,7 @@ Il vantaggio logistico a pari frequenza (regime a tempo) si scompone in un termi
 \paragraph{Effetto di $\gamma$ sul gap.}\mbox{}\\
 A $\gamma=0.9$ i due algoritmi scelgono le stesse frequenze e il gap è routing puro diluito dal termine di insoddisfazione ($5.99\%$ a $N=100$ e $2.8$--$4.2\%$ per $N\ge250$). A $\gamma=0.1$ il gap per $N\ge250$ non dipende da $N$ ($7.2$--$7.5\%$, intervalli sovrapposti) e una quota del $12$--$30\%$ è dovuta allo spostamento di $X^*$ ($2.25$ punti a $N=250$, $0.87$ a $N=1000$). Il picco a $\gamma=0.5$ vale per tutte le dimensioni, con intervalli non sovrapposti rispetto a $\gamma=0.1$ e $0.9$: a $\gamma=0.5$ la frequenza ottima sta sopra la soglia tra i due regimi (Sezione~\ref{sse:t2-regimi}), dove il gap logistico è maggiore (circa $13\%$ a $X_r=0.5$ per $N\ge250$, contro $19$--$27\%$ a $X_r\ge3$), e il peso del costo $1-\gamma$ è ancora $0.5$.
 
-\newpage
+
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.7\textwidth]{immagini/fig_gap_profilo_B1.png}
@@ -425,7 +425,6 @@ La Tabella~\ref{tab:b1_tempi} riporta il tempo di una griglia completa ($12$ val
 	\end{tabular}
 \end{table}
 
-\newpage
 \paragraph{Sintesi.}\mbox{}\\
 Il benchmark mostra tre fatti: la dimensione dell'istanza sposta il gap soprattutto attraverso il termine discreto dei camion e il peso del viaggio, non attraverso la qualità relativa dei chilometri (che migliora con $N$); $\gamma$ cambia la soluzione fisica in modo costante a tratti, con un costo marginale che cresce a ogni passo; e il vantaggio di CW sui camion esiste nel regime a tempo e non sotto capacità.
 
@@ -447,7 +446,7 @@ Le percentuali utilizzate per costruire i cinque scenari sono riportate nella Ta
 
 Per ciascuna configurazione urbanistica, su $N=400$ utenti distribuiti uniformemente, vengono applicati entrambi gli algoritmi su 30 seed. Come nel Benchmark 1, le tre politiche $\gamma=0.10$ (Pro-Azienda), $0.50$ (Neutra) e $0.90$ (Pro-Cittadino) sono applicate in post-elaborazione sulla stessa griglia di frequenze (Sezione~\ref{se:metodo-analisi}). Poiché $k_{\mathrm{scala}}$ dipende dalla composizione degli utenti, i valori di $F_{\mathrm{tot}}$ non sono confrontabili tra scenari: il confronto tra tipologie si basa sulla soluzione fisica (camion, attivazioni, costo logistico e disservizio non pesati, saturazioni, frequenze ottime) e sul gap tra i due algoritmi.
 
-
+\newpage
 \subsection{Discussione dei risultati}\label{sse:b2-discussione}
 
 \begin{table}[htbp]
@@ -468,7 +467,7 @@ Per ciascuna configurazione urbanistica, su $N=400$ utenti distribuiti uniformem
 	\end{tabular}
 \end{table}
 
-\newpage
+
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.9\textwidth]{immagini/fig_gap_B2.png}
@@ -536,6 +535,7 @@ Il terzo benchmark isola l'effetto della posizione degli utenti sulla rete, mant
 \end{itemize}
 Le due configurazioni differiscono quindi per la distanza tra utenti e deposito e tra utenti, non per il carico di rifiuti. Come negli altri benchmark, i risultati sono medie su 30 seed e le tre politiche ($\gamma=0.10$, $0.50$, $0.90$) sono applicate in post-elaborazione sulla stessa griglia (Sezione~\ref{se:metodo-analisi}); il confronto si basa sulla soluzione fisica e sul gap, non sul valore assoluto di $F_{\mathrm{tot}}$.
 
+\newpage
 \subsection{Discussione dei risultati}\label{sse:b3-discussione}
 
 \begin{table}[htbp]
@@ -555,7 +555,6 @@ Le due configurazioni differiscono quindi per la distanza tra utenti e deposito 
 	\end{tabular}}
 \end{table}
 
-\newpage
 \begin{table}[htbp]
 	\centering
 	\caption{Benchmark 3: gap su $F_{\mathrm{tot}}$ (media $\pm$ IC95 su 30 seed) per distribuzione e politica.}
@@ -669,7 +668,7 @@ Poiché le frequenze sono discrete, la soluzione è costante a tratti in $\gamma
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.80\textwidth]{immagini/fig_intervalli_B4.png}
+	\includegraphics[width=0.70\textwidth]{immagini/fig_intervalli_B4.png}
 	\caption{Benchmark 4: soluzioni distinte (punti) e intervalli di $\gamma$ per cui sono ottime. Asse $x$: costo logistico grezzo settimanale; asse $y$: disservizio grezzo.}
 	\label{fig:b4_intervalli}
 \end{figure}
@@ -685,7 +684,7 @@ Poiché le frequenze sono discrete, la soluzione è costante a tratti in $\gamma
 
 Il vantaggio di CW su Fabriano è sensibilmente inferiore a quello dei benchmark sintetici: a $\gamma=0.5$ il gap su $F_{\mathrm{tot}}$ è $4.2\%$, contro $9.42\pm0.47\%$ a $N=1000$, $9.20\pm0.41\%$ nel grafo standard ($N=200$) e $21.7\%$ a $N=100$. Per individuarne l'origine si sono confrontate tre possibili cause con test mirati: la topologia della rete, il numero di utenti e l'area servita (densità).
 
-\newpage
+
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.7\textwidth]{immagini/fig_gap_profilo_B4.png}
@@ -732,7 +731,7 @@ Il tempo di servizio è identico tra algoritmi e valori di $\gamma$ (differenza 
 \paragraph{Area e densità.}\mbox{}\\
 Per isolare il ruolo dell'area, il benchmark sintetico è stato ripetuto con coordinate ridotte (area di $16.5\,\mathrm{km}^2$, come Fabriano) e con la composizione tipologica reale, e confrontato con sottocampioni casuali degli utenti reali di Fabriano; ogni punto è la media di 30 seed. Per arrivare a $N=3932$ (tutti gli utenti di Fabriano) le due serie sintetiche sono generate su una rete di base da 4000 nodi, da cui sono estratti gli utenti; distanze e tempi scalano linearmente con l'area. La Tabella~\ref{tab:b4_gap} e la Figura~\ref{fig:b4_gap_N} riportano il gap a pari $N$. La rete di base incide solo a $N$ piccolo nel sintetico originale: a $N=100$ il gap è $21.7\pm2.4\%$ sulla rete da 1000 nodi del Benchmark~B1 e $15.8\pm2.1\%$ su quella da 4000 nodi (causa non isolata), mentre per $N\ge250$ le due reti differiscono di meno di $0.9$ punti; per il sintetico con area di Fabriano la differenza non supera $1.2$ punti.
 
-\newpage
+
 \begin{table}[htbp]
 	\centering
 	\caption{Gap su $F_{\mathrm{tot}}$ a $\gamma=0.5$ (media $\pm$ IC95 sui 30 seed): sintetico originale ($A=100\,\mathrm{km}^2$), sintetico con area e mix tipologico di Fabriano (entrambi su rete di base da 4000 nodi), utenti reali di Fabriano campionati. A $N=3932$ (tutti gli utenti) Fabriano dà $4.21\%$ (singola istanza, senza IC). Per $N\ge2500$ i sottocampioni condividono gran parte dei 3932 utenti: gli IC95 sottostimano la variabilità.}
@@ -887,6 +886,7 @@ Sulla mappa di Fabriano (Sezione~\ref{sse:b4-fisica}) la soluzione è costante a
 
 Si usano le $23$ istanze indipendenti dei benchmark precedenti: il sintetico originale e il sintetico con area e mix di Fabriano ($N$ da $100$ a $1000$, rete di base da $1000$ nodi), i cinque scenari urbanistici, lo scenario a cluster (quello uniforme coincide con lo scenario residenziale e non viene contato due volte), l'istanza completa di Fabriano, i sottocampioni di Fabriano ($N$ da $100$ a $2000$) e il grafo standard. Ogni istanza, tranne Fabriano completa, è replicata su $30$ seed. Le politiche sono i $19$ valori $\gamma=0.05,0.10,\dots,0.95$, applicati in post-elaborazione (Sezione~\ref{se:metodo-analisi}). Poiché $N$, area e $k_{\mathrm{scala}}$ cambiano da un'istanza all'altra, i valori assoluti non vengono mediati tra istanze: per ciascuna si calcola la media sui seed e si riportano mediana, minimo e massimo sulle istanze di grandezze adimensionali (frequenze, saturazioni, quota del viaggio, variazioni percentuali rispetto a $\gamma=0.10$). Le analisi sui passi di frequenza (Sezioni~\ref{sse:t1-soglie} e~\ref{sse:t1-algoritmi}) usano le griglie complete $X_r=0.5,\dots,6.0$ delle $22$ istanze replicate.
 
+\newpage
 \subsection{Effetto di \texorpdfstring{$\gamma$}{gamma} sulla soluzione fisica}\label{sse:t1-fisica}
 
 \begin{table}[htbp]
@@ -1020,6 +1020,7 @@ Sia $W_r$ il rifiuto prodotto in una settimana dagli utenti e $C_r$ la capacità
 \end{equation}
 dove l'ultima uguaglianza segue da $\text{sat. fisica}=W_r/(X_r V^{\mathrm{t}}_r C_r)$ e permette di calcolare la soglia da qualunque punto del regime a tempo (qui $X_r=6$). La Tabella~\ref{tab:t2_soglia} confronta la soglia prevista con quella osservata, cioè la frequenza da cui il numero di camion per giro resta costante. Arrotondata al punto successivo della griglia, la previsione coincide con l'osservazione nel $95.8\%$ dei profili e non la anticipa mai; nel $4.2\%$ restante la soglia osservata arriva più tardi perché il carico non entra perfettamente nei camion previsti (con CW più spesso che con Greedy: fino al $10.7\%$ dei profili dell'organico contro il $5.0\%$).
 
+\newpage
 \begin{table}[htbp]
 	\centering
 	\caption{Soglia tra regime a capacità e regime a tempo per rifiuto (6610 profili): soglia osservata e prevista dalla~\eqref{eq:t2_soglia}, mediana [minimo; massimo]; quota di profili in cui la soglia osservata coincide con la previsione arrotondata alla griglia o arriva dopo; saturazione fisica alla soglia osservata.}
@@ -1102,6 +1103,7 @@ La condizione sul costo non è garantita a priori, perché le rotte sono euristi
 
 La regola è stata implementata e verificata ricalcolando 29 istanze (sintetico originale con $N=100$, $500$, $1000$; scenari residenziale, villette e grandi condomini; grafo standard; sottocampioni di Fabriano con $N=1000$ e $2000$; Fabriano completa). Per ogni istanza e algoritmo sono state eseguite sia la griglia completa sia quella potata, con lo stesso insieme di processi paralleli. Le $1382$ righe della griglia potata sono identiche a quelle della griglia completa e le frequenze scelte coincidono in tutte le $5510$ scelte (29 istanze, 2 algoritmi, 5 rifiuti, 19 valori di $\gamma$). Anche le $4862$ righe ricalcolate coincidono con quelle dei CSV dei benchmark, entro la precisione con cui questi sono salvati: i risultati sono riproducibili.
 
+\newpage
 \begin{table}[htbp]
 	\centering
 	\caption{Ricerca potata contro griglia completa (stesso insieme di processi, stessa macchina; mediana sui seed): quota di frequenze valutate, rapporto tra i tempi reali e tempo reale della griglia completa.}
@@ -1160,6 +1162,7 @@ Il gap su $F_{\mathrm{tot}}$ combina questi elementi. È il prodotto del vantagg
 
 Il prezzo di CW è il tempo di calcolo, che oltre la componente fissa cresce circa come $N^2$ e più rapidamente di quello di Greedy (Sezione~\ref{se:b1}). Su Fabriano completa una griglia richiede $87.6$\,s contro $16.8$\,s misurando entrambi con un unico insieme di processi (Sezione~\ref{sse:t2-potatura}); nella campagna principale, dove ogni rifiuto avvia i propri processi, i tempi erano $100.8$ e $42.3$\,s. La ricerca potata porta CW a $37.7$\,s senza cambiare la soluzione.
 
+\newpage
 \subsection{Che cosa cambia da un'istanza all'altra}\label{sse:disc-istanze}
 
 Le caratteristiche dell'istanza spostano molto i costi e poco il vantaggio relativo di CW, che dipende soprattutto dal peso del viaggio nel costo.
