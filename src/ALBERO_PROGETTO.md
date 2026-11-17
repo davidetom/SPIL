@@ -1,20 +1,26 @@
-# Struttura del Progetto Euristiche
+# Struttura del Progetto (`src/`)
 
-Questo documento descrive l'organizzazione logica e l'albero delle directory e dei file del modulo `Euristiche/`.
+Questo documento descrive l'organizzazione logica e l'albero delle directory e dei file del modulo `src/` (precedentemente `Euristiche/`).
 
 ---
 
 ## Albero delle Cartelle
 
 ```text
-Euristiche/
+src/
 │
+├── ALBERO_PROGETTO.md               # Documentazione della struttura del progetto
+│
+├── main.py                          # Script principale di esecuzione e grid search
+├── Greedy.py                        # Euristica Greedy per Vehicle Routing
 ├── ClarkeWright.py                  # Euristica Clarke-Wright Savings per VRP
 ├── Generazione_Dati.py              # Generazione scenari sintetici e caricamento dati reali
-├── Greedy.py                        # Euristica Greedy per Vehicle Routing
-├── main.py                          # Script principale di esecuzione e grid search
+│
+├── grafo_condiviso/                 # Cache dei grafi base sintetici per replicabilità
+│   └── (Contiene 3 file .pkl: grafi con N_max = 500, 1000, 5000 utenti su seed 42)
 │
 ├── Generazione_grafo_Fabriano/      # Pipeline estrazione e preprocessing mappa reale di Fabriano
+│   ├── Grafo Fabriano.png           # Visualizzazione grafica della rete stradale di Fabriano
 │   ├── map_osm.xml                  # Dati cartografici OpenStreetMap grezzi
 │   ├── preprocessing_edifici.py     # Estrazione e filtraggio degli edifici
 │   ├── preprocessing_rete.py        # Costruzione e pulizia del grafo stradale
@@ -29,28 +35,11 @@ Euristiche/
 │       ├── edifici_candidati.gpkg   # Layer geografico GeoPackage degli edifici
 │       └── utenti.json              # Anagrafica e coordinate dei 3.932 utenti reali
 │
-├── grafo_condiviso/                 # Cache dei grafi base sintetici per replicabilità
-│   └── (Contiene 3 file .pkl: grafi con N_max = 500, 1000, 5000 utenti su seed 42)
-│
 ├── seeds/                           # Gestione dei seed di randomizzazione
 │   └── seeds.json                   # Elenco ordinato dei seed utilizzati per i benchmark multi-run
 │
-├── generatori figure/               # Script dedicati alla generazione dei grafici per la tesi
-│   ├── fig_concetti.py              # Grafici concettuali su relazioni V-X e scomposizione gap
-│   ├── fig_gap_B1_B2.py             # Gap Greedy-CW vs N (B1) e per scenario (B2) a gamma=0.1, 0.5, 0.9
-│   ├── fig_gap_vs_N.py              # Analisi dell'andamento del gap Greedy-CW su serie estese al variare di N
-│   ├── fig_t1.py                    # Frontiere normalizzate costo-disservizio per 6 istanze di T1
-│   ├── fig_t2.py                    # Figure T2: saturazioni V-X (Fabriano) e confronto camion/costo CW vs Greedy
-│   └── figure_pareto.py             # Curve di trade-off Pareto e profili delle metriche fisiche
-│
-├── script matlab/                   # Script MATLAB per analisi statistiche e figure
-│   ├── Bench_1_VarN.m               # Benchmark 1: impatto della variazione del numero di utenti
-│   ├── Bench_2_Tipologia.m          # Benchmark 2: impatto della tipologia abitativa
-│   ├── Bench_3_Distribuzione.m      # Benchmark 3: impatto della distribuzione spaziale (cluster)
-│   ├── Bench_4_Reale.m              # Benchmark 4: scenario su mappa reale di Fabriano
-│   ├── Bench_5_Standard.m           # Benchmark 5: caso standard di riferimento
-│   ├── T1_gammaTradeOff.m           # Analisi trasversale del parametro di compromesso gamma
-│   └── T2_profiloXr.m               # Analisi del profilo di costo al variare della frequenza X_r
+├── grafi_png/                       # Esportazioni grafiche delle reti e dei grafi
+│   └── (Contiene 8 file .png: visualizzazioni delle mappe sintetiche e reali con rotte)
 │
 ├── testing/                         # Script di test, batch di simulazione e validazione
 │   ├── batch_seed.py                # Esecutore batch su benchmark sintetici B1-B5 e multi-seed
@@ -84,10 +73,20 @@ Euristiche/
 │   ├── righe.csv                    # Dettaglio rotte/costi delle soluzioni valutate (completa vs potata)
 │   └── tempi.csv                    # Tempi di calcolo reali (wall) e CPU per algoritmo e tipo di ricerca
 │
+├── generatori figure/               # Script dedicati alla generazione dei grafici per la tesi
+│   ├── fig_concetti.py              # Grafici concettuali su relazioni V-X e scomposizione gap
+│   ├── fig_gap_B1_B2.py             # Gap Greedy-CW vs N (B1) e per scenario (B2) a gamma=0.1, 0.5, 0.9
+│   ├── fig_gap_vs_N.py              # Analisi dell'andamento del gap Greedy-CW su serie estese al variare di N
+│   ├── fig_t1.py                    # Frontiere normalizzate costo-disservizio per 6 istanze di T1
+│   ├── fig_t2.py                    # Figure T2: saturazioni V-X (Fabriano) e confronto camion/costo CW vs Greedy
+│   └── figure_pareto.py             # Curve di trade-off Pareto e profili delle metriche fisiche
+│
 ├── risultati_csv/                   # Output delle singole run sperimentali
 │   └── (Contiene 48 file .csv: output dei benchmark B1-B5 su seed 42 con gamma = 0.10, 0.50, 0.90)
 │
-├── risultati_seed/                  # Output massivi dei benchmark multi-seed
+├── risultati_seed/                  # Output massivi e script di aggregazione dei benchmark multi-seed
+│   ├── analisi_gamma.py             # Analisi multi-gamma e sintesi verso analisi_seed/ o analisi_seed_estese/
+│   ├── estrai_r.py                  # Estrazione del fattore normalizzato r = km/giro / sqrt(N*A) (output: analisi_seed_estese/r_per_N.csv)
 │   └── (Contiene 1.260 file .csv: run complete per ciascun seed e benchmark B1, B1S, B1L, B1SL, B2, B3, B4sub, B5)
 │
 ├── analisi_seed/                    # Risultati aggregati e figure generate dai batch multi-seed standard
@@ -100,7 +99,7 @@ Euristiche/
 │   ├── riepilogo_plateau.csv        # Valori medi del gap a regime di tempo
 │   ├── t1_E1.csv ... t1_E5_*.csv    # Tabelle numeriche generate dall'analisi di generalità T1
 │   ├── t2_P1.csv ... t2_P4.csv      # Tabelle numeriche generate dall'analisi di profilo T2
-│   └── (Contiene figure .png per la tesi: Pareto, profili X_r, gap vs N, regimi, algoritmi, etc.)
+│   └── (Contiene 15 figure .png per la tesi: Pareto, profili X_r, gap vs N, regimi, algoritmi, etc.)
 │
 ├── analisi_seed_estese/             # Risultati aggregati delle serie estese (B1L, B1SL, B4sub fino a N=4000)
 │   ├── gap_istanza.csv              # Gap per le istanze estese
@@ -113,8 +112,14 @@ Euristiche/
 │   ├── test_addensamento.csv        # Confronto indice Clark-Evans e fattore r
 │   └── fig_gap_vs_N.png             # Grafico gap vs N log-scalato per le serie estese
 │
-└── grafi_png/                       # Esportazioni grafiche delle reti e dei grafi
-    └── (Contiene 8 file .png: visualizzazioni delle mappe sintetiche e reali con rotte)
+└── script matlab (old)/             # Script MATLAB legacy per analisi statistiche e figure
+    ├── Bench_1_VarN.m               # Benchmark 1: impatto della variazione del numero di utenti
+    ├── Bench_2_Tipologia.m          # Benchmark 2: impatto della tipologia abitativa
+    ├── Bench_3_Distribuzione.m      # Benchmark 3: impatto della distribuzione spaziale (cluster)
+    ├── Bench_4_Reale.m              # Benchmark 4: scenario su mappa reale di Fabriano
+    ├── Bench_5_Standard.m           # Benchmark 5: caso standard di riferimento
+    ├── T1_gammaTradeOff.m           # Analisi trasversale del parametro di compromesso gamma
+    └── T2_profiloXr.m               # Analisi del profilo di costo al variare della frequenza X_r
 ```
 
 ---
@@ -123,15 +128,42 @@ Euristiche/
 
 ### 1. Root (`/`)
 Contiene i quattro file Python fondamentali che implementano il modello di ottimizzazione e la generazione delle istanze:
-- **`ClarkeWright.py`**: Algoritmo euristico per il Vehicle Routing Problem basato sulla matrice dei risparmi (*savings*).
-- **`Greedy.py`**: Algoritmo euristico greedy basato sulla ricerca del vicino più prossimo con vincoli di capacità fisica e temporale.
-- **`Generazione_Dati.py`**: Modulo per la generazione probabilistica della domanda, matrice distanze/tempi e scenari di densità.
 - **`main.py`**: Entry-point per eseguire griglie di test e confronto tra le euristiche.
+- **`Greedy.py`**: Algoritmo euristico greedy basato sulla ricerca del vicino più prossimo con vincoli di capacità fisica e temporale.
+- **`ClarkeWright.py`**: Algoritmo euristico per il Vehicle Routing Problem basato sulla matrice dei risparmi (*savings*).
+- **`Generazione_Dati.py`**: Modulo per la generazione probabilistica della domanda, matrice distanze/tempi e scenari di densità.
 
-### 2. `seeds/`
-Contiene il file JSON [`seeds.json`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/Euristiche/seeds/seeds.json) con la sequenza di seed di randomizzazione impiegati per garantire la riproducibilità di tutti i test stocastici.
+### 2. `grafo_condiviso/`
+File binari (`.pkl`) dei grafi base sintetici pre-generati (N_max = 500, 1000, 5000 su seed 42) per velocizzare e rendere replicabili le esecuzioni multi-seed.
 
-### 3. `generatori figure/`
+### 3. `Generazione_grafo_Fabriano/`
+Comprende l'intera pipeline geografica GIS/OSM: estrazione della mappa stradale di Fabriano, associazione degli edifici, generazione degli utenti geolocalizzati e visualizzazione grafica (`Grafo Fabriano.png`).
+
+### 4. `seeds/`
+Contiene il file JSON [`seeds.json`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/seeds/seeds.json) con la sequenza di seed di randomizzazione impiegati per garantire la riproducibilità di tutti i test stocastici.
+
+### 5. `grafi_png/`
+Immagini rendering dei grafi generati e delle rotte calcolate (8 file `.png`).
+
+### 6. `testing/`
+Raccoglie tutti gli script di esecuzione batch (`batch_seed.py`, `batch_fabriano.py`), gli script di analisi statistica e validazione:
+- **`t1_generalita.py`**: Test di generalità delle evidenze di Fabriano sui benchmark sintetici (E1 grandezze adimensionali, E2 plateau, E3 dominanza a pari $\gamma$ e a pari $X_r$, E4 pendenza marginale, E5 soglie di cambio frequenza).
+- **`t2_profilo.py`**: Analisi del profilo a frequenza fissata (P1 soglia capacità vs tempo, P2 unimodalità e ricerca a discesa, P3 sensibilità attorno a $X^*$, P4 confronto diretto Greedy vs Clarke-Wright).
+- **`test_addensamento.py`**: Calcolo dell'indice spaziale di Clark-Evans $R$ su utenti reali e campioni uniformi sintetici per spiegare il decadimento del fattore $r = \text{km}/\sqrt{N \cdot A}$.
+- Script di regressione, densità areale, impacchettamento e verifica coerenza rotte (`test_*.py`, `valida_seed42.py`).
+
+### 7. `algoritmo_ottimizzato/`
+Contiene la proposta metodologica di ottimizzazione computazionale (Benchmark Trasversale 2):
+- **`main_ottimizzato.py`**: Esegue la ricerca con potatura a priori. Sfrutta il fatto che $F_{ins}(X_r)$ è indipendente dal routing e identifica $X_{min} = \arg\min F_{ins}$. Poiché per $X > X_{min}$ né il disservizio né i costi logistici diminuiscono, tali frequenze risultano dominate per qualsiasi $\gamma$ e vengono escluse dalla computazione VRP, risparmiando oltre il 60% delle chiamate di routing.
+- **`test_ottimizzato.py`**: Validazione formale della ricerca potata (T1 verifica che il costo non cali oltre $X_{min}$, T2-T3 invarianza esatta delle soluzioni ottime rispetto ai dati completi, T4 quantificazione del risparmio di tempo reale e CPU).
+
+### 8. `risultati_ottimizzati/`
+Contiene gli output prodotti dall'esecuzione di `main_ottimizzato.py`:
+- **`potatura.csv`**: Indici di taglio $X_{min}$ e numero di valutazioni effettive per ciascuna tipologia di rifiuto.
+- **`righe.csv`**: Record dettagliati delle soluzioni valutate a confronto (ricerca completa vs potata).
+- **`tempi.csv`**: Misurazioni dei tempi wall-clock e tempo CPU con conteggio dei worker paralleli.
+
+### 9. `generatori figure/`
 Contiene gli script Python che leggono le metriche aggregate da `analisi_seed/`, `analisi_seed_estese/` o `risultati_seed/` e generano le figure ad alta risoluzione (300 DPI) per la tesi:
 - **`fig_concetti.py`**: Relazioni concettuali $V-X$ e scomposizione del gap.
 - **`fig_gap_B1_B2.py`**: Curve gap vs $N$ per B1 e gap a barre per gli scenari di B2 a $\gamma \in \{0.1, 0.5, 0.9\}$.
@@ -140,40 +172,17 @@ Contiene gli script Python che leggono le metriche aggregate da `analisi_seed/`,
 - **`fig_t2.py`**: Saturazioni temporale/fisica con soglie teoriche di regime e curve di vantaggio logistico per T2.
 - **`figure_pareto.py`**: Curve di trade-off Pareto e profili delle metriche fisiche.
 
-### 4. `script matlab/`
-Contiene gli script MATLAB per le analisi statistiche descrittive dei singoli benchmark (da B1 a B5) e per le analisi trasversali (T1 su $\gamma$ e T2 sul profilo $X_r$). Ciascuno script legge i dati in modo relativo da `risultati_csv/`.
-
-### 5. `testing/`
-Raccoglie tutti gli script di esecuzione batch (`batch_seed.py`, `batch_fabriano.py`), gli script di analisi statistica e validazione:
-- **`t1_generalita.py`**: Test di generalità delle evidenze di Fabriano sui benchmark sintetici (E1 grandezze adimensionali, E2 plateau, E3 dominanza a pari $\gamma$ e a pari $X_r$, E4 pendenza marginale, E5 soglie di cambio frequenza).
-- **`t2_profilo.py`**: Analisi del profilo a frequenza fissata (P1 soglia capacità vs tempo, P2 unimodalità e ricerca a discesa, P3 sensibilità attorno a $X^*$, P4 confronto diretto Greedy vs Clarke-Wright).
-- **`test_addensamento.py`**: Calcolo dell'indice spaziale di Clark-Evans $R$ su utenti reali e campioni uniformi sintetici per spiegare il decadimento del fattore $r = \text{km}/\sqrt{N \cdot A}$.
-- Script di regressione, densità areale, impacchettamento e verifica coerenza rotte (`test_*.py`, `valida_seed42.py`).
-
-### 6. `algoritmo_ottimizzato/`
-Contiene la proposta metodologica di ottimizzazione computazionale (Benchmark Trasversale 2):
-- **`main_ottimizzato.py`**: Esegue la ricerca con potatura a priori. Sfrutta il fatto che $F_{ins}(X_r)$ è indipendente dal routing e identifica $X_{min} = \arg\min F_{ins}$. Poiché per $X > X_{min}$ né il disservizio né i costi logistici diminuiscono, tali frequenze risultano dominate per qualsiasi $\gamma$ e vengono escluse dalla computazione VRP, risparmiando oltre il 60% delle chiamate di routing.
-- **`test_ottimizzato.py`**: Validazione formale della ricerca potata (T1 verifica che il costo non cali oltre $X_{min}$, T2-T3 invarianza esatta delle soluzioni ottime rispetto ai dati completi, T4 quantificazione del risparmio di tempo reale e CPU).
-
-### 7. `risultati_ottimizzati/`
-Contiene gli output prodotti dall'esecuzione di `main_ottimizzato.py`:
-- **`potatura.csv`**: Indici di taglio $X_{min}$ e numero di valutazioni effettive per ciascuna tipologia di rifiuto.
-- **`righe.csv`**: Record dettagliati delle soluzioni valutate a confronto (ricerca completa vs potata).
-- **`tempi.csv`**: Misurazioni dei tempi wall-clock e tempo CPU con conteggio dei worker paralleli.
-
-### 8. `risultati_csv/`
+### 10. `risultati_csv/`
 Archivia **48 file CSV** corrispondenti ai risultati delle istanze deterministiche / benchmark principali con seed 42, calcolati su tre valori di compromesso sociale/economico ($\gamma \in \{0.10, 0.50, 0.90\}$).
 
-### 9. `risultati_seed/`
-Archivia **1.260 file CSV** prodotti dai lanci su griglie estese di semi casuali (30 seed per combinazione di scenario, tipologia, scala spaziale e algoritmo), utilizzati per l'analisi statistica a intervalli di confidenza (serie standard B1, B1S, B2, B3, B4sub, B5 e serie estese B1L, B1SL fino a 4.000 utenti).
+### 11. `risultati_seed/`
+Archivia **1.260 file CSV** prodotti dai lanci su griglie estese di semi casuali (30 seed per combinazione di scenario, tipologia, scala spaziale e algoritmo), utilizzati per l'analisi statistica a intervalli di confidenza (serie standard B1, B1S, B2, B3, B4sub, B5 e serie estese B1L, B1SL fino a 4.000 utenti), oltre agli script di post-processing **`analisi_gamma.py`** ed **`estrai_r.py`**.
 
-### 10. `analisi_seed/` e `analisi_seed_estese/`
-- **`analisi_seed/`**: Contiene i file CSV di riepilogo statistico (medie, deviazioni standard, intervalli di confidenza al 95%), i file di sintesi delle analisi T1 e T2 (`t1_*.csv`, `t2_*.csv`) e le relative figure salvate in formato PNG.
-- **`analisi_seed_estese/`**: Archivia le aggregazioni statistiche specifiche per le serie ad alto numero di utenti (fino a $N=3.932$ per Fabriano e $N=4.000$ per sintetici), con i profili del fattore di scala $r$ e i test di addensamento spaziale.
+### 12. `analisi_seed/`
+Contiene i file CSV di riepilogo statistico (medie, deviazioni standard, intervalli di confidenza al 95%), i file di sintesi delle analisi T1 e T2 (`t1_*.csv`, `t2_*.csv`) e le relative figure salvate in formato PNG (15 file `.png`).
 
-### 11. `Generazione_grafo_Fabriano/`
-Comprende l'intera pipeline geografica GIS/OSM: estrazione della mappa stradale di Fabriano, associazione degli edifici e generazione degli utenti geolocalizzati.
+### 13. `analisi_seed_estese/`
+Archivia le aggregazioni statistiche specifiche per le serie ad alto numero di utenti (fino a $N=3.932$ per Fabriano e $N=4.000$ per sintetici), con i profili del fattore di scala $r$ (`r_per_N.csv`) e i test di addensamento spaziale (`test_addensamento.csv`).
 
-### 12. `grafi_png/` e `grafo_condiviso/`
-- **`grafi_png/`**: Immagini rendering dei grafi generati e delle rotte calcolate.
-- **`grafo_condiviso/`**: File binari (`.pkl`) dei grafi base sintetici pre-generati per velocizzare le esecuzioni multi-seed.
+### 14. `script matlab (old)/`
+Contiene gli script MATLAB legacy per le analisi statistiche descrittive dei singoli benchmark (da B1 a B5) e per le analisi trasversali (T1 su $\gamma$ e T2 sul profilo $X_r$). Ciascuno script legge i dati in modo relativo da `risultati_csv/`.
