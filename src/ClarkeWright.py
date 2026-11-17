@@ -4,6 +4,8 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import numpy as np
 
+from Generazione_Dati import calcola_carico_utente
+
 
 # =============================================================================
 # 1. PRE-CALCOLO ARRAY NUMPY
@@ -26,7 +28,7 @@ def _make_numpy_views(
 
     for u in range(1, n + 1):
         t_u       = user_types[u - 1]
-        Q_arr[u]  = W[(r, t_u)] / X_r
+        Q_arr[u]  = calcola_carico_utente(W[(r, t_u)], X_r)
         TC_arr[u] = tc[(r, t_u)]
 
     return dist_np, time_np, Q_arr, TC_arr

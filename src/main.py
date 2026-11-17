@@ -36,7 +36,7 @@ def calcola_worker_ottimali(n_users: int) -> int:
 # Costanti
 # ──────────────────────────────────────────────────────────────────────────────
 
-X_VALUES = [x / 2 for x in range(1, 13)]   # [0.5, 1.0, … 6.0]
+X_VALUES = [x / 2 for x in range(1, 9)]    # [0.5, 1.0, … 4.0]
 
 # ✅ CORREZIONE 1: Aggiunta di "gamma" e "k_scala" ai CSV_FIELDS
 CSV_FIELDS = [

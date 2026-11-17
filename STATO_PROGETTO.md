@@ -1,7 +1,7 @@
 # STATO_PROGETTO.md — Memoria Viva del Progetto SPIL
 
 > **Ultimo aggiornamento:** 2026-11-17
-> **Branch corrente:** `emergenza` (da riunificare in `main`)
+> **Branch corrente:** `main` (riunificato da `emergenza`)
 > **PDF di riferimento:** [`latex/tesinaTommasinoGarofoli.pdf`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/latex/tesinaTommasinoGarofoli.pdf) / [`docs/attivo/tesinaTommasinoGarofoli.pdf`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/docs/attivo/tesinaTommasinoGarofoli.pdf)
 > **Formulazione matematica attiva:** [`latex/capitolo-1.tex`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/latex/capitolo-1.tex) + [`latex/capitolo-2.tex`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/latex/capitolo-2.tex) + [`docs/attivo/Versione 7 SPIL.md`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/docs/attivo/Versione%207%20SPIL.md)
 
@@ -48,10 +48,10 @@ Dall'analisi di [`docs/attivo/Incontro 7.md`](file:///Users/davide_tom/Documents
 
 ## 3. Roadmap Operativa Prioritaria
 
-- [ ] **FASE 1 — Refactoring del Modello e delle Euristiche (`src/`):**
-  - [ ] **1.1:** Definire e implementare la nuova legge sub-lineare/logaritmica per $Q_{ru}(X_r)$ e aggiornare la griglia $\mathcal{X}$ (`X_VALUES`) in [`Generazione_Dati.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/Generazione_Dati.py), [`Greedy.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/Greedy.py), [`ClarkeWright.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/ClarkeWright.py) e [`main.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/main.py).
-  - [ ] **1.2:** Analizzare e testare l'impatto dell'inversione di rotta nei merge di [`ClarkeWright.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/ClarkeWright.py).
-  - [ ] **1.3:** Riunificare in sicurezza il branch `emergenza` su `main`.
+- [x] **FASE 1 — Refactoring del Modello e delle Euristiche (`src/`):**
+  - [x] **1.1:** Definire e implementare la nuova legge sub-lineare/logaritmica per $Q_{ru}(X_r) = W_{r t_u}\cdot(0.95 - 0.25\ln(X_r+0.5))$ e aggiornare la griglia $\mathcal{X}$ (`X_VALUES = [0.5, ..., 4.0]`) in [`Generazione_Dati.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/Generazione_Dati.py), [`Greedy.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/Greedy.py), [`ClarkeWright.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/ClarkeWright.py) e [`main.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/main.py).
+  - [x] **1.2:** Valutato [`ClarkeWright_inv.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/archivio_sperimentale/ClarkeWright_inv.py) tramite [`test_cw_inversione.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/testing/test_cw_inversione.py): guadagno trascurabile su Fabriano ($-0.05\%$), mantenuto [`ClarkeWright.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/ClarkeWright.py) standard e archiviata la variante in [`src/archivio_sperimentale/`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/archivio_sperimentale).
+  - [x] **1.3:** Riunificare in sicurezza il branch `emergenza` su `main`.
 - [ ] **FASE 2 — Script e Report su Singola Istanza per Ricevimento Prof.ssa Adacher:**
   - [ ] **2.1:** Creare uno script dedicato in `src/` che esegua Greedy e Clarke-Wright su **una singola istanza** di Fabriano e stampi/esporti una tabella completa e trasparente con: valori grezzi di $F_{\text{costi}}$ (scomposto in fisso, viaggio, lavoro) e $F_{\text{insoddis}}$, valore di $k_{\text{scala}}$, termini pesati a $\gamma \in \{0.1, 0.5, 0.9\}$, e variabili decisionali ottime scelte dai due algoritmi ($X_r^*, V_r^*, V_r^*\cdot X_r^*, \text{km}, \text{ore}, \text{Sat}_{\text{fis}}, \text{Sat}_{\text{tempo}}$), più grafico bi-criterio non pesato $(F_{\text{costi}}, F_{\text{insoddis}})$.
 - [ ] **FASE 3 — Nuova Campagna Sperimentale su Fabriano & Ristrutturazione Capitolo 3 (`latex/`):**
@@ -62,6 +62,11 @@ Dall'analisi di [`docs/attivo/Incontro 7.md`](file:///Users/davide_tom/Documents
 ---
 
 ## 4. Changelog
+
+- **2026-11-17 — Completamento Fase 1 (Riunificazione Git, Legge $Q_{ru}(X_r)$ Sub-Lineare, Test `ClarkeWright_inv`):**
+  - Riunificato il branch `emergenza` su `main` mantenendo l'albero ristrutturato (`src/`, `latex/`, `docs/`).
+  - Implementata in [`src/Generazione_Dati.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/Generazione_Dati.py#L130-L152) la legge chiusa sub-lineare $Q_{ru}(X_r) = W_{r t_u}\cdot(0.95 - 0.25\ln(X_r + 0.5))$ ($95.0\%$ a $X_r=0.5 \to 57.4\%$ a $X_r=4.0$), collegata a [`src/Greedy.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/Greedy.py#L39) e [`src/ClarkeWright.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/ClarkeWright.py#L31); aggiornata `X_VALUES` a 8 valori ($[0.5, \dots, 4.0]$) in [`src/main.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/main.py#L39).
+  - Creati [`src/archivio_sperimentale/ClarkeWright_inv.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/archivio_sperimentale/ClarkeWright_inv.py) e [`src/testing/test_cw_inversione.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/testing/test_cw_inversione.py): migliorati 24/24 casi su istanza sintetica $N=400$ ($-1.15\%$) e 16/16 casi su Fabriano $N=3932$ ($-0.05\%$). Dato il risparmio trascurabile su Fabriano, si mantiene [`src/ClarkeWright.py`](file:///Users/davide_tom/Documents/Obsidian%20Note/SPIL/src/ClarkeWright.py) standard.
 
 - **2026-11-17 — Inizializzazione Memoria Persistente e Allineamento Post-Incontro 7:**
   - Eseguita ricognizione completa di codice, CSV, `.tex` (v1 e v2), `Incontro 6.md`, `Incontro 7.md` e note storiche Obsidian.

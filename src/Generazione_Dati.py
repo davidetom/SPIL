@@ -128,6 +128,30 @@ def _build_graph(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+#  Legge sub-lineare / logaritmica del carico per singolo ritiro Q_ru(X_r)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def fattore_riempimento(X_r: float) -> float:
+    """
+    Fattore percentuale di riempimento phi(X_r) rispetto alla capacità nominale W_{r,t_u}:
+      phi(X_r) = 0.95 - 0.25 * ln(X_r + 0.5)
+    - X_r = 0.5 -> 0.950 (95.0%, contenitore quasi pieno)
+    - X_r = 1.0 -> 0.849 (84.9%)
+    - X_r = 2.0 -> 0.721 (72.1%)
+    - X_r = 3.0 -> 0.637 (63.7%)
+    - X_r = 4.0 -> 0.574 (57.4%)
+    """
+    if X_r <= 0:
+        raise ValueError(f"X_r deve essere > 0, ricevuto {X_r}")
+    return float(max(0.10, 0.95 - 0.25 * np.log(X_r + 0.5)))
+
+
+def calcola_carico_utente(W_val: float, X_r: float) -> float:
+    """Restituisce il carico Q_ru(X_r) = W_{r,t_u} * phi(X_r) per singolo passaggio."""
+    return float(W_val * fattore_riempimento(X_r))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 #  _build_problem_params  —  Generazione parametri indipendenti dal grafo
 # ─────────────────────────────────────────────────────────────────────────────
 
