@@ -103,19 +103,20 @@ L'unica fonte di verità matematica è costituita da [`latex/capitolo-1.tex`](fi
 
 ### 3.2 Parametri Globali e Tabelle Merceologiche / Utenze
 - **Costanti globali:**
-  - $cd = 0.35\text{ €/km}$ | $cm = 0.25\text{ €/min}$ ($15\text{ €/h}$) | $L = 480\text{ min}$ ($8\text{ h}$) | Velocità media $= 25\text{ km/h}$ ($\tau_{ab} = d_{ab} \cdot \frac{60}{25}\text{ min}$)
+  - $cd = 2.0\text{ €/km}$ | $cm = 0.25\text{ €/min}$ ($15\text{ €/h}$) | $L = 480\text{ min}$ ($8\text{ h}$) | Velocità media $= 25\text{ km/h}$ ($\tau_{ab} = d_{ab} \cdot \frac{60}{25}\text{ min}$)
   - $\alpha = 10.0$ (penalità sotto-servizio) | $\beta = 2.0$ (penalità sovra-servizio)
-  - Politiche di riferimento: $\gamma \in \{0.10\text{ (Pro-Azienda)},\, 0.50\text{ (Neutra)},\, 0.90\text{ (Pro-Cittadino)}\}$
+  - Politiche di riferimento: $\gamma \in \{0.10\text{ (Pro-Azienda)},\, 0.50\text{ (Bilanciata)},\, 0.90\text{ (Pro-Cittadino)}\}$
+  - Legge di carico sub-lineare: $Q_{ru}(X_r) = W_{r t_u} \cdot \max(0.10,\, 0.95 - 0.25\ln(X_r + 0.5))$, con $\mathcal{X} = [0.5, 1.0, \dots, 4.0]$.
 
 - **Parametri per Tipologia di Rifiuto ($r \in R$):**
 
 | Rifiuto (`r`) | Capacità $C_r$ (kg) | Costo fisso $c_r$ (€) | Produzione base $W_{\text{base}}$ (kg/sett.) | Freq. ideale base $x^*_{\text{base}}$ (ritiri/sett.) | Servizio base $s_{\text{base}}$ (min) |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| `organico` | $1500$ | $120$ | $3.0$ | $2.5$ | $1.2$ |
-| `carta` | $1500$ | $80$ | $2.0$ | $1.0$ | $1.0$ |
-| `plastica` | $1000$ | $70$ | $1.7$ | $1.7$ | $1.0$ |
-| `vetro` | $2000$ | $110$ | $1.2$ | $0.5$ | $1.5$ |
-| `indifferenziata` | $2000$ | $90$ | $2.5$ | $2.0$ | $1.2$ |
+| `organico` | $1500$ | $120/3 = 40.0$ | $3.0$ | $2.5$ | $1.2/3 = 0.40$ |
+| `carta` | $1500$ | $80/3 \approx 26.67$ | $2.0$ | $1.0$ | $1.0/3 \approx 0.33$ |
+| `plastica` | $1000$ | $70/3 \approx 23.33$ | $1.7$ | $1.7$ | $1.0/3 \approx 0.33$ |
+| `vetro` | $2000$ | $110/3 \approx 36.67$ | $1.2$ | $0.5$ | $1.5/3 = 0.50$ |
+| `indifferenziata` | $2000$ | $90/3 = 30.0$ | $2.5$ | $2.0$ | $1.2/3 = 0.40$ |
 
 - **Moltiplicatori per Tipologia di Utenza ($t_u \in T$):**
   *(dove $W_{r t_u} = W_{\text{base},r} \cdot \text{Molt}_W$, $x^*_{r t_u} = x^*_{\text{base},r} \cdot \text{Molt}_{x^*}$, $s_{r t_u} = s_{\text{base},r} \cdot \text{Molt}_s$)*

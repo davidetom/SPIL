@@ -42,7 +42,7 @@ from main import (
 
 OUTPUT_DIR = TESTING_DIR / "output_fase2"
 GAMMA_LIST = [0.1, 0.5, 0.9]
-GAMMA_LABELS = {0.1: "Pro-Azienda", 0.5: "Neutra", 0.9: "Pro-Cittadino"}
+GAMMA_LABELS = {0.1: "Pro-Azienda", 0.5: "Bilanciata", 0.9: "Pro-Cittadino"}
 COLOR_GREEDY = "#2171b5"
 COLOR_CW = "#d95f0e"
 
@@ -337,7 +337,7 @@ def plot_bicriterion(opt_rows: list[dict], grid_rows: list[dict], waste_types: l
         plt.Line2D([0], [0], color=COLOR_GREEDY, lw=2, label="Greedy (#2171b5)"),
         plt.Line2D([0], [0], color=COLOR_CW, lw=2, label="Clarke-Wright (#d95f0e)"),
         plt.Line2D([0], [0], marker="o", color="w", markerfacecolor="gray", markeredgecolor="k", markersize=8, label=r"Ottimo $\gamma=0.1$ (Pro-Azienda)"),
-        plt.Line2D([0], [0], marker="s", color="w", markerfacecolor="gray", markeredgecolor="k", markersize=8, label=r"Ottimo $\gamma=0.5$ (Neutra)"),
+        plt.Line2D([0], [0], marker="s", color="w", markerfacecolor="gray", markeredgecolor="k", markersize=8, label=r"Ottimo $\gamma=0.5$ (Bilanciata)"),
         plt.Line2D([0], [0], marker="D", color="w", markerfacecolor="gray", markeredgecolor="k", markersize=8, label=r"Ottimo $\gamma=0.9$ (Pro-Cittadino)"),
     ]
     ax_leg.legend(handles=handles, loc="center", fontsize=10, frameon=True, title="Legenda Bi-Criterio")

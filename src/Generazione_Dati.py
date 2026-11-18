@@ -235,11 +235,11 @@ def _build_problem_params(
     }
 
     tc_base = {
-        "organico": 1.2, 
-        "carta": 1.0, 
-        "plastica": 1.0,
-        "vetro": 1.5,    
-        "indifferenziata": 1.2,
+        "organico": 1.2 / 3.0, 
+        "carta": 1.0 / 3.0, 
+        "plastica": 1.0 / 3.0,
+        "vetro": 1.5 / 3.0,    
+        "indifferenziata": 1.2 / 3.0,
     }
     tc_type_mult = {
         "single": 1.0, 
@@ -253,11 +253,11 @@ def _build_problem_params(
     }
 
     c_fixed = {
-        "organico": 120.0, 
-        "carta": 80.0, 
-        "plastica": 70.0,
-        "vetro": 110.0,    
-        "indifferenziata": 90.0,
+        "organico": 120.0 / 3.0, 
+        "carta": 80.0 / 3.0, 
+        "plastica": 70.0 / 3.0,
+        "vetro": 110.0 / 3.0,    
+        "indifferenziata": 90.0 / 3.0,
     }
 
     return {
@@ -269,7 +269,7 @@ def _build_problem_params(
         "tc":              tc,
         "c_fixed":         c_fixed,
         "waste_types":     waste_types,
-        "cd":              0.35,
+        "cd":              2.0,
         "cm":              15.0 / 60.0,
         "L":               480.0,
         "alpha":           10.0,
